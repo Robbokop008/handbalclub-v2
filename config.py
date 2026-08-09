@@ -10,11 +10,15 @@ gehaald (.env-bestand), met een veilige standaardwaarde voor development.
 import os
 from dotenv import load_dotenv
 
-# Laad variabelen uit een .env-bestand in de projectroot (indien aanwezig)
-load_dotenv()
-
 # Basisdirectory van het project, handig voor bestandspaden
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+
+# Laad variabelen uit het .env-bestand in de projectroot (indien aanwezig).
+# Expliciet pad i.p.v. load_dotenv() zonder argument: dat laatste zoekt vanaf
+# de working directory van het proces, en die klopt niet noodzakelijk onder
+# een WSGI-server (bv. PythonAnywhere) - .env werd daardoor stilzwijgend
+# genegeerd in plaats van een fout te geven.
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 
 class Config:
