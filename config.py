@@ -65,10 +65,18 @@ class DevelopmentConfig(Config):
     )
 
 
+def _normalize_database_url(url):
+    """Sommige hosts (bv. oudere Heroku-achtige styleconventies) geven 'postgres://'
+    terug, maar SQLAlchemy 1.4+ vereist het volledige 'postgresql://'-schema."""
+    if url and url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql://", 1)
+    return url
+
+
 class ProductionConfig(Config):
-    """Instellingen voor de live-omgeving (bv. op Hetzner)."""
+    """Instellingen voor de live-omgeving (bv. Render, Hetzner)."""
     DEBUG = False
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
+    SQLALCHEMY_DATABASE_URI = _normalize_database_url(os.environ.get("DATABASE_URL"))
 
 
 # Maak het eenvoudig om per omgeving de juiste config te kiezen
