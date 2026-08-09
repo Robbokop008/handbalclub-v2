@@ -1,0 +1,64 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - {{ 'Team bewerken' if team else 'Nieuw team' }}{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>{{ 'Team bewerken' if team else 'Nieuw team toevoegen' }}</h1>
+</div>
+
+<section class="section">
+    {% if error %}
+    <p class="alert alert-error" style="margin-bottom:20px;">{{ error }}</p>
+    {% endif %}
+
+    <form action="{{ url_for('admin.edit_team', team_id=team.id) if team else url_for('admin.add_team') }}" method="post" class="admin-form" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div>
+            <label for="naam">Naam</label>
+            <input type="text" id="naam" name="naam" value="{{ form_naam if form_naam is defined else (team.naam if team else '') }}" required>
+        </div>
+        <div>
+            <label for="slug">Slug (interne verwijzing)</label>
+            <input type="text" id="slug" name="slug" value="{{ form_slug if form_slug is defined else (team.slug if team else '') }}" placeholder="wordt automatisch afgeleid van de naam als je dit leeg laat">
+        </div>
+        <div>
+            <label for="sectie">Sectie</label>
+            {% set huidige_sectie = form_sectie if form_sectie is defined else (team.sectie if team else 'dames') %}
+            <select id="sectie" name="sectie">
+                {% for waarde in team_secties %}
+                <option value="{{ waarde }}" {{ 'selected' if huidige_sectie == waarde else '' }}>{{ sectie_labels[waarde] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="categorie">Categorie (optioneel)</label>
+            <input type="text" id="categorie" name="categorie" value="{{ form_categorie if form_categorie is defined else (team.categorie or '' if team else '') }}" placeholder="bv. Eerste ploeg, Beloften, Regio">
+        </div>
+        <div>
+            <label for="trainer">Trainer (optioneel)</label>
+            <input type="text" id="trainer" name="trainer" value="{{ form_trainer if form_trainer is defined else (team.trainer or '' if team else '') }}">
+        </div>
+        <div>
+            <label for="foto">Ploegfoto (optioneel)</label>
+            {% if team and team.foto_url %}
+            <p class="muted">
+                Huidige foto: {{ team.foto_url }} —
+                <label class="checkbox-inline" style="display:inline-flex;"><input type="checkbox" name="verwijder_foto" value="1"> verwijderen</label>
+            </p>
+            {% endif %}
+            <input type="file" id="foto" name="foto" accept="image/*">
+        </div>
+        <div style="grid-column:1/-1;">
+            <label for="omschrijving">Omschrijving (optioneel)</label>
+            <textarea id="omschrijving" name="omschrijving" rows="6">{{ form_omschrijving if form_omschrijving is defined else (team.omschrijving or '' if team else '') }}</textarea>
+        </div>
+
+        <div class="form-actions" style="grid-column:1/-1;">
+            <button type="submit" class="admin-button">Opslaan</button>
+            <a href="{{ url_for('admin.teams') }}" class="btn btn-secondary">Annuleren</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

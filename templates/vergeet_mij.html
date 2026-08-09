@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Vergeet Mij (GDPR) - Handbal Sint-Truiden{% endblock %}
+
+{% block content %}
+<section class="hero hero-short">
+    <div class="hero-content">
+        <h1>Vergeet mij</h1>
+        <p>Wil je dat we je persoonsgegevens verwijderen? Vul onderstaand formulier in en we verwerken je verzoek binnen de wettelijke termijn.</p>
+    </div>
+</section>
+
+<section class="section" style="max-width:600px;">
+    {% if success %}
+        <p class="alert alert-success">Je verzoek is ontvangen. We nemen zo snel mogelijk contact met je op.</p>
+    {% else %}
+    <form action="{{ url_for('main.vergeet_mij') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <label for="naam">Naam</label>
+        <input type="text" id="naam" name="naam" value="{{ naam or '' }}" required>
+
+        <label for="email">E-mailadres</label>
+        <input type="email" id="email" name="email" value="{{ email or '' }}" required>
+
+        <label for="lidnummer">Lidnummer (optioneel)</label>
+        <input type="text" id="lidnummer" name="lidnummer" value="{{ lidnummer or '' }}">
+
+        <label for="opmerking">Extra bericht/melding (optioneel)</label>
+        <textarea id="opmerking" name="opmerking">{{ opmerking or '' }}</textarea>
+
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
+
+        <button type="submit" class="cta-button" style="margin-top:20px;">Verzoek versturen</button>
+    </form>
+    {% endif %}
+</section>
+{% endblock %}

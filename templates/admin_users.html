@@ -1,0 +1,44 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - Gebruikers{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>Gebruikers beheren</h1>
+    <p>Hieronder zie je een overzicht van alle geregistreerde gebruikers.</p>
+</div>
+
+<section class="section">
+
+    {% if users %}
+    <div class="table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Naam</th>
+                    <th>Gebruikersnaam</th>
+                    <th>Email</th>
+                    <th>Lidmaatschapstatus</th>
+                    <th>Lid sinds</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>{{ u.user_id }}</td>
+                    <td>{{ u.first_name }} {{ u.last_name }}</td>
+                    <td>{{ u.username }}</td>
+                    <td>{{ u.email }}</td>
+                    <td>{{ u.membership_status }}</td>
+                    <td>{{ u.created_at.strftime('%d/%m/%Y') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p>Er zijn nog geen gebruikers geregistreerd.</p>
+    {% endif %}
+</section>
+{% endblock %}

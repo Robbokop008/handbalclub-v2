@@ -1,0 +1,90 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - {{ 'Nieuwsbericht bewerken' if bericht else 'Nieuw nieuwsbericht' }}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/quill/quill.snow.min.css') }}">
+<style>
+  #quill-editor { background: var(--white); min-height: 220px; }
+  .ql-toolbar.ql-snow { border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+  .ql-container.ql-snow { border-radius: 0 0 var(--radius-sm) var(--radius-sm); font-size: 15px; }
+  .ql-table-menu-btn { width: auto !important; padding: 0 6px !important; font-size: 16px !important; line-height: 24px !important; }
+  .table-size-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+  .table-size-dialog { background: var(--white); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-hover); min-width: 260px; }
+  .table-size-dialog h3 { margin: 0 0 16px; }
+  .table-size-dialog label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+  .table-size-dialog input { display: block; width: 100%; margin-top: 4px; padding: 6px 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+  .table-size-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+  .ql-table-dropdown { position: absolute; z-index: 1000; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow-hover); display: flex; flex-direction: column; min-width: 200px; padding: 4px; }
+  .ql-table-dropdown button { text-align: left; background: none; border: none; padding: 8px 10px; font-size: 13px; border-radius: var(--radius-sm); cursor: pointer; color: var(--ink); }
+  .ql-table-dropdown button:hover { background: var(--blue-light); }
+  .ql-table-dropdown-danger { color: var(--danger); }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>{{ 'Nieuwsbericht bewerken' if bericht else 'Nieuw nieuwsbericht toevoegen' }}</h1>
+    <p>Tekst wordt automatisch opgeschoond bij opslaan (enkel eenvoudige opmaak toegestaan).</p>
+</div>
+
+<section class="section">
+    {% if error %}
+    <p class="alert alert-error" style="margin-bottom:20px;">{{ error }}</p>
+    {% endif %}
+
+    <form action="{{ url_for('admin.edit_nieuws', bericht_id=bericht.id) if bericht else url_for('admin.add_nieuws') }}" method="post" class="admin-form" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div>
+            <label for="titel">Titel</label>
+            <input type="text" id="titel" name="titel" value="{{ form_titel if form_titel is defined else (bericht.titel if bericht else '') }}" required>
+        </div>
+        <div>
+            <label for="categorie">Categorie</label>
+            <select id="categorie" name="categorie">
+                {% set huidige_categorie = form_categorie if form_categorie is defined else (bericht.categorie if bericht else categorieen[0]) %}
+                {% for c in categorieen %}
+                <option value="{{ c }}" {{ 'selected' if c == huidige_categorie else '' }}>{{ c }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="gepubliceerd_op">Gepubliceerd op</label>
+            <input type="datetime-local" id="gepubliceerd_op" name="gepubliceerd_op" value="{{ bericht.gepubliceerd_op.strftime('%Y-%m-%dT%H:%M') if bericht and bericht.gepubliceerd_op else '' }}" placeholder="laat leeg voor nu">
+        </div>
+        <div class="checkbox-field">
+            {% set is_groot = form_groot if form_groot is defined else (bericht.groot if bericht else false) %}
+            <label for="groot"><input type="checkbox" id="groot" name="groot" {{ 'checked' if is_groot else '' }}> Groot formaat (neemt meer plaats in op de nieuwsoverzichten)</label>
+        </div>
+        <div>
+            <label for="afbeelding">Afbeelding (optioneel)</label>
+            {% if bericht and bericht.afbeelding %}
+            <p class="muted">
+                Huidige afbeelding: {{ bericht.afbeelding }} —
+                <label class="checkbox-inline" style="display:inline-flex;"><input type="checkbox" name="verwijder_afbeelding" value="1"> verwijderen</label>
+            </p>
+            {% endif %}
+            <input type="file" id="afbeelding" name="afbeelding" accept="image/*">
+        </div>
+        <div style="grid-column:1/-1;">
+            <label for="quill-editor">Inhoud</label>
+            <div id="quill-editor" data-textarea-id="inhoud" data-image-upload-url="{{ url_for('admin.upload_page_image') }}"></div>
+            <textarea id="inhoud" name="inhoud" style="display:none;">{{ form_inhoud if form_inhoud is defined else (bericht.inhoud if bericht else '') }}</textarea>
+        </div>
+
+        <div class="form-actions" style="grid-column:1/-1;">
+            <button type="submit" class="admin-button">Opslaan</button>
+            <a href="{{ url_for('admin.nieuws') }}" class="btn btn-secondary">Annuleren</a>
+        </div>
+    </form>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='vendor/quill/quill.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/admin_rich_editor.js') }}"></script>
+<script>
+    initAdminRichEditor(document.getElementById('quill-editor'));
+</script>
+{% endblock %}

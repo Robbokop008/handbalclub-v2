@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Inschrijving nieuwe speler - Handbal Sint-Truiden{% endblock %}
+
+{% block content %}
+<section class="hero hero-short">
+    <div class="hero-content">
+        <h1>{{ site_teksten.inschrijving_hero_titel }}</h1>
+        <p>{{ site_teksten.inschrijving_hero_intro }}</p>
+    </div>
+</section>
+
+<section class="section" style="max-width:640px;">
+    <form action="{{ url_for('jeugd.inschrijving') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <label for="voornaam_speler">{{ veld_config['voornaam_speler'].label }}{{ '' if veld_config['voornaam_speler'].verplicht else ' (optioneel)' }}</label>
+        <input type="text" id="voornaam_speler" name="voornaam_speler" value="{{ gegevens.get('voornaam_speler', '') }}" {{ 'required' if veld_config['voornaam_speler'].verplicht else '' }}>
+
+        <label for="achternaam_speler">{{ veld_config['achternaam_speler'].label }}{{ '' if veld_config['achternaam_speler'].verplicht else ' (optioneel)' }}</label>
+        <input type="text" id="achternaam_speler" name="achternaam_speler" value="{{ gegevens.get('achternaam_speler', '') }}" {{ 'required' if veld_config['achternaam_speler'].verplicht else '' }}>
+
+        <div class="grid" style="grid-template-columns:1fr 1fr;gap:12px;">
+            <div>
+                <label for="geboortedatum">{{ veld_config['geboortedatum'].label }}{{ '' if veld_config['geboortedatum'].verplicht else ' (optioneel)' }}</label>
+                <input type="date" id="geboortedatum" name="geboortedatum" value="{{ gegevens.get('geboortedatum', '') }}" {{ 'required' if veld_config['geboortedatum'].verplicht else '' }}>
+            </div>
+            <div>
+                <label for="geboorteplaats">{{ veld_config['geboorteplaats'].label }}{{ '' if veld_config['geboorteplaats'].verplicht else ' (optioneel)' }}</label>
+                <input type="text" id="geboorteplaats" name="geboorteplaats" value="{{ gegevens.get('geboorteplaats', '') }}" {{ 'required' if veld_config['geboorteplaats'].verplicht else '' }}>
+            </div>
+        </div>
+
+        <label for="categorie">{{ veld_config['categorie'].label }}{{ '' if veld_config['categorie'].verplicht else ' (optioneel)' }}</label>
+        <select name="categorie" id="categorie" {{ 'required' if veld_config['categorie'].verplicht else '' }}>
+            <option value="" {{ 'selected' if not gegevens.get('categorie') else '' }}>Kies een categorie</option>
+            {% for cat in categorieen %}
+                <option value="{{ cat }}" {{ 'selected' if gegevens.get('categorie') == cat else '' }}>{{ cat }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="straat_nr">{{ veld_config['straat_nr'].label }}{{ '' if veld_config['straat_nr'].verplicht else ' (optioneel)' }}</label>
+        <input type="text" id="straat_nr" name="straat_nr" value="{{ gegevens.get('straat_nr', '') }}" {{ 'required' if veld_config['straat_nr'].verplicht else '' }}>
+
+        <div class="grid" style="grid-template-columns:1fr 2fr;gap:12px;">
+            <div>
+                <label for="postcode">{{ veld_config['postcode'].label }}{{ '' if veld_config['postcode'].verplicht else ' (optioneel)' }}</label>
+                <input type="text" id="postcode" name="postcode" value="{{ gegevens.get('postcode', '') }}" {{ 'required' if veld_config['postcode'].verplicht else '' }}>
+            </div>
+            <div>
+                <label for="gemeente">{{ veld_config['gemeente'].label }}{{ '' if veld_config['gemeente'].verplicht else ' (optioneel)' }}</label>
+                <input type="text" id="gemeente" name="gemeente" value="{{ gegevens.get('gemeente', '') }}" {{ 'required' if veld_config['gemeente'].verplicht else '' }}>
+            </div>
+        </div>
+
+        <label for="email">{{ veld_config['email'].label }}{{ '' if veld_config['email'].verplicht else ' (optioneel)' }}</label>
+        <input type="email" id="email" name="email" value="{{ gegevens.get('email', '') }}" {{ 'required' if veld_config['email'].verplicht else '' }}>
+
+        <label for="telefoon">{{ veld_config['telefoon'].label }}{{ '' if veld_config['telefoon'].verplicht else ' (optioneel)' }}</label>
+        <input type="tel" id="telefoon" name="telefoon" value="{{ gegevens.get('telefoon', '') }}" {{ 'required' if veld_config['telefoon'].verplicht else '' }}>
+
+        <label for="hoe_gehoord">{{ veld_config['hoe_gehoord'].label }}{{ '' if veld_config['hoe_gehoord'].verplicht else ' (optioneel)' }}</label>
+        <select id="hoe_gehoord" name="hoe_gehoord" {{ 'required' if veld_config['hoe_gehoord'].verplicht else '' }}>
+            <option value="" {{ 'selected' if not gegevens.get('hoe_gehoord') else '' }}>Maak een keuze</option>
+            {% for optie in hoe_gehoord_opties %}
+                <option value="{{ optie }}" {{ 'selected' if gegevens.get('hoe_gehoord') == optie else '' }}>{{ optie }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="school">{{ veld_config['school'].label }}{{ '' if veld_config['school'].verplicht else ' (optioneel)' }}</label>
+        <select id="school" name="school" {{ 'required' if veld_config['school'].verplicht else '' }}>
+            <option value="" {{ 'selected' if not gegevens.get('school') else '' }}>Maak een keuze</option>
+            {% for s in scholen %}
+                <option value="{{ s.naam }}" {{ 'selected' if gegevens.get('school') == s.naam else '' }}>{{ s.naam }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="opmerkingen">{{ veld_config['opmerkingen'].label }}{{ '' if veld_config['opmerkingen'].verplicht else ' (optioneel)' }}</label>
+        <textarea id="opmerkingen" name="opmerkingen" {{ 'required' if veld_config['opmerkingen'].verplicht else '' }}>{{ gegevens.get('opmerkingen', '') }}</textarea>
+
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
+
+        <button type="submit" class="cta-button" style="margin-top:20px;">Inschrijving versturen</button>
+    </form>
+</section>
+{% endblock %}

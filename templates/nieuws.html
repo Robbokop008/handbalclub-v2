@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Nieuws - Handbal Sint-Truiden{% endblock %}
+
+{% block content %}
+<section class="hero hero-short">
+    <div class="hero-content">
+        <h1>Nieuws</h1>
+    </div>
+</section>
+
+<section class="section">
+    {% if nieuwsberichten %}
+        <div class="values-grid">
+            {% for bericht in nieuwsberichten %}
+                {% set platte_tekst = bericht.inhoud | replace('</p>', ' ') | replace('<br>', ' ') | replace('</li>', ' ') | striptags | trim %}
+                <div class="value-card nieuws-card{{ ' groot' if bericht.groot else '' }}">
+                    {% if bericht.afbeelding %}
+                    <img src="{{ url_for('static', filename='images/' + bericht.afbeelding) }}" alt="{{ bericht.titel }}" style="width:100%;border-radius:var(--radius-sm);margin-bottom:12px;">
+                    {% endif %}
+                    <h3>{{ bericht.titel }}</h3>
+                    <p class="muted">{{ bericht.gepubliceerd_op.strftime('%d-%m-%Y') }} · {{ bericht.categorie }}</p>
+                    <p class="nieuws-tekst">{{ platte_tekst | truncate(3000) }}</p>
+                    <p class="nieuws-lees-meer"><a href="{{ url_for('main.nieuws_detail', bericht_id=bericht.id) }}">Lees meer &rarr;</a></p>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="muted" style="text-align:center;">Nog geen nieuwsberichten geplaatst.</p>
+    {% endif %}
+</section>
+{% endblock %}

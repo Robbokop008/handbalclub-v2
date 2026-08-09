@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Accountinstellingen{% endblock %}
+
+{% block content %}
+<section class="hero hero-short">
+    <div class="hero-content">
+        <h1>{{ site_teksten.account_instellingen_hero_titel }}</h1>
+        <p>{{ site_teksten.account_instellingen_hero_subtitel }}</p>
+    </div>
+</section>
+
+<section class="section">
+    <div class="grid">
+        <div class="card">
+            <form action="{{ url_for('auth.update_profile') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label>Vul de velden in die u wilt veranderen:</label>
+                <label for="first_name">Voornaam</label>
+                <input id="first_name" name="first_name" type="text" placeholder="{{ user.first_name }}">
+
+                <label for="last_name">Achternaam</label>
+                <input id="last_name" name="last_name" type="text" placeholder="{{ user.last_name }}">
+
+                <label for="email">Emailadres</label>
+                <input id="email" name="email" type="email" placeholder="{{ user.email }}">
+
+                <label for="password">Wachtwoord</label>
+                <input id="password" name="password" type="password">
+
+                <div class="form-actions">
+                    <button class="btn btn-primary" type="submit">Wijzigingen opslaan</button>
+                    <button class="btn btn-danger" type="submit" form="frm_delete_account">Account verwijderen</button>
+                </div>
+
+                {% if error %}
+                    <p class="error">{{ error }}</p>
+                {% endif %}
+            </form>
+            <form action="{{ url_for('auth.delete_account') }}" method="POST" id="frm_delete_account">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            </form>
+        </div>
+
+        <aside class="card" style="text-align:center;">
+            <div class="avatar" style="margin:0 auto;">{{ user.initials }}</div>
+            <h3 style="margin-top:12px;color:var(--blue);">Profiel</h3>
+            <p class="muted">Beheer avatar, email en meer.</p>
+        </aside>
+    </div>
+</section>
+{% endblock %}

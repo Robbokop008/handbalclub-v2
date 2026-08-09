@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Registreren - Handbal Sint-Truiden{% endblock %}
+
+{% block content %}
+<section class="hero hero-short">
+    <div class="hero-content">
+        <h1>{{ site_teksten.register_hero_titel }}</h1>
+        <p>{{ site_teksten.register_hero_subtitel }}</p>
+    </div>
+</section>
+
+<section class="section" style="padding-top:0;">
+    <div class="login-card">
+        <h2>Maak een account aan</h2>
+        <form action="{{ url_for('auth.register') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label for="first-name">Voornaam</label>
+            <input class="login-input" id="first-name" name="firstname" type="text" placeholder="Voornaam" required value="{{ gegevens.get('firstname', '') }}">
+
+            <label for="last-name">Achternaam</label>
+            <input class="login-input" id="last-name" name="lastname" type="text" placeholder="Achternaam" required value="{{ gegevens.get('lastname', '') }}">
+
+            <label for="username">Gebruikersnaam</label>
+            <input class="login-input" id="username" name="username" type="text" placeholder="Gebruikersnaam" required value="{{ gegevens.get('username', '') }}">
+
+            <label for="email">Emailadres</label>
+            <input class="login-input" id="email" name="email" type="email" placeholder="emailadress@voorbeeld.com" required value="{{ gegevens.get('email', '') }}">
+
+            <label for="password">Wachtwoord</label>
+            <input class="login-input" id="password" name="password" type="password" placeholder="••••••••" required>
+
+            <label for="confirm-password">Bevestig wachtwoord</label>
+            <input class="login-input" id="confirm-password" name="confirm_password" type="password" placeholder="••••••••" required>
+
+            {% if error %}
+                <p class="error">{{ error }}</p>
+            {% endif %}
+
+            <button class="cta-button login-button" type="submit">Registreer</button>
+        </form>
+        <p class="login-note">Heeft u al een account? <a href="{{ url_for('auth.login') }}">Log in</a></p>
+    </div>
+</section>
+{% endblock %}

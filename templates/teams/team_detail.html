@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}{{ team.naam }} - Handbal Sint-Truiden{% endblock %}
+
+{% block content %}
+<section class="hero hero-short">
+    <div class="hero-content">
+        <h1>{{ team.naam }}</h1>
+        {% if team.categorie %}<p>{{ team.categorie }}</p>{% endif %}
+    </div>
+</section>
+
+<section class="section" style="max-width:900px;">
+    <div class="product-detail" style="grid-template-columns:1fr 1fr;padding:0;">
+        <div class="main-image">
+            {% if team.foto_url %}
+                <img src="{{ url_for('static', filename='images/' + team.foto_url) }}" alt="Ploegfoto {{ team.naam }}">
+            {% else %}
+                <div class="about-image" style="font-size:64px;">🤾</div>
+            {% endif %}
+        </div>
+        <div>
+            {% if team.trainer %}<p><strong>Trainer:</strong> {{ team.trainer }}</p>{% endif %}
+            <p>{{ team.omschrijving or '[Placeholder] Nog geen omschrijving toegevoegd voor dit team.' }}</p>
+        </div>
+    </div>
+</section>
+{% endblock %}

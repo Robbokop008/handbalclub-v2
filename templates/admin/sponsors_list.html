@@ -1,0 +1,100 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - Sponsors{% endblock %}
+
+{% block extra_head %}
+<style>
+  .sponsor-logo-preview { height: 36px; max-width: 120px; object-fit: contain; }
+  .sponsor-edit-form { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .sponsor-edit-form input[type=text] { padding: 6px 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; }
+  .sponsor-edit-form input[name=naam] { min-width: 140px; }
+  .sponsor-edit-form input[name=website_url] { min-width: 180px; }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>Sponsors beheren</h1>
+    <p>Deze logo's verschijnen in de sponsorbalk op de homepage, in deze volgorde. Enkel actieve sponsors zijn zichtbaar.</p>
+</div>
+
+<section class="section">
+    <form action="{{ url_for('admin.add_sponsor') }}" method="post" class="admin-form" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+            <label for="naam">Naam</label>
+            <input type="text" id="naam" name="naam" required>
+        </div>
+        <div>
+            <label for="website_url">Website (optioneel)</label>
+            <input type="text" id="website_url" name="website_url" placeholder="https://...">
+        </div>
+        <div>
+            <label for="logo">Logo</label>
+            <input type="file" id="logo" name="logo" accept="image/*" required>
+        </div>
+        <button type="submit" class="admin-button">Sponsor toevoegen</button>
+    </form>
+
+    {% if sponsors %}
+    <div class="table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Logo</th>
+                    <th>Gegevens</th>
+                    <th>Status</th>
+                    <th>Volgorde</th>
+                    <th>Acties</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sponsor in sponsors %}
+                <tr>
+                    <td><img class="sponsor-logo-preview" src="{{ url_for('static', filename='images/' + sponsor.logo) }}" alt="{{ sponsor.naam }}"></td>
+                    <td>
+                        <form action="{{ url_for('admin.edit_sponsor', sponsor_id=sponsor.id) }}" method="post" class="sponsor-edit-form" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="text" name="naam" value="{{ sponsor.naam }}" required>
+                            <input type="text" name="website_url" value="{{ sponsor.website_url or '' }}" placeholder="https://...">
+                            <input type="file" name="logo" accept="image/*">
+                            <button type="submit" class="admin-button btn-sm">Opslaan</button>
+                        </form>
+                    </td>
+                    <td><span class="order-status-badge">{{ 'Actief' if sponsor.is_active else 'Inactief' }}</span></td>
+                    <td>
+                        <form action="{{ url_for('admin.move_sponsor', sponsor_id=sponsor.id) }}" method="post" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="direction" value="up">
+                            <button type="submit" class="btn btn-secondary btn-sm" title="Omhoog">&uarr;</button>
+                        </form>
+                        <form action="{{ url_for('admin.move_sponsor', sponsor_id=sponsor.id) }}" method="post" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="direction" value="down">
+                            <button type="submit" class="btn btn-secondary btn-sm" title="Omlaag">&darr;</button>
+                        </form>
+                    </td>
+                    <td>
+                        <form action="{{ url_for('admin.toggle_sponsor_active', sponsor_id=sponsor.id) }}" method="post" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            {% if sponsor.is_active %}
+                            <button type="submit" class="btn btn-danger btn-sm">Deactiveren</button>
+                            {% else %}
+                            <button type="submit" class="admin-button btn-sm">Activeren</button>
+                            {% endif %}
+                        </form>
+                        <form action="{{ url_for('admin.delete_sponsor', sponsor_id=sponsor.id) }}" method="post" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Deze sponsor definitief verwijderen?');">Verwijderen</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p>Er zijn nog geen sponsors toegevoegd.</p>
+    {% endif %}
+</section>
+{% endblock %}

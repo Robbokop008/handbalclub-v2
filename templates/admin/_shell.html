@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="nl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{% block title %}Admin - Handbal Sint-Truiden{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="admin-body">
+    {% set ep = request.endpoint or '' %}
+    <header class="admin-topbar">
+        <a class="admin-topbar-brand" href="{{ url_for('admin.dashboard') }}">Handbal Sint-Truiden — Admin</a>
+        <div class="admin-topbar-links">
+            <a href="{{ url_for('main.home') }}">Terug naar site</a>
+            <a href="{{ url_for('auth.logout') }}">Uitloggen</a>
+        </div>
+    </header>
+
+    <div class="admin-layout">
+        <nav class="admin-sidebar">
+            <a class="admin-sidebar-link{{ ' active' if ep == 'admin.dashboard' else '' }}" href="{{ url_for('admin.dashboard') }}">Dashboard</a>
+            <a class="admin-sidebar-link{{ ' active' if 'page' in ep else '' }}" href="{{ url_for('admin.pages') }}">Pagina's</a>
+            <a class="admin-sidebar-link{{ ' active' if 'nieuws' in ep else '' }}" href="{{ url_for('admin.nieuws') }}">Nieuws</a>
+            <a class="admin-sidebar-link{{ ' active' if 'sponsor' in ep else '' }}" href="{{ url_for('admin.sponsors') }}">Sponsors</a>
+            <a class="admin-sidebar-link{{ ' active' if 'team' in ep else '' }}" href="{{ url_for('admin.teams') }}">Teams</a>
+            <a class="admin-sidebar-link{{ ' active' if 'nav' in ep else '' }}" href="{{ url_for('admin.navigation') }}">Navigatie</a>
+            <a class="admin-sidebar-link{{ ' active' if ep == 'admin.site_teksten' else '' }}" href="{{ url_for('admin.site_teksten') }}">Teksten</a>
+            <a class="admin-sidebar-link{{ ' active' if 'product' in ep or 'variant' in ep else '' }}" href="{{ url_for('admin.products') }}">Producten</a>
+            <a class="admin-sidebar-link{{ ' active' if ep == 'admin.users' else '' }}" href="{{ url_for('admin.users') }}">Gebruikers</a>
+            <a class="admin-sidebar-link{{ ' active' if 'order' in ep else '' }}" href="{{ url_for('admin.orders') }}">Bestellingen</a>
+            <a class="admin-sidebar-link{{ ' active' if ep == 'admin.inschrijvingen' else '' }}" href="{{ url_for('admin.inschrijvingen') }}">Inschrijvingen</a>
+            <a class="admin-sidebar-link{{ ' active' if 'inschrijvingsformulier' in ep else '' }}" href="{{ url_for('admin.inschrijvingsformulier') }}">Inschrijvingsformulier</a>
+            <a class="admin-sidebar-link{{ ' active' if 'school' in ep else '' }}" href="{{ url_for('admin.scholen') }}">Scholen</a>
+            <a class="admin-sidebar-link{{ ' active' if 'gdpr' in ep else '' }}" href="{{ url_for('admin.gdpr_verzoeken') }}">GDPR-verzoeken</a>
+        </nav>
+
+        <main class="admin-content">
+            {% block admin_content %}{% endblock %}
+        </main>
+    </div>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

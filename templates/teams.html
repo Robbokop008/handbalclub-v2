@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Teams - Handbal Sint-Truiden{% endblock %}
+
+{% block content %}
+<section class="hero hero-short">
+    <div class="hero-content">
+        <h1>Onze teams</h1>
+    </div>
+</section>
+
+<section class="section">
+    {% if groepen %}
+        {% for label, teams in groepen %}
+        <h2 class="section-title" style="margin-bottom:12px;">{{ label }}</h2>
+        <div class="values-grid" style="margin-bottom:36px;">
+            {% for team in teams %}
+                <a href="{{ url_for('main.team_detail', slug=team.slug) }}" class="value-card" style="display:block;text-decoration:none;color:inherit;">
+                    <h3>{{ team.naam }}</h3>
+                    {% if team.categorie %}<p><strong>Categorie:</strong> {{ team.categorie }}</p>{% endif %}
+                    {% if team.trainer %}<p><strong>Trainer:</strong> {{ team.trainer }}</p>{% endif %}
+                    <p>{{ team.omschrijving }}</p>
+                </a>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <p class="muted" style="text-align:center;">Er zijn nog geen teams toegevoegd.</p>
+    {% endif %}
+</section>
+{% endblock %}

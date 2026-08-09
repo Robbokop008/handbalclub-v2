@@ -1,0 +1,75 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - Producten{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>Producten beheren</h1>
+    <p>Hier kun je producten toevoegen en bewerken. Producten worden nooit verwijderd, enkel actief/inactief gezet — zo blijven bestaande bestellingen altijd correct verwijzen naar hun producten.</p>
+</div>
+
+<section class="section">
+
+    <form action="{{ url_for('admin.add_product') }}" method="post" class="admin-form" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+            <label for="name">Naam</label>
+            <input type="text" id="name" name="name" required>
+        </div>
+        <div>
+            <label for="description">Beschrijving</label>
+            <textarea id="description" name="description"></textarea>
+        </div>
+        <div>
+            <label for="image">Afbeelding</label>
+            <input type="file" id="image" name="image" accept="image/*">
+        </div>
+        <div class="checkbox-field">
+            <label for="printing_available"><input type="checkbox" id="printing_available" name="printing_available"> Bedrukking mogelijk voor dit product</label>
+        </div>
+        <div class="checkbox-field">
+            <label for="is_active"><input type="checkbox" id="is_active" name="is_active" checked> Actief (beschikbaar voor verkoop)</label>
+        </div>
+        <button type="submit" class="admin-button">Nieuw product toevoegen</button>
+    </form>
+
+    {% if products %}
+    <div class="table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Naam</th>
+                    <th>Bedrukking</th>
+                    <th>Status</th>
+                    <th>Acties</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                <tr>
+                    <td>{{ product.product_id }}</td>
+                    <td>{{ product.product_name }}</td>
+                    <td>{{ 'Ja' if product.printing_available else 'Nee' }}</td>
+                    <td><span class="order-status-badge">{{ 'Actief' if product.is_active else 'Inactief' }}</span></td>
+                    <td>
+                        <a href="{{ url_for('admin.edit_product', product_id=product.product_id) }}" class="admin-button btn-sm">Bewerken</a>
+                        <form action="{{ url_for('admin.toggle_product_active', product_id=product.product_id) }}" method="post" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            {% if product.is_active %}
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Dit product deactiveren? Het wordt dan niet meer getoond of besteld door klanten.');">Deactiveren</button>
+                            {% else %}
+                            <button type="submit" class="admin-button btn-sm">Activeren</button>
+                            {% endif %}
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p>Er zijn nog geen producten toegevoegd.</p>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page.title }} - Handbal Sint-Truiden{% endblock %}
+
+{% block content %}
+<section class="hero hero-short">
+    <div class="hero-content">
+        <h1>{{ page.title }}</h1>
+    </div>
+</section>
+
+<section class="section" style="max-width:800px;">
+    {% if page.hero_image %}
+        <img src="{{ url_for('static', filename='images/' + page.hero_image) }}" alt="{{ page.title }}" style="width:100%;border-radius:var(--radius);margin-bottom:24px;">
+    {% endif %}
+
+    <div class="page-body">
+        {{ page.body_html | safe }}
+    </div>
+</section>
+{% endblock %}

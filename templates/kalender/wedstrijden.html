@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Wedstrijden - Handbal Sint-Truiden{% endblock %}
+
+{% block content %}
+<section class="hero hero-short">
+    <div class="hero-content">
+        <h1>{{ site_teksten.kalender_hero_titel }}</h1>
+        <p>{{ site_teksten.kalender_hero_subtitel }}</p>
+    </div>
+</section>
+
+<section class="section">
+    <div class="spond-embed-wrap">
+        <iframe
+            src="{{ spond_embed_url }}"
+            title="Spond wedstrijdkalender"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade">
+        </iframe>
+    </div>
+</section>
+{% endblock %}

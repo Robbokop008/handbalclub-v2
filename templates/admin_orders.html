@@ -1,0 +1,48 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - Bestellingen{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>Bestellingen beheren</h1>
+    <p>Op deze pagina kun je alle bestellingen bekijken en de status controleren.</p>
+</div>
+
+<section class="section">
+
+    {% if orders %}
+    <div class="table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Bestelling</th>
+                    <th>Klant</th>
+                    <th>Subtotaal</th>
+                    <th>Verzending</th>
+                    <th>Betaalstatus</th>
+                    <th>Status</th>
+                    <th>Datum</th>
+                    <th>Acties</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>{{ order.order_id }}</td>
+                    <td>{{ order.user.first_name }} {{ order.user.last_name }} - {{ order.user.email }}</td>
+                    <td>€{{ '%.2f'|format(order.total_price) }}</td>
+                    <td>{{ 'Gratis' if order.shipping_cost == 0 else '€' + '%.2f'|format(order.shipping_cost) }}</td>
+                    <td>{{ order.payment_status }}</td>
+                    <td><span class="order-status-badge">{{ order.order_status }}</span></td>
+                    <td>{{ order.created_at.strftime('%d/%m/%Y') }}</td>
+                    <td><a href="{{ url_for('admin.view_order', order_id=order.order_id) }}" class="admin-button btn-sm">Bekijken</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p>Er zijn nog geen bestellingen geplaatst.</p>
+    {% endif %}
+</section>
+{% endblock %}

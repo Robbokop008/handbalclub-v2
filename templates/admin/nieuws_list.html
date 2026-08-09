@@ -1,0 +1,63 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - Nieuws{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>Nieuwsberichten beheren</h1>
+    <p>Deze berichten verschijnen op de homepage ("Laatste nieuws", de 3 eerste) en op de nieuwspagina, in de volgorde hieronder. Gebruik de pijltjes om te herordenen.</p>
+</div>
+
+<section class="section">
+    <a href="{{ url_for('admin.add_nieuws') }}" class="admin-button" style="display:inline-block;margin-bottom:24px;">Nieuw bericht toevoegen</a>
+
+    {% if nieuwsberichten %}
+    <div class="table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Volgorde</th>
+                    <th>Titel</th>
+                    <th>Categorie</th>
+                    <th>Formaat</th>
+                    <th>Gepubliceerd op</th>
+                    <th>Acties</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bericht in nieuwsberichten %}
+                <tr>
+                    <td>
+                        <form action="{{ url_for('admin.move_nieuws', bericht_id=bericht.id) }}" method="post" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="direction" value="up">
+                            <button type="submit" class="btn btn-secondary btn-sm" title="Omhoog">&uarr;</button>
+                        </form>
+                        <form action="{{ url_for('admin.move_nieuws', bericht_id=bericht.id) }}" method="post" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="direction" value="down">
+                            <button type="submit" class="btn btn-secondary btn-sm" title="Omlaag">&darr;</button>
+                        </form>
+                    </td>
+                    <td>{{ bericht.titel }}</td>
+                    <td>{{ bericht.categorie }}</td>
+                    <td>{{ 'Groot' if bericht.groot else 'Normaal' }}</td>
+                    <td>{{ bericht.gepubliceerd_op.strftime('%d/%m/%Y %H:%M') if bericht.gepubliceerd_op else '—' }}</td>
+                    <td>
+                        <a href="{{ url_for('admin.edit_nieuws', bericht_id=bericht.id) }}" class="admin-button btn-sm">Bewerken</a>
+                        <a href="{{ url_for('main.nieuws_detail', bericht_id=bericht.id) }}" class="btn btn-secondary btn-sm" target="_blank" rel="noopener">Bekijken</a>
+                        <form action="{{ url_for('admin.delete_nieuws', bericht_id=bericht.id) }}" method="post" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Dit nieuwsbericht verwijderen?');">Verwijderen</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p>Er zijn nog geen nieuwsberichten geplaatst.</p>
+    {% endif %}
+</section>
+{% endblock %}

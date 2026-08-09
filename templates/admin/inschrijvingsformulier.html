@@ -1,0 +1,88 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - Inschrijvingsformulier{% endblock %}
+
+{% block extra_head %}
+<style>
+  .veld-config-row { display: grid; grid-template-columns: 1fr 2fr auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .veld-config-row:last-child { border-bottom: none; }
+  .veld-config-row label.veld-sleutel { font-weight: 600; color: var(--muted); font-size: 13px; }
+  .veld-config-row input[type=text] { padding: 6px 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); width: 100%; }
+  .simple-list-form { display: flex; gap: 8px; align-items: end; margin-bottom: 20px; max-width: 420px; }
+  .simple-list-form input[type=text] { flex: 1; padding: 6px 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+  .simple-list-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .simple-list-item:last-child { border-bottom: none; }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>Inschrijvingsformulier beheren</h1>
+    <p>Beheer de labels en verplichte velden van het inschrijvingsformulier (Jeugd/G-Handbal/FIT-Handbal), en de twee keuzelijsten daarin.</p>
+</div>
+
+{% if error %}
+<p class="alert alert-error" style="margin-bottom:20px;">{{ error }}</p>
+{% endif %}
+
+<section class="section" style="margin-bottom:28px;">
+    <h2 class="section-title" style="margin-bottom:12px;">Velden</h2>
+    <form action="{{ url_for('admin.save_inschrijving_velden') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% for sleutel, config in velden %}
+        <div class="veld-config-row">
+            <label class="veld-sleutel" for="label_{{ sleutel }}">{{ sleutel }}</label>
+            <input type="text" id="label_{{ sleutel }}" name="label_{{ sleutel }}" value="{{ config.label }}">
+            <label class="checkbox-inline"><input type="checkbox" id="verplicht_{{ sleutel }}" name="verplicht_{{ sleutel }}" {{ 'checked' if config.verplicht else '' }}> Verplicht</label>
+        </div>
+        {% endfor %}
+        <div class="form-actions" style="margin-top:16px;">
+            <button type="submit" class="admin-button">Velden opslaan</button>
+        </div>
+    </form>
+</section>
+
+<section class="section" style="margin-bottom:28px;">
+    <h2 class="section-title" style="margin-bottom:12px;">Categorieën</h2>
+    <form action="{{ url_for('admin.add_inschrijving_categorie') }}" method="post" class="simple-list-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="text" name="naam" placeholder="Nieuwe categorie" required>
+        <button type="submit" class="admin-button">Toevoegen</button>
+    </form>
+    {% if categorieen %}
+    {% for c in categorieen %}
+    <div class="simple-list-item">
+        <span>{{ c.naam }}</span>
+        <form action="{{ url_for('admin.delete_inschrijving_categorie', categorie_id=c.id) }}" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Deze categorie verwijderen?');">Verwijderen</button>
+        </form>
+    </div>
+    {% endfor %}
+    {% else %}
+    <p>Er zijn nog geen categorieën toegevoegd.</p>
+    {% endif %}
+</section>
+
+<section class="section">
+    <h2 class="section-title" style="margin-bottom:12px;">Hoe-gehoord-opties</h2>
+    <form action="{{ url_for('admin.add_hoe_gehoord_optie') }}" method="post" class="simple-list-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="text" name="naam" placeholder="Nieuwe optie" required>
+        <button type="submit" class="admin-button">Toevoegen</button>
+    </form>
+    {% if hoe_gehoord_opties %}
+    {% for o in hoe_gehoord_opties %}
+    <div class="simple-list-item">
+        <span>{{ o.naam }}</span>
+        <form action="{{ url_for('admin.delete_hoe_gehoord_optie', optie_id=o.id) }}" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Deze optie verwijderen?');">Verwijderen</button>
+        </form>
+    </div>
+    {% endfor %}
+    {% else %}
+    <p>Er zijn nog geen opties toegevoegd.</p>
+    {% endif %}
+</section>
+{% endblock %}

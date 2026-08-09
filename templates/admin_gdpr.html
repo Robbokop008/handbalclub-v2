@@ -1,0 +1,53 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - GDPR-verzoeken{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>GDPR-verzoeken</h1>
+    <p>Overzicht van alle "vergeet mij"-verzoeken.</p>
+</div>
+
+<section class="section">
+
+    {% if verzoeken %}
+    <div class="table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Naam</th>
+                    <th>E-mail</th>
+                    <th>Lidnummer</th>
+                    <th>Opmerking</th>
+                    <th>Status</th>
+                    <th>Acties</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in verzoeken %}
+                <tr>
+                    <td>{{ v.aangemaakt_op.strftime('%d/%m/%Y %H:%M') }}</td>
+                    <td>{{ v.naam }}</td>
+                    <td>{{ v.email }}</td>
+                    <td>{{ v.lidnummer or '—' }}</td>
+                    <td>{{ v.opmerking or '—' }}</td>
+                    <td><span class="order-status-badge">{{ 'Verwerkt' if v.verwerkt else 'Nog te verwerken' }}</span></td>
+                    <td>
+                        <form action="{{ url_for('admin.toggle_gdpr_verwerkt', verzoek_id=v.id) }}" method="post">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="admin-button btn-sm">
+                                {{ 'Markeer als niet verwerkt' if v.verwerkt else 'Markeer als verwerkt' }}
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p>Er zijn nog geen GDPR-verzoeken binnengekomen.</p>
+    {% endif %}
+</section>
+{% endblock %}

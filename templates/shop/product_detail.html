@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.product_name }} - Product{% endblock %}
+
+{% block content %}
+{% if product %}
+<div class="product-detail">
+    <div class="main-image">
+        {% if product.image_url %}
+            <img id="mainImg" src="{{ url_for('static', filename='images/' + product.image_url) }}" alt="{{ product.product_name }}">
+        {% endif %}
+    </div>
+
+    <aside class="details">
+        <div class="product-name">{{ product.product_name }}</div>
+        <div class="product-description">{{ product.description }}</div>
+        {% if product.printing_available %}
+        <span class="printing-badge">🖨️ Bedrukking mogelijk</span>
+        {% endif %}
+
+        {% if variants %}
+        <div class="variant-price" id="variant-price">
+            €{{ '%.2f'|format(variants[0].price) }}
+        </div>
+
+        <form action="{{ url_for('shop.add_to_cart') }}" method="POST" id="add-to-cart-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <label for="variant">Kleur / Maat</label>
+            <select name="variant_id" id="variant">
+                {% for variant in variants %}
+                <option value="{{ variant.variant_id }}"
+                        data-price="{{ variant.price }}"
+                        data-stock="{{ variant.stock }}"
+                        {{ 'disabled' if variant.stock <= 0 else '' }}>
+                    {{ variant.color }} / {{ variant.size }}
+                    {% if variant.stock <= 0 %} — Uitverkocht{% endif %}
+                </option>
+                {% endfor %}
+            </select>
+
+            <p class="stock-note" id="stock-note"></p>
+
+            {% if product.printing_available %}
+            <div class="printing-options">
+                <label for="print_front">Bedrukking voorkant (optioneel, +€5)</label>
+                <input type="text" name="print_front" id="print_front" maxlength="100" placeholder="Tekst voor de voorkant">
+
+                <label for="print_back">Bedrukking achterkant (optioneel, +€5)</label>
+                <input type="text" name="print_back" id="print_back" maxlength="100" placeholder="Tekst voor de achterkant">
+            </div>
+            {% endif %}
+
+            <div class="purchase">
+                <input type="number" name="quantity" id="quantity" value="1" min="1" class="qty">
+                <button type="submit" class="add-to-cart" id="add-to-cart-btn">Toevoegen aan winkelmandje</button>
+            </div>
+        </form>
+
+        <script>
+            const PRINTING_COST_PER_SIDE = 5.0;
+
+            const variantSelect = document.getElementById('variant');
+            const priceEl = document.getElementById('variant-price');
+            const stockNote = document.getElementById('stock-note');
+            const quantityInput = document.getElementById('quantity');
+            const addToCartBtn = document.getElementById('add-to-cart-btn');
+            const printFrontInput = document.getElementById('print_front');
+            const printBackInput = document.getElementById('print_back');
+
+            function updateVariantInfo() {
+                const option = variantSelect.options[variantSelect.selectedIndex];
+                if (!option) { return; }
+
+                const basePrice = parseFloat(option.dataset.price);
+                const stock = parseInt(option.dataset.stock, 10);
+
+                let printingCost = 0;
+                if (printFrontInput && printFrontInput.value.trim()) { printingCost += PRINTING_COST_PER_SIDE; }
+                if (printBackInput && printBackInput.value.trim()) { printingCost += PRINTING_COST_PER_SIDE; }
+
+                priceEl.textContent = '€' + (basePrice + printingCost).toFixed(2);
+                quantityInput.max = stock > 0 ? stock : 1;
+
+                if (stock <= 0) {
+                    stockNote.textContent = 'Deze variant is uitverkocht.';
+                    quantityInput.disabled = true;
+                    addToCartBtn.disabled = true;
+                } else {
+                    stockNote.textContent = stock <= 5 ? `Nog maar ${stock} op voorraad` : '';
+                    quantityInput.disabled = false;
+                    addToCartBtn.disabled = false;
+                    if (parseInt(quantityInput.value, 10) > stock) {
+                        quantityInput.value = stock;
+                    }
+                }
+            }
+
+            variantSelect.addEventListener('change', updateVariantInfo);
+            if (printFrontInput) { printFrontInput.addEventListener('input', updateVariantInfo); }
+            if (printBackInput) { printBackInput.addEventListener('input', updateVariantInfo); }
+            updateVariantInfo();
+        </script>
+        {% else %}
+        <p class="stock-note">Er zijn nog geen varianten (kleur/maat) beschikbaar voor dit product.</p>
+        {% endif %}
+    </aside>
+</div>
+{% else %}
+<div class="section"><p>Product niet gevonden.</p></div>
+{% endif %}
+{% endblock %}

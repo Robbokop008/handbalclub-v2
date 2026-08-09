@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Winkelmandje - Handbal Sint-Truiden{% endblock %}
+
+{% block content %}
+{% if items %}
+<section class="hero cart-hero">
+    <div class="cart-hero-content">
+        <h1>{{ site_teksten.cart_hero_titel }}</h1>
+        <p>{{ site_teksten.cart_hero_subtitel }}</p>
+    </div>
+</section>
+
+<section class="section">
+    {% if errors %}
+        <div class="alert alert-error" style="max-width:800px;">
+            <strong>Er ging iets mis met je bestelling:</strong>
+            <ul style="margin:8px 0 0; padding-left:20px;">
+                {% for err in errors %}
+                <li>{{ err }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <div class="cart-panel" aria-label="Winkelmandje">
+        {% for item in items %}
+        <div class="cart-item" data-cart-item-id="{{ item.cart_item_id }}">
+            {% if item.product.image_url %}
+                <img src="{{ url_for('static', filename='images/' + item.product.image_url) }}" alt="{{ item.product.product_name }}">
+            {% endif %}
+            <div class="item-details">
+                <div class="item-name">{{ item.product.product_name }}</div>
+                <div class="item-variant">{{ item.variant.color }} / {{ item.variant.size }}</div>
+                <div class="item-price">
+                    €{{ '%.2f'|format(item.price) }}
+                    <p class="vat-note">Prijs incl. btw</p>
+                </div>
+                {% if item.print_front or item.print_back %}
+                <div class="item-printing">
+                    {% if item.print_front %}<span>Voorkant: "{{ item.print_front }}"</span>{% endif %}
+                    {% if item.print_back %}<span>Achterkant: "{{ item.print_back }}"</span>{% endif %}
+                </div>
+                {% endif %}
+
+                <div class="item-quantity">
+                    <form action="{{ url_for('shop.adjust_cart') }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="cart_item_id" value="{{ item.cart_item_id }}">
+                        <input type="hidden" name="quantity" value="-1">
+                        <button class="quantity-btn decrease" aria-label="Aantal verminderen">-</button>
+                    </form>
+                    <span class="quantity-value">{{ item.quantity }}</span>
+                    <form action="{{ url_for('shop.adjust_cart') }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="cart_item_id" value="{{ item.cart_item_id }}">
+                        <input type="hidden" name="quantity" value="1">
+                        <button class="quantity-btn increase" aria-label="Aantal verhogen">+</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        {% if remaining_for_free_shipping > 0 %}
+        <p class="alert alert-info" style="margin:16px 0 0;">
+            Nog €{{ '%.2f'|format(remaining_for_free_shipping) }} tot gratis verzending!
+        </p>
+        {% else %}
+        <p class="alert alert-success" style="margin:16px 0 0;">
+            Je hebt recht op gratis verzending.
+        </p>
+        {% endif %}
+
+        <div class="cart-summary">
+            <div class="cart-total">Totaal: <span>€{{ '%.2f'|format(total_price) }}</span></div>
+            <div class="cart-actions">
+                <form action="{{ url_for('shop.clear_cart') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-secondary">Leegmaken</button>
+                </form>
+                <form action="{{ url_for('shop.checkout') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="cta-button">Bestellen</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% else %}
+<section class="hero cart-hero">
+    <div class="cart-hero-content">
+        <h1>{{ site_teksten.cart_leeg_hero_titel }}</h1>
+        <p>{{ site_teksten.cart_leeg_hero_subtitel }}</p>
+        <a href="{{ url_for('shop.products') }}#products" class="cta-button">Bekijk producten</a>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

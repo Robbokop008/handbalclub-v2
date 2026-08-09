@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Profiel - Handbal Sint-Truiden{% endblock %}
+
+{% block content %}
+<section class="hero hero-short">
+    <div class="hero-content">
+        <h1>{{ site_teksten.profiel_hero_titel }}</h1>
+        <p>{{ site_teksten.profiel_hero_subtitel }}</p>
+        <a href="#account" class="profile-action-button">Account bewerken</a>
+    </div>
+</section>
+
+<section class="section" id="account">
+    <div class="profile-grid">
+        <div class="profile-card">
+            <h2>Accountoverzicht</h2>
+            <p>Welkom terug! Hier vind je een snel overzicht van je profielgegevens, opgeslagen voorkeuren en je lidmaatschapsstatus.</p>
+            <div class="profile-item">
+                <span>Volledige naam</span>
+                <p>{{ user.first_name }} {{ user.last_name }}</p>
+            </div>
+            <div class="profile-item">
+                <span>Email</span>
+                <p>{{ user.email }}</p>
+            </div>
+            <div class="profile-item">
+                <span>Lid sinds</span>
+                <p>{{ user.created_at.strftime('%m/%Y') }}</p>
+            </div>
+            <div class="profile-item">
+                <span>Lidmaatschapstatus</span>
+                <p>{{ user.membership_status }}</p>
+            </div>
+        </div>
+
+        <div class="profile-card">
+            <h2>Snelle acties</h2>
+            <div class="profile-actions">
+                <a href="{{ url_for('auth.account_settings') }}" class="profile-action-button">Werk profiel bij</a>
+                <a href="#previous_orders" class="profile-action-button">Bekijk mijn bestellingen</a>
+                <a href="{{ url_for('auth.logout') }}" class="profile-action-button">Uitloggen</a>
+            </div>
+        </div>
+
+        <div class="profile-card" id="previous_orders">
+            <h2>Recente bestellingen</h2>
+            <div class="order-list">
+                {% if prev_orders %}
+                    {% for order in prev_orders %}
+                    <div class="order-item">
+                        <h3>Order #{{ order.order_id }}</h3>
+                        <span>{{ order.created_at.strftime('%d/%m/%Y') }} • Totaal: €{{ '%.2f'|format(order.total_paid) }}</span>
+                        <div class="order-status-row">
+                            <span class="order-status-badge">{{ order.order_status }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="order-item">
+                    <h3>Je hebt nog geen bestellingen geplaatst.</h3>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

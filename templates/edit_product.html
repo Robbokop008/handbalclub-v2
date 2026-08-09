@@ -1,0 +1,122 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - Producten{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>Product bewerken</h1>
+    <p>Hier kun je het geselecteerde product bijwerken.</p>
+</div>
+
+<section class="section" id="edit-product-section">
+
+    {% if product %}
+    <form action="{{ url_for('admin.edit_product', product_id=product.product_id) }}" method="post" class="admin-form" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="product_id" value="{{ product.product_id }}">
+
+        <div>
+            <label for="name">Naam</label>
+            <input type="text" id="name" name="name" value="{{ product.product_name }}" required>
+        </div>
+        <div>
+            <label for="description">Beschrijving</label>
+            <textarea id="description" name="description">{{ product.description or '' }}</textarea>
+        </div>
+        <div>
+            <label for="image">Afbeelding</label>
+            <input type="file" id="image" name="image" accept="image/*">
+        </div>
+        <div class="checkbox-field">
+            <label for="printing_available"><input type="checkbox" id="printing_available" name="printing_available" {{ 'checked' if product.printing_available else '' }}> Bedrukking mogelijk voor dit product</label>
+        </div>
+        <div class="checkbox-field">
+            <label for="is_active"><input type="checkbox" id="is_active" name="is_active" {{ 'checked' if product.is_active else '' }}> Actief (beschikbaar voor verkoop)</label>
+        </div>
+        <div class="form-actions" style="grid-column:1/-1;">
+            <button type="submit" class="admin-button">Opslaan</button>
+            <a href="{{ url_for('admin.products') }}" class="btn btn-secondary">Annuleren</a>
+        </div>
+    </form>
+    {% else %}
+        <p>Product niet gevonden.</p>
+    {% endif %}
+
+    <h2 class="section-title" style="margin-top:40px;">Varianten</h2>
+
+    {% if variants %}
+    <div class="table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Kleur</th>
+                    <th>Maat</th>
+                    <th>Prijs</th>
+                    <th>Voorraad</th>
+                    <th>Actief</th>
+                    <th>Acties</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for variant in variants %}
+                <tr>
+                    <td colspan="6" style="padding:0;">
+                        <div class="variant-row">
+                            <form action="{{ url_for('admin.edit_variant', variant_id=variant.variant_id) }}" method="post" class="variant-edit-form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="text" name="color" value="{{ variant.color }}" required>
+                                <input type="text" name="size" value="{{ variant.size }}" required>
+                                <input type="number" name="price" value="{{ variant.price }}" step="0.01" min="0" required>
+                                <input type="number" name="stock" value="{{ variant.stock }}" min="0" required>
+                                <label class="variant-active-toggle">
+                                    <input type="checkbox" name="is_active" {{ 'checked' if variant.is_active else '' }}> Actief
+                                </label>
+                                <button type="submit" class="admin-button btn-sm">Opslaan</button>
+                            </form>
+                            <form action="{{ url_for('admin.toggle_variant_active', variant_id=variant.variant_id) }}" method="post" class="variant-delete-form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                {% if variant.is_active %}
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Deze variant deactiveren? Klanten kunnen hem dan niet meer bestellen.');">Deactiveren</button>
+                                {% else %}
+                                <button type="submit" class="admin-button btn-sm">Activeren</button>
+                                {% endif %}
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p>Geen varianten gevonden voor dit product.</p>
+    {% endif %}
+
+    <form action="{{ url_for('admin.add_variant', product_id=product.product_id) }}" method="post" class="admin-form" style="margin-top:24px;">
+        <h3>Nieuwe variant toevoegen</h3>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div>
+            <label for="color">Kleur</label>
+            <input type="text" id="color" name="color" required>
+        </div>
+        <div>
+            <label for="size">Maat</label>
+            <input type="text" id="size" name="size" required>
+        </div>
+        <div>
+            <label for="price">Prijs</label>
+            <input type="number" id="price" name="price" step="0.01" required>
+        </div>
+        <div>
+            <label for="stock">Voorraad</label>
+            <input type="number" id="stock" name="stock" required>
+        </div>
+        <div class="checkbox-field">
+            <label for="variant_is_active"><input type="checkbox" id="variant_is_active" name="is_active" checked> Actief (beschikbaar voor verkoop)</label>
+        </div>
+
+        <button type="submit" class="admin-button">Variant toevoegen</button>
+    </form>
+</section>
+{% endblock %}

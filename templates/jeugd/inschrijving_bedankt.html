@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Bedankt voor je inschrijving{% endblock %}
+
+{% block content %}
+<section class="hero hero-short">
+    <div class="hero-content">
+        <h1>{{ site_teksten.inschrijving_bedankt_titel }}</h1>
+        <p>We hebben de inschrijving{% if inschrijving.voornaam_speler or inschrijving.achternaam_speler %} van {{ inschrijving.voornaam_speler or '' }} {{ inschrijving.achternaam_speler or '' }}{% endif %}{% if inschrijving.categorie %} voor {{ inschrijving.categorie }}{% endif %} goed ontvangen.{% if inschrijving.email %} We nemen binnenkort contact op via {{ inschrijving.email }}.{% endif %}</p>
+        <a href="{{ url_for('main.home') }}" class="cta-button">Terug naar de homepage</a>
+    </div>
+</section>
+{% endblock %}
