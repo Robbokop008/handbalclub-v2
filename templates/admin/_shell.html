@@ -32,8 +32,7 @@
             <a class="admin-sidebar-link{{ ' active' if ep == 'admin.users' else '' }}" href="{{ url_for('admin.users') }}">Gebruikers</a>
             <a class="admin-sidebar-link{{ ' active' if 'order' in ep else '' }}" href="{{ url_for('admin.orders') }}">Bestellingen</a>
             <a class="admin-sidebar-link{{ ' active' if ep == 'admin.inschrijvingen' else '' }}" href="{{ url_for('admin.inschrijvingen') }}">Inschrijvingen</a>
-            <a class="admin-sidebar-link{{ ' active' if 'inschrijvingsformulier' in ep else '' }}" href="{{ url_for('admin.inschrijvingsformulier') }}">Inschrijvingsformulier</a>
-            <a class="admin-sidebar-link{{ ' active' if 'school' in ep else '' }}" href="{{ url_for('admin.scholen') }}">Scholen</a>
+            <a class="admin-sidebar-link{{ ' active' if 'inschrijvingsformulier' in ep or 'school' in ep else '' }}" href="{{ url_for('admin.inschrijvingsformulier') }}">Inschrijvingsformulier</a>
             <a class="admin-sidebar-link{{ ' active' if 'gdpr' in ep else '' }}" href="{{ url_for('admin.gdpr_verzoeken') }}">GDPR-verzoeken</a>
         </nav>
 

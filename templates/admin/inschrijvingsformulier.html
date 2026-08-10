@@ -85,4 +85,27 @@
     <p>Er zijn nog geen opties toegevoegd.</p>
     {% endif %}
 </section>
+
+<section class="section" style="margin-top:28px;">
+    <h2 class="section-title" style="margin-bottom:12px;">Scholen</h2>
+    <p class="muted" style="margin-bottom:12px;">Deze lijst vult de schoolkeuze in het inschrijvingsformulier.</p>
+    <form action="{{ url_for('admin.add_school') }}" method="post" class="simple-list-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="text" name="naam" placeholder="Nieuwe school" required>
+        <button type="submit" class="admin-button">Toevoegen</button>
+    </form>
+    {% if scholen %}
+    {% for s in scholen %}
+    <div class="simple-list-item">
+        <span>{{ s.naam }}</span>
+        <form action="{{ url_for('admin.delete_school', school_id=s.id) }}" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Deze school verwijderen?');">Verwijderen</button>
+        </form>
+    </div>
+    {% endfor %}
+    {% else %}
+    <p>Er zijn nog geen scholen toegevoegd.</p>
+    {% endif %}
+</section>
 {% endblock %}

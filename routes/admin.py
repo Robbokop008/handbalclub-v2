@@ -259,24 +259,24 @@ def inschrijvingen():
 @admin_bp.route("/scholen")
 @admin_required
 def scholen():
-    alle_scholen = School.query.order_by(School.naam).all()
-    return render_template("admin/scholen_list.html", user=g.user, scholen=alle_scholen)
+    # Verhuisd naar het Inschrijvingsformulier-tabblad; deze URL blijft
+    # werken als doorverwijzing voor wie de oude link nog had staan.
+    return redirect(url_for("admin.inschrijvingsformulier"))
 
 
 @admin_bp.route("/scholen/add", methods=["POST"])
 @admin_required
 def add_school():
     naam = (request.form.get("naam") or "").strip()
-    alle_scholen = School.query.order_by(School.naam).all()
 
     if not naam:
-        return render_template("admin/scholen_list.html", user=g.user, scholen=alle_scholen, error="Naam is verplicht.")
+        return render_template("admin/inschrijvingsformulier.html", **_inschrijvingsformulier_context(error="Naam is verplicht."))
     if School.query.filter_by(naam=naam).first() is not None:
-        return render_template("admin/scholen_list.html", user=g.user, scholen=alle_scholen, error=f"'{naam}' staat al in de lijst.")
+        return render_template("admin/inschrijvingsformulier.html", **_inschrijvingsformulier_context(error=f"'{naam}' staat al in de lijst."))
 
     db.session.add(School(naam=naam))
     db.session.commit()
-    return redirect(url_for("admin.scholen"))
+    return redirect(url_for("admin.inschrijvingsformulier"))
 
 
 @admin_bp.route("/scholen/<int:school_id>/delete", methods=["POST"])
@@ -286,7 +286,7 @@ def delete_school(school_id):
     if school is not None:
         db.session.delete(school)
         db.session.commit()
-    return redirect(url_for("admin.scholen"))
+    return redirect(url_for("admin.inschrijvingsformulier"))
 
 
 def _inschrijvingsformulier_context(error=None):
@@ -296,6 +296,7 @@ def _inschrijvingsformulier_context(error=None):
         user=g.user, velden=velden,
         categorieen=InschrijvingCategorie.query.order_by(InschrijvingCategorie.id).all(),
         hoe_gehoord_opties=HoeGehoordOptie.query.order_by(HoeGehoordOptie.id).all(),
+        scholen=School.query.order_by(School.naam).all(),
         error=error,
     )
 
