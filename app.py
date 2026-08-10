@@ -9,7 +9,7 @@ en de app in kleinere, overzichtelijke stukken (blueprints) kan opdelen.
 Starten voor development doe je via run.py, niet via dit bestand direct.
 """
 
-from flask import Flask
+from flask import Flask, render_template
 
 from config import config_by_name
 from extensions import db, csrf, limiter
@@ -77,5 +77,16 @@ def create_app(config_name="development"):
     @app.context_processor
     def inject_site_teksten():
         return {"site_teksten": get_site_teksten()}
+
+    # Eigen foutpagina's i.p.v. Flask/Werkzeug's kale standaardpagina's:
+    # 404 (onbestaande URL) en 429 (rate limit overschreden, bv. te vaak
+    # inloggen na elkaar - zie @limiter.limit(...) in routes/auth.py).
+    @app.errorhandler(404)
+    def pagina_niet_gevonden(_error):
+        return render_template("errors/404.html"), 404
+
+    @app.errorhandler(429)
+    def te_veel_aanvragen(_error):
+        return render_template("errors/429.html"), 429
 
     return app
