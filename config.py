@@ -21,10 +21,25 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 
+# Enkel bedoeld als snelle fallback voor lokaal ontwikkelen. create_app()
+# (app.py) weigert op te starten met config_name="production" zolang
+# SECRET_KEY nog op deze waarde staat.
+ONVEILIGE_STANDAARD_SECRET_KEY = "verander-deze-sleutel-in-productie"
+
+
 class Config:
     """Instellingen die in elke omgeving gelden."""
-    SECRET_KEY = os.environ.get("SECRET_KEY", "verander-deze-sleutel-in-productie")
+    SECRET_KEY = os.environ.get("SECRET_KEY", ONVEILIGE_STANDAARD_SECRET_KEY)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # Sessiecookie hardening: HttpOnly voorkomt uitlezen via JavaScript (bv.
+    # bij een XSS-lek elders), SameSite=Lax beperkt wanneer de cookie
+    # meegestuurd wordt bij een request vanaf een andere site (CSRF-defense
+    # in depth, naast Flask-WTF's eigen CSRF-tokens). SESSION_COOKIE_SECURE
+    # staat pas op True in productie (zie ProductionConfig) - lokaal draait
+    # de site over gewone http, waar een secure cookie nooit verstuurd zou worden.
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
 
     # Stripe (webshop betalingen)
     STRIPE_API_KEY = os.environ.get("STRIPE_API_KEY")
@@ -78,9 +93,10 @@ def _normalize_database_url(url):
 
 
 class ProductionConfig(Config):
-    """Instellingen voor de live-omgeving (bv. Render, Hetzner)."""
+    """Instellingen voor de live-omgeving (bv. PythonAnywhere, Render, Hetzner)."""
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = _normalize_database_url(os.environ.get("DATABASE_URL"))
+    SESSION_COOKIE_SECURE = True
 
 
 # Maak het eenvoudig om per omgeving de juiste config te kiezen

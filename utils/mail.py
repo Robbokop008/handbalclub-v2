@@ -12,6 +12,14 @@ from email.mime.multipart import MIMEMultipart
 from flask import current_app
 
 
+def _veilige_header_waarde(waarde):
+    """Verwijdert regeleinden uit een waarde vóór die in een e-mailheader
+    (Reply-To, Subject, ...) terechtkomt. Zonder dit zou gebruikersinvoer
+    (bv. het e-mailadres/naam in een formulier) extra headers of een
+    volledig nieuwe e-mailinhoud kunnen injecteren (header/CRLF-injectie)."""
+    return (waarde or "").replace("\r", " ").replace("\n", " ").strip()
+
+
 def _send(msg):
     gmail_user = current_app.config["GMAIL_USER"]
     gmail_password = current_app.config["GMAIL_APP_PASSWORD"]
@@ -29,7 +37,7 @@ def send_contact_mail(name, email, message):
     msg["From"] = gmail_user
     msg["To"] = gmail_user
     msg["Subject"] = "Nieuw contactformulier bericht"
-    msg["Reply-To"] = email
+    msg["Reply-To"] = _veilige_header_waarde(email)
 
     body = f"""
     Naam: {name}
@@ -117,10 +125,10 @@ Opmerkingen: {inschrijving.opmerkingen or '-'}
 Ingediend op: {inschrijving.aangemaakt_op.strftime('%d/%m/%Y %H:%M')}
 """
     msg = MIMEText(body, "plain", "utf-8")
-    msg["Subject"] = f"Nieuwe inschrijving: {speler_naam} ({inschrijving.categorie or '-'})"
+    msg["Subject"] = _veilige_header_waarde(f"Nieuwe inschrijving: {speler_naam} ({inschrijving.categorie or '-'})")
     msg["From"] = gmail_user
     msg["To"] = gmail_user
-    msg["Reply-To"] = inschrijving.email
+    msg["Reply-To"] = _veilige_header_waarde(inschrijving.email)
     _send(msg)
 
 
@@ -140,8 +148,8 @@ Ingediend op: {verzoek.aangemaakt_op.strftime('%d/%m/%Y %H:%M')}
 Gelieve dit verzoek binnen de wettelijke termijn te verwerken.
 """
     msg = MIMEText(body, "plain", "utf-8")
-    msg["Subject"] = f"GDPR-verzoek: {verzoek.naam}"
+    msg["Subject"] = _veilige_header_waarde(f"GDPR-verzoek: {verzoek.naam}")
     msg["From"] = gmail_user
     msg["To"] = gmail_user
-    msg["Reply-To"] = verzoek.email
+    msg["Reply-To"] = _veilige_header_waarde(verzoek.email)
     _send(msg)

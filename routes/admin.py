@@ -451,7 +451,7 @@ def add_page():
     if error:
         return render_template(
             "admin/page_form.html", user=g.user, page=None, error=error,
-            form_title=title, form_slug=slug, form_body_html=request.form.get("body_html") or "",
+            form_title=title, form_slug=slug, form_body_html=body_html,
             form_is_published=is_published,
         )
 
@@ -490,7 +490,7 @@ def edit_page(page_id):
     if error:
         return render_template(
             "admin/page_form.html", user=g.user, page=page, error=error,
-            form_title=title, form_slug=slug, form_body_html=body_html_raw,
+            form_title=title, form_slug=slug, form_body_html=sanitize_html(body_html_raw),
             form_is_published=is_published,
         )
 
@@ -803,7 +803,7 @@ def add_nieuws():
     if error:
         return render_template(
             "admin/nieuws_form.html", user=g.user, bericht=None, categorieen=NIEUWS_CATEGORIEEN, error=error,
-            form_titel=titel, form_inhoud=inhoud_raw, form_categorie=categorie, form_groot=groot,
+            form_titel=titel, form_inhoud=sanitize_html(inhoud_raw), form_categorie=categorie, form_groot=groot,
         )
 
     # Nieuwe berichten komen standaard vooraan (net als 'laatste nieuws'), de
@@ -845,7 +845,7 @@ def edit_nieuws(bericht_id):
     if error:
         return render_template(
             "admin/nieuws_form.html", user=g.user, bericht=bericht, categorieen=NIEUWS_CATEGORIEEN, error=error,
-            form_titel=titel, form_inhoud=inhoud_raw, form_categorie=categorie, form_groot=groot,
+            form_titel=titel, form_inhoud=sanitize_html(inhoud_raw), form_categorie=categorie, form_groot=groot,
         )
 
     bericht.titel = titel

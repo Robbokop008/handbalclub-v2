@@ -18,7 +18,7 @@ bv. twee T-shirts met elk een andere opdruk apart kan bestellen.
 """
 
 from uuid import uuid4
-from flask import Blueprint, render_template, request, redirect, url_for, session, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, session, current_app, g
 import stripe
 
 from extensions import db, csrf
@@ -376,7 +376,11 @@ def checkout_success():
 
     order_id = checkout_session.metadata.get("order_id")
     order = Order.query.get(int(order_id)) if order_id else None
-    if order is None:
+    # Niet enkel op een bestaande order controleren: zonder deze check kan
+    # elke ingelogde gebruiker de orderbevestiging van een ANDERE klant zien
+    # door enkel een geldig session_id te bemachtigen (bv. via een gedeelde
+    # link) - de order moet ook echt van de ingelogde gebruiker zijn.
+    if order is None or order.user_id != g.user.user_id:
         return redirect(url_for("shop.cart"))
 
     session["cart"] = {}

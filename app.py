@@ -11,7 +11,7 @@ Starten voor development doe je via run.py, niet via dit bestand direct.
 
 from flask import Flask, render_template
 
-from config import config_by_name
+from config import config_by_name, ONVEILIGE_STANDAARD_SECRET_KEY
 from extensions import db, csrf, limiter
 
 
@@ -20,6 +20,19 @@ def create_app(config_name="development"):
 
     app = Flask(__name__)
     app.config.from_object(config_by_name[config_name])
+
+    # Geen stille onveilige standaardwaarde in productie: als SECRET_KEY niet
+    # via de omgevingsvariabelen ingesteld is, valt Config terug op een
+    # sleutel die letterlijk in de broncode staat (handig om lokaal snel te
+    # kunnen opstarten, maar onveilig als dat ook in productie zou gebeuren -
+    # daarmee zijn sessies/cookies voor iedereen met leestoegang tot de repo
+    # te vervalsen). Faal hier duidelijk i.p.v. stil onveilig te draaien.
+    if config_name == "production" and app.config["SECRET_KEY"] == ONVEILIGE_STANDAARD_SECRET_KEY:
+        raise RuntimeError(
+            "SECRET_KEY staat nog op de onveilige standaardwaarde. Stel een "
+            "echte, geheime sleutel in via de omgevingsvariabelen (.env) "
+            "voor je de site in productie draait."
+        )
 
     # Extensies koppelen aan de app
     db.init_app(app)
@@ -94,5 +107,16 @@ def create_app(config_name="development"):
     @app.errorhandler(429)
     def te_veel_aanvragen(_error):
         return render_template("errors/429.html"), 429
+
+    # Baseline HTTP-securityheaders op elke response. Geen Content-Security-
+    # Policy hier: de site gebruikt op verschillende plekken inline <style>/
+    # <script>, en een CSP zonder zorgvuldige nonce-aanpak zou die stukken
+    # zomaar kunnen blokkeren - dat is bewust buiten deze scope gehouden.
+    @app.after_request
+    def voeg_security_headers_toe(response):
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        return response
 
     return app

@@ -106,9 +106,9 @@ def contact():
         email = request.form.get("email")
         message = request.form.get("message")
 
-        if not name or not email or not message:
+        if not name or not email or not message or "@" not in email:
             return render_template(
-                "contact.html", error="Vul alle velden correct in.", name=name, email=email, message=message
+                "contact.html", error="Vul alle velden correct in (met een geldig e-mailadres).", name=name, email=email, message=message
             )
 
         try:
