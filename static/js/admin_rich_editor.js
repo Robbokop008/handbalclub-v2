@@ -152,7 +152,7 @@
                         [{ header: [2, 3, 4, false] }],
                         ['bold', 'italic', 'underline', 'strike'],
                         [{ list: 'ordered' }, { list: 'bullet' }],
-                        ['blockquote', 'link', 'image'],
+                        ['blockquote', 'link', 'image', 'video'],
                         ['table', 'table-menu'],
                         ['clean'],
                     ],
@@ -166,6 +166,8 @@
         });
 
         var toolbarEl = quill.getModule('toolbar').container;
+        var videoBtn = toolbarEl.querySelector('.ql-video');
+        if (videoBtn) videoBtn.title = 'Video invoegen (YouTube/Vimeo-link)';
         var insertBtn = toolbarEl.querySelector('.ql-table');
         if (insertBtn) insertBtn.title = 'Tabel invoegen';
         var menuBtn = toolbarEl.querySelector('.ql-table-menu');

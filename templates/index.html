@@ -10,56 +10,60 @@
     </div>
 </section>
 
-{% if sponsors %}
-<section class="section sponsor-section">
-    <h2 class="section-title">Onze sponsors</h2>
-    <div class="sponsor-bar">
-        {% for sponsor in sponsors %}
-            {% if sponsor.website_url %}
-            <a href="{{ sponsor.website_url }}" target="_blank" rel="noopener" class="sponsor-logo-link" title="{{ sponsor.naam }}">
-                <img src="{{ url_for('static', filename='images/' + sponsor.logo) }}" alt="{{ sponsor.naam }}">
-            </a>
-            {% else %}
-            <span class="sponsor-logo-link" title="{{ sponsor.naam }}">
-                <img src="{{ url_for('static', filename='images/' + sponsor.logo) }}" alt="{{ sponsor.naam }}">
-            </span>
-            {% endif %}
-        {% endfor %}
+<section class="section home-layout">
+    <div class="home-main">
+        <h2 class="section-title">Laatste nieuws</h2>
+        {% if nieuwsberichten %}
+            <div class="values-grid">
+                {% for bericht in nieuwsberichten %}
+                    {% set platte_tekst = bericht.inhoud | platte_tekst %}
+                    <div class="value-card nieuws-card{{ ' groot' if bericht.groot else '' }}">
+                        {% if bericht.afbeelding %}
+                        <img src="{{ url_for('static', filename='images/' + bericht.afbeelding) }}" alt="{{ bericht.titel }}" style="width:100%;border-radius:var(--radius-sm);margin-bottom:12px;">
+                        {% endif %}
+                        <h3>{{ bericht.titel }}</h3>
+                        <p class="nieuws-tekst">{{ platte_tekst | truncate(3000) }}</p>
+                        <p class="nieuws-lees-meer"><a href="{{ url_for('main.nieuws_detail', bericht_id=bericht.id) }}">Lees meer &rarr;</a></p>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="muted" style="text-align:center;">Nog geen nieuwsberichten geplaatst.</p>
+        {% endif %}
     </div>
-</section>
-{% endif %}
 
-<section class="section">
-    <h2 class="section-title">Wedstrijden deze week</h2>
-    <div class="spond-embed-wrap spond-embed-wrap-compact">
-        <iframe
-            src="{{ spond_embed_url }}"
-            title="Spond wedstrijdkalender"
-            loading="lazy"
-            referrerpolicy="no-referrer-when-downgrade">
-        </iframe>
-    </div>
-    <p style="text-align:center;margin-top:16px;"><a href="{{ url_for('kalender.wedstrijden') }}">Bekijk de volledige kalender &rarr;</a></p>
-</section>
-
-<section class="section">
-    <h2 class="section-title">Laatste nieuws</h2>
-    {% if nieuwsberichten %}
-        <div class="values-grid">
-            {% for bericht in nieuwsberichten %}
-                {% set platte_tekst = bericht.inhoud | replace('</p>', ' ') | replace('<br>', ' ') | replace('</li>', ' ') | striptags | trim %}
-                <div class="value-card nieuws-card{{ ' groot' if bericht.groot else '' }}">
-                    {% if bericht.afbeelding %}
-                    <img src="{{ url_for('static', filename='images/' + bericht.afbeelding) }}" alt="{{ bericht.titel }}" style="width:100%;border-radius:var(--radius-sm);margin-bottom:12px;">
+    <aside class="home-sidebar">
+        {% if sponsors %}
+        <div class="home-sidebar-block">
+            <h2 class="section-title">Onze sponsors</h2>
+            <div class="sponsor-bar sponsor-bar-sidebar">
+                {% for sponsor in sponsors %}
+                    {% if sponsor.website_url %}
+                    <a href="{{ sponsor.website_url }}" target="_blank" rel="noopener" class="sponsor-logo-link" title="{{ sponsor.naam }}">
+                        <img src="{{ url_for('static', filename='images/' + sponsor.logo) }}" alt="{{ sponsor.naam }}">
+                    </a>
+                    {% else %}
+                    <span class="sponsor-logo-link" title="{{ sponsor.naam }}">
+                        <img src="{{ url_for('static', filename='images/' + sponsor.logo) }}" alt="{{ sponsor.naam }}">
+                    </span>
                     {% endif %}
-                    <h3>{{ bericht.titel }}</h3>
-                    <p class="nieuws-tekst">{{ platte_tekst | truncate(3000) }}</p>
-                    <p class="nieuws-lees-meer"><a href="{{ url_for('main.nieuws_detail', bericht_id=bericht.id) }}">Lees meer &rarr;</a></p>
-                </div>
-            {% endfor %}
+                {% endfor %}
+            </div>
         </div>
-    {% else %}
-        <p class="muted" style="text-align:center;">Nog geen nieuwsberichten geplaatst.</p>
-    {% endif %}
+        {% endif %}
+
+        <div class="home-sidebar-block">
+            <h2 class="section-title">Wedstrijden deze week</h2>
+            <div class="spond-embed-wrap spond-embed-wrap-sidebar">
+                <iframe
+                    src="{{ spond_embed_url }}"
+                    title="Spond wedstrijdkalender"
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade">
+                </iframe>
+            </div>
+            <p style="text-align:center;margin-top:16px;"><a href="{{ url_for('kalender.wedstrijden') }}">Bekijk de volledige kalender &rarr;</a></p>
+        </div>
+    </aside>
 </section>
 {% endblock %}

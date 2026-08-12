@@ -78,6 +78,12 @@ def create_app(config_name="development"):
     def inject_site_teksten():
         return {"site_teksten": get_site_teksten()}
 
+    # Jinja-filter die gesaniteerde rich-text HTML (nieuwsberichten) omzet
+    # naar leesbare platte tekst voor previews - zie utils/sanitize.py.
+    from utils.sanitize import html_naar_platte_tekst
+
+    app.add_template_filter(html_naar_platte_tekst, name="platte_tekst")
+
     # Eigen foutpagina's i.p.v. Flask/Werkzeug's kale standaardpagina's:
     # 404 (onbestaande URL) en 429 (rate limit overschreden, bv. te vaak
     # inloggen na elkaar - zie @limiter.limit(...) in routes/auth.py).

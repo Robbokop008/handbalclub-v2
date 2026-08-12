@@ -579,6 +579,33 @@ form textarea { min-height: 120px; resize: vertical; }
 }
 
 /* =========================================================
+   HOMEPAGE-LAYOUT (nieuws links, sponsors + kalender rechts)
+   ========================================================= */
+.home-layout {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 40px;
+  align-items: start;
+}
+
+.home-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+/* Kleinere sponsorlogo's in de smallere sidebar-kolom dan in de volle-breedte balk */
+.sponsor-bar-sidebar { justify-content: flex-start; gap: 20px; }
+.sponsor-bar-sidebar .sponsor-logo-link { height: 60px; }
+.sponsor-bar-sidebar .sponsor-logo-link img { max-height: 60px; max-width: 140px; }
+
+.spond-embed-wrap-sidebar { height: 420px; }
+
+@media (max-width: 900px) {
+  .home-layout { grid-template-columns: 1fr; }
+}
+
+/* =========================================================
    CART
    ========================================================= */
 .cart-panel {
@@ -1228,6 +1255,15 @@ form textarea { min-height: 120px; resize: vertical; }
 
 @media (max-width: 600px) {
   .page-body table { display: block; overflow-x: auto; }
+}
+
+/* Video-embed (YouTube/Vimeo via de editor se video-knop): Quill zet vaste
+   width/height-attributen op de iframe, max-width laat 'm meeschalen op
+   smallere schermen terwijl de hoogte automatisch verhoudingsgewijs meegaat. */
+.page-body iframe {
+  max-width: 100%;
+  border-radius: var(--radius-sm);
+  margin: 12px 0;
 }
 
 /* =========================================================
