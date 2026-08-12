@@ -61,8 +61,8 @@ class Config:
     SPOND_EMBED_URL = os.environ.get("SPOND_EMBED_URL") or "https://spond.com/"
 
     # Flanders Trophy: puur doorlinken, geen eigen pagina's op deze site
-    FLANDERS_TROPHY_FACEBOOK_URL = "https://www.facebook.com/"
-    FLANDERS_TROPHY_INSTAGRAM_URL = "https://www.instagram.com/"
+    FLANDERS_TROPHY_FACEBOOK_URL = "https://www.facebook.com/flanderstrophy/"
+    FLANDERS_TROPHY_INSTAGRAM_URL = "https://www.instagram.com/flandershandballtrophy/"
     FLANDERS_TROPHY_WEBSITE_URL = "https://www.flanderstrophy.be"
 
     # Mail (contactformulier + orderbevestiging)

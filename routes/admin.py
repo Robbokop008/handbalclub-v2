@@ -57,6 +57,21 @@ def _save_uploaded_image(image_file):
     return filename
 
 
+def _delete_uploaded_image(filename):
+    """Verwijdert een eerder geüploade afbeelding van schijf. Genegeerd als
+    filename leeg is of het bestand al niet (meer) bestaat - dit wordt
+    aangeroepen telkens een afbeelding vervangen of een record met een
+    afbeelding verwijderd wordt, zodat static/images/ niet blijft
+    aangroeien met bestanden die nergens meer naar verwijzen."""
+    if not filename:
+        return
+    path = Path(current_app.config["UPLOAD_FOLDER"]) / filename
+    try:
+        path.unlink(missing_ok=True)
+    except OSError:
+        current_app.logger.warning(f"Kon geüploade afbeelding niet verwijderen: {filename}")
+
+
 def _slugify(text):
     """Zet vrije tekst om in een URL-vriendelijke slug (kleine letters, koppeltekens)."""
     text = text.strip().lower()
@@ -133,6 +148,7 @@ def edit_product(product_id):
 
     new_image = _save_uploaded_image(request.files.get("image"))
     if new_image:
+        _delete_uploaded_image(product.image_url)
         product.image_url = new_image
 
     db.session.commit()
@@ -449,6 +465,10 @@ def add_page():
         error = f"Er bestaat al een pagina met slug '{slug}'. Kies een andere titel of slug."
 
     if error:
+        # hero_image werd hierboven al opgeslagen (indien meegestuurd) vóór
+        # deze validatie - zonder opruimen zou dat bestand nergens meer naar
+        # verwijzen als de pagina nu niet aangemaakt wordt.
+        _delete_uploaded_image(hero_image)
         return render_template(
             "admin/page_form.html", user=g.user, page=None, error=error,
             form_title=title, form_slug=slug, form_body_html=body_html,
@@ -501,6 +521,7 @@ def edit_page(page_id):
 
     new_image = _save_uploaded_image(request.files.get("hero_image"))
     if new_image:
+        _delete_uploaded_image(page.hero_image)
         page.hero_image = new_image
 
     db.session.commit()
@@ -535,6 +556,7 @@ def delete_page(page_id):
         all_pages = Page.query.order_by(Page.title).all()
         return render_template("admin/pages_list.html", user=g.user, pages=all_pages, error=error)
 
+    _delete_uploaded_image(page.hero_image)
     db.session.delete(page)
     db.session.commit()
     return redirect(url_for("admin.pages"))
@@ -856,8 +878,10 @@ def edit_nieuws(bericht_id):
 
     new_image = _save_uploaded_image(request.files.get("afbeelding"))
     if new_image:
+        _delete_uploaded_image(bericht.afbeelding)
         bericht.afbeelding = new_image
     elif request.form.get("verwijder_afbeelding"):
+        _delete_uploaded_image(bericht.afbeelding)
         bericht.afbeelding = None
 
     db.session.commit()
@@ -901,6 +925,10 @@ def add_sponsor():
     logo = _save_uploaded_image(request.files.get("logo"))
 
     if not naam or not logo:
+        # logo werd hierboven al opgeslagen (indien meegestuurd) vóór deze
+        # check - zonder opruimen zou dat bestand nergens meer naar wijzen
+        # als de sponsor nu niet aangemaakt wordt.
+        _delete_uploaded_image(logo)
         # Sponsors staan op één lijstpagina (zoals producten) - bij een
         # fout gewoon terug naar het overzicht, de naam is snel opnieuw ingevuld.
         return redirect(url_for("admin.sponsors"))
@@ -926,6 +954,7 @@ def edit_sponsor(sponsor_id):
 
     new_logo = _save_uploaded_image(request.files.get("logo"))
     if new_logo:
+        _delete_uploaded_image(sponsor.logo)
         sponsor.logo = new_logo
 
     db.session.commit()
@@ -968,6 +997,7 @@ def move_sponsor(sponsor_id):
 def delete_sponsor(sponsor_id):
     sponsor = Sponsor.query.get(sponsor_id)
     if sponsor is not None:
+        _delete_uploaded_image(sponsor.logo)
         db.session.delete(sponsor)
         db.session.commit()
     return redirect(url_for("admin.sponsors"))
@@ -978,6 +1008,7 @@ def delete_sponsor(sponsor_id):
 def delete_nieuws(bericht_id):
     bericht = NieuwsBericht.query.get(bericht_id)
     if bericht is not None:
+        _delete_uploaded_image(bericht.afbeelding)
         db.session.delete(bericht)
         db.session.commit()
     return redirect(url_for("admin.nieuws"))
@@ -1075,8 +1106,10 @@ def edit_team(team_id):
 
     new_foto = _save_uploaded_image(request.files.get("foto"))
     if new_foto:
+        _delete_uploaded_image(team.foto_url)
         team.foto_url = new_foto
     elif request.form.get("verwijder_foto"):
+        _delete_uploaded_image(team.foto_url)
         team.foto_url = None
 
     db.session.commit()
@@ -1101,6 +1134,7 @@ def delete_team(team_id):
         alle_teams = Team.query.order_by(Team.sectie, Team.naam).all()
         return render_template("admin/teams_list.html", user=g.user, teams=alle_teams, sectie_labels=TEAM_SECTIE_LABELS, error=error)
 
+    _delete_uploaded_image(team.foto_url)
     db.session.delete(team)
     db.session.commit()
     return redirect(url_for("admin.teams"))
