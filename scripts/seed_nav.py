@@ -6,10 +6,10 @@ in NavItem-rijen (zie models.NavItem), zodat de navigatie voortaan via de
 admin beheerd kan worden (categorieën, volgorde, verplaatsen tussen
 categorieën) i.p.v. hardcoded in de template.
 
-Reproduceert de huidige navbar 1-op-1: Home, Club/Kalender/Teams/Jeugd
-(met de Teams-groepslabels), FanShop, Flanders Trophy, Vacatures. Het
-Profiel/Inloggen-blok en het winkelmandje-icoon blijven bewust hardcoded
-in base.html, want hun doel hangt af van de actieve sessie.
+Reproduceert de huidige navbar 1-op-1: Home, Nieuws, Club/Kalender/Teams/
+Jeugd (met de Teams-groepslabels), FanShop, Flanders Trophy, Vacatures.
+Het Profiel/Inloggen-blok en het winkelmandje-icoon blijven bewust
+hardcoded in base.html, want hun doel hangt af van de actieve sessie.
 
 Destructief maar idempotent: verwijdert eerst alle bestaande NavItem's en
 bouwt de boom opnieuw op, dus opnieuw draaien geeft telkens dezelfde,
@@ -69,6 +69,9 @@ def run():
 
         pos += 1
         _add(None, pos, "Home", item_type="route", route_endpoint="main.home")
+
+        pos += 1
+        _add(None, pos, "Nieuws", item_type="route", route_endpoint="main.nieuws")
 
         pos += 1
         club = _add(None, pos, "Club", item_type="category")
