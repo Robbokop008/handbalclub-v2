@@ -812,6 +812,7 @@ def add_nieuws():
 
     titel = (request.form.get("titel") or "").strip()
     inhoud_raw = request.form.get("inhoud") or ""
+    samenvatting = (request.form.get("samenvatting") or "").strip() or None
     categorie = request.form.get("categorie") or NIEUWS_CATEGORIEEN[0]
     gepubliceerd_op = _parse_datetime_local(request.form.get("gepubliceerd_op")) or datetime.utcnow()
     groot = bool(request.form.get("groot"))
@@ -825,7 +826,8 @@ def add_nieuws():
     if error:
         return render_template(
             "admin/nieuws_form.html", user=g.user, bericht=None, categorieen=NIEUWS_CATEGORIEEN, error=error,
-            form_titel=titel, form_inhoud=sanitize_html(inhoud_raw), form_categorie=categorie, form_groot=groot,
+            form_titel=titel, form_inhoud=sanitize_html(inhoud_raw), form_samenvatting=samenvatting,
+            form_categorie=categorie, form_groot=groot,
         )
 
     # Nieuwe berichten komen standaard vooraan (net als 'laatste nieuws'), de
@@ -833,7 +835,7 @@ def add_nieuws():
     min_position = db.session.query(db.func.min(NieuwsBericht.position)).scalar() or 0
     afbeelding = _save_uploaded_image(request.files.get("afbeelding"))
     bericht = NieuwsBericht(
-        titel=titel, inhoud=sanitize_html(inhoud_raw), afbeelding=afbeelding,
+        titel=titel, inhoud=sanitize_html(inhoud_raw), samenvatting=samenvatting, afbeelding=afbeelding,
         categorie=categorie, gepubliceerd_op=gepubliceerd_op, groot=groot,
         position=min_position - 1,
     )
@@ -854,6 +856,7 @@ def edit_nieuws(bericht_id):
 
     titel = (request.form.get("titel") or "").strip()
     inhoud_raw = request.form.get("inhoud") or ""
+    samenvatting = (request.form.get("samenvatting") or "").strip() or None
     categorie = request.form.get("categorie") or NIEUWS_CATEGORIEEN[0]
     gepubliceerd_op = _parse_datetime_local(request.form.get("gepubliceerd_op")) or bericht.gepubliceerd_op
     groot = bool(request.form.get("groot"))
@@ -867,11 +870,13 @@ def edit_nieuws(bericht_id):
     if error:
         return render_template(
             "admin/nieuws_form.html", user=g.user, bericht=bericht, categorieen=NIEUWS_CATEGORIEEN, error=error,
-            form_titel=titel, form_inhoud=sanitize_html(inhoud_raw), form_categorie=categorie, form_groot=groot,
+            form_titel=titel, form_inhoud=sanitize_html(inhoud_raw), form_samenvatting=samenvatting,
+            form_categorie=categorie, form_groot=groot,
         )
 
     bericht.titel = titel
     bericht.inhoud = sanitize_html(inhoud_raw)
+    bericht.samenvatting = samenvatting
     bericht.categorie = categorie
     bericht.gepubliceerd_op = gepubliceerd_op
     bericht.groot = groot

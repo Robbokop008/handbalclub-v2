@@ -68,6 +68,10 @@
             <input type="file" id="afbeelding" name="afbeelding" accept="image/*">
         </div>
         <div style="grid-column:1/-1;">
+            <label for="samenvatting">Samenvatting voor de verkorte weergave (optioneel)</label>
+            <textarea id="samenvatting" name="samenvatting" rows="3" placeholder="Laat leeg om automatisch een stuk van het volledige artikel te tonen op de homepage/nieuwsoverzicht.">{{ form_samenvatting if form_samenvatting is defined else (bericht.samenvatting if bericht else '') }}</textarea>
+        </div>
+        <div style="grid-column:1/-1;">
             <label for="quill-editor">Inhoud</label>
             <div id="quill-editor" data-textarea-id="inhoud" data-image-upload-url="{{ url_for('admin.upload_page_image') }}"></div>
             <textarea id="inhoud" name="inhoud" style="display:none;">{{ form_inhoud if form_inhoud is defined else (bericht.inhoud if bericht else '') }}</textarea>

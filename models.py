@@ -59,6 +59,10 @@ class NieuwsBericht(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     titel = db.Column(db.String(200), nullable=False)
     inhoud = db.Column(db.Text, nullable=False)   # rich-text HTML, gesaniteerd bij opslaan (zie utils/sanitize.py)
+    # Optionele, admin-geschreven tekst voor de verkorte weergave (kaarten/
+    # slider). Leeg = automatisch een stuk van 'inhoud' tonen (zie de
+    # 'platte_tekst'-Jinja-filter in utils/sanitize.py).
+    samenvatting = db.Column(db.Text)
     afbeelding = db.Column(db.String(255))          # bestandsnaam in static/images/
     categorie = db.Column(db.String(20), nullable=False, default="Club")
     gepubliceerd_op = db.Column(db.DateTime, default=datetime.utcnow)
