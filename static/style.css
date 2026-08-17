@@ -1071,40 +1071,6 @@ body.club-page { background: var(--blue); }
 .club-accordion-body li { margin-bottom: 6px; line-height: 1.6; }
 .club-accordion-body a { color: var(--yellow); }
 
-.club-subaccordion-item {
-  margin: 4px 0;
-  padding: 10px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.club-subaccordion-item summary {
-  color: var(--yellow);
-  font-weight: 700;
-  font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.club-subaccordion-item summary::after {
-  width: 7px;
-  height: 7px;
-}
-
-.club-contact-list {
-  list-style: none;
-  margin: 14px 0 0;
-  padding: 0;
-}
-
-.club-contact-list li { margin-bottom: 8px; }
-
-.club-contact-list a {
-  color: rgba(255, 255, 255, 0.9);
-  text-decoration: none;
-}
-
-.club-contact-list a:hover { color: var(--yellow); }
-
 .club-verzekering-placeholder {
   max-width: 360px;
   margin: 4px 0 18px;
