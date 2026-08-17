@@ -29,7 +29,7 @@ from models import (
 )
 from utils.auth import admin_required
 from utils.mail import send_admin_cancellation_mail
-from utils.sanitize import sanitize_html, html_naar_platte_tekst
+from utils.sanitize import sanitize_html
 from utils.site_text import SITE_TEXT_PAGINAS, vind_pagina, get_site_teksten
 from utils.inschrijving import get_inschrijving_categorieen, get_hoe_gehoord_opties, get_inschrijving_veld_config
 from utils.page_blocks import block_afbeeldingsbestanden, afbeeldingen_uit_data
@@ -115,37 +115,6 @@ PAGE_BLOCK_TYPE_LABELS = {
 def _next_block_position(page_id):
     max_position = db.session.query(db.func.max(PageBlock.position)).filter_by(page_id=page_id).scalar() or 0
     return max_position + 1
-
-
-def _block_summary(block):
-    """Korte samenvatting van een blok voor de blokkenlijst in de admin."""
-    if block.block_type == "rich_text":
-        tekst = html_naar_platte_tekst(block.data.get("html", ""))
-        if not tekst:
-            return "(leeg)"
-        return tekst[:100] + ("…" if len(tekst) > 100 else "")
-    if block.block_type == "image_gallery":
-        n = len(block.data.get("images", []))
-        return f"{n} afbeelding{'en' if n != 1 else ''}"
-    if block.block_type == "columns":
-        n = len(block.data.get("columns", []))
-        return f"{n} kolommen"
-    if block.block_type == "video":
-        return block.data.get("source_url") or "-"
-    if block.block_type == "button":
-        return f'"{block.data.get("label")}" → {block.data.get("url")}'
-    if block.block_type == "quote":
-        tekst = block.data.get("text") or ""
-        return f'"{tekst[:80]}"' + ("…" if len(tekst) > 80 else "")
-    if block.block_type == "faq":
-        n = len(block.data.get("items", []))
-        return f"{n} vraag/antwoord"
-    if block.block_type == "stats":
-        n = len(block.data.get("items", []))
-        return f"{n} statistiek{'en' if n != 1 else ''}"
-    if block.block_type == "embed_html":
-        return "Aangepaste HTML/embed"
-    return ""
 
 
 def _parse_weergave_fields():
@@ -713,9 +682,9 @@ def add_page():
 
 def _render_page_edit(page, **kwargs):
     return render_template(
-        "admin/page_edit.html", user=g.user, page=page,
+        "admin/page_canvas.html", user=g.user, page=page,
         block_types=PAGE_BLOCK_TYPES, block_type_labels=PAGE_BLOCK_TYPE_LABELS,
-        block_summary=_block_summary, **kwargs,
+        **kwargs,
     )
 
 

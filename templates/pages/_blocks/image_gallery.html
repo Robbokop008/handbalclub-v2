@@ -7,4 +7,6 @@
     <img class="block-gallery-tile" src="{{ url_for('static', filename='images/' + img.filename) }}" alt="{{ img.alt or '' }}">
     {% endfor %}
 </div>
+{% elif edit_mode is defined and edit_mode %}
+<div class="canvas-placeholder-box">+ Afbeelding toevoegen</div>
 {% endif %}
