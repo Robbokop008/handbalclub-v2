@@ -1,0 +1,87 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - Blokken van {{ page.title }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .block-add-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 28px; }
+  .block-list { display: flex; flex-direction: column; gap: 10px; }
+  .block-item { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
+  .block-drag-handle { cursor: grab; color: var(--muted); font-size: 18px; user-select: none; }
+  .block-type-badge { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); background: var(--blue-light); padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+  .block-summary { flex: 1; color: var(--muted); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .block-item-actions { display: flex; gap: 6px; }
+  .block-item-actions form { display: inline-flex; }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>Blokken van "{{ page.title }}"</h1>
+    <p>
+        <a href="{{ url_for('admin.pages') }}">&larr; Terug naar Pagina's</a>
+        {% if page.is_published %}
+        &middot; <a href="{{ url_for('pages.view', slug=page.slug) }}" target="_blank" rel="noopener">Bekijk pagina &rarr;</a>
+        {% endif %}
+    </p>
+</div>
+
+<section class="section">
+    <h2 class="section-title" style="margin-bottom:12px;">Blok toevoegen</h2>
+    <div class="block-add-row">
+        {% for bt in block_types %}
+        <a href="{{ url_for('admin.add_page_block', page_id=page.id, block_type=bt) }}" class="admin-button btn-sm">+ {{ block_type_labels[bt] }}</a>
+        {% endfor %}
+    </div>
+
+    <h2 class="section-title" style="margin-bottom:12px;">Inhoud (volgorde = weergave op de pagina)</h2>
+    {% if page.blocks %}
+    <div class="block-list" id="block-list" data-page-id="{{ page.id }}">
+        {% for block in page.blocks %}
+        <div class="block-item" data-id="{{ block.id }}">
+            <span class="block-drag-handle" title="Sleep om te herordenen">&#9776;</span>
+            <span class="block-type-badge">{{ block_type_labels[block.block_type] }}</span>
+            <span class="block-summary">{{ block_summary(block) }}</span>
+            <div class="block-item-actions">
+                <a href="{{ url_for('admin.edit_page_block', page_id=page.id, block_id=block.id) }}" class="admin-button btn-sm">Bewerken</a>
+                <form action="{{ url_for('admin.delete_page_block', page_id=page.id, block_id=block.id) }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Dit blok definitief verwijderen?');">Verwijderen</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>Deze pagina heeft nog geen blokken. Voeg er hierboven één toe.</p>
+    {% endif %}
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='vendor/sortablejs/Sortable.min.js') }}"></script>
+<script>
+(function () {
+    var list = document.getElementById('block-list');
+    if (!list) return;
+
+    var csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+    var pageId = list.dataset.pageId;
+
+    new Sortable(list, {
+        handle: '.block-drag-handle',
+        animation: 150,
+        onEnd: function () {
+            var items = Array.from(list.children).map(function (el, index) {
+                return { id: parseInt(el.dataset.id, 10), position: index + 1 };
+            });
+            fetch("{{ url_for('admin.reorder_page_blocks', page_id=page.id) }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ items: items }),
+            });
+        },
+    });
+})();
+</script>
+{% endblock %}

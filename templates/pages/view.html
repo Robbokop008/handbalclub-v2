@@ -15,7 +15,11 @@
     {% endif %}
 
     <div class="page-body">
-        {{ page.body_html | safe }}
+        {% for block in page.blocks %}
+        <div class="page-block">
+            {% include "pages/_blocks/" + block.block_type + ".html" %}
+        </div>
+        {% endfor %}
     </div>
 </section>
 {% endblock %}

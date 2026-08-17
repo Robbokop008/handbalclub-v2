@@ -116,6 +116,12 @@ def create_app(config_name="development"):
 
     app.add_template_filter(html_naar_platte_tekst, name="platte_tekst")
 
+    # Jinja-global om de canonieke video-embed-URL server-side op te bouwen
+    # in templates/pages/_blocks/video.html - zie utils/url_validation.py.
+    from utils.url_validation import build_video_embed_url
+
+    app.add_template_global(build_video_embed_url, name="video_embed_url")
+
     # Eigen foutpagina's i.p.v. Flask/Werkzeug's kale standaardpagina's:
     # 404 (onbestaande URL) en 429 (rate limit overschreden, bv. te vaak
     # inloggen na elkaar - zie @limiter.limit(...) in routes/auth.py).

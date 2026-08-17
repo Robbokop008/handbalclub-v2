@@ -35,7 +35,8 @@
                     <td><span class="order-status-badge">{{ 'Gepubliceerd' if page.is_published else 'Concept' }}</span></td>
                     <td>{{ page.updated_at.strftime('%d/%m/%Y %H:%M') if page.updated_at else '—' }}</td>
                     <td>
-                        <a href="{{ url_for('admin.edit_page', page_id=page.id) }}" class="admin-button btn-sm">Bewerken</a>
+                        <a href="{{ url_for('admin.page_blocks', page_id=page.id) }}" class="admin-button btn-sm">Blokken beheren</a>
+                        <a href="{{ url_for('admin.edit_page', page_id=page.id) }}" class="btn btn-secondary btn-sm">Bewerken</a>
                         {% if page.is_published %}
                         <a href="{{ url_for('pages.view', slug=page.slug) }}" class="btn btn-secondary btn-sm" target="_blank" rel="noopener">Bekijken</a>
                         {% endif %}

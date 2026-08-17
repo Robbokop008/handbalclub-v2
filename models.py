@@ -271,7 +271,10 @@ class NavItem(db.Model):
 
 
 class Page(db.Model):
-    """Een door de admin beheerde inhoudspagina, getoond via /pagina/<slug>."""
+    """Een door de admin beheerde inhoudspagina, getoond via /pagina/<slug>.
+    De inhoud zelf zit in PageBlock-rijen (zie hieronder); body_html is
+    legacy (van vóór de blokken-page-builder) en wordt niet meer gebruikt
+    door nieuwe/bewerkte pagina's."""
     __tablename__ = "pages"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -283,8 +286,34 @@ class Page(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    blocks = db.relationship(
+        "PageBlock", order_by="PageBlock.position", cascade="all, delete-orphan"
+    )
+
     def __repr__(self):
         return f"<Page {self.slug}>"
+
+
+PAGE_BLOCK_TYPES = ["rich_text", "image_gallery", "columns", "video", "button"]
+
+
+class PageBlock(db.Model):
+    """Eén content-blok binnen een Page, getoond in volgorde van position.
+    De vorm van 'data' hangt af van block_type - zie utils/page_blocks.py
+    en de bloksjablonen in templates/pages/_blocks/ en
+    templates/admin/page_block_form.html voor de exacte sleutels per type."""
+    __tablename__ = "page_blocks"
+
+    id = db.Column(db.Integer, primary_key=True)
+    page_id = db.Column(db.Integer, db.ForeignKey("pages.id"), nullable=False)
+    block_type = db.Column(db.String(20), nullable=False)
+    position = db.Column(db.Integer, nullable=False, default=0)
+    data = db.Column(db.JSON, nullable=False, default=dict)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<PageBlock {self.block_type} (page {self.page_id}, pos {self.position})>"
 
 
 class SiteText(db.Model):

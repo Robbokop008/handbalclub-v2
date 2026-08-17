@@ -23,15 +23,17 @@ from datetime import datetime
 from extensions import db
 from models import (
     Product, ProductVariant, User, Order, ORDER_STATUSES, Inschrijving, VergeetMijVerzoek,
-    Page, NavItem, NAV_ITEM_TYPES, NieuwsBericht, NIEUWS_CATEGORIEEN, Sponsor, Team,
+    Page, PageBlock, PAGE_BLOCK_TYPES, NavItem, NAV_ITEM_TYPES, NieuwsBericht, NIEUWS_CATEGORIEEN, Sponsor, Team,
     TEAM_SECTIES, TEAM_SECTIE_LABELS, School, SiteText,
     InschrijvingCategorie, HoeGehoordOptie, InschrijvingVeldConfig, INSCHRIJVING_VELD_DEFINITIES,
 )
 from utils.auth import admin_required
 from utils.mail import send_admin_cancellation_mail
-from utils.sanitize import sanitize_html
+from utils.sanitize import sanitize_html, html_naar_platte_tekst
 from utils.site_text import SITE_TEXT_PAGINAS, vind_pagina, get_site_teksten
 from utils.inschrijving import get_inschrijving_categorieen, get_hoe_gehoord_opties, get_inschrijving_veld_config
+from utils.page_blocks import block_afbeeldingsbestanden, afbeeldingen_uit_data
+from utils.url_validation import is_safe_target_url, parse_video_embed
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -95,6 +97,123 @@ def _html_is_blank(html):
     (Quill stuurt een lege editor als '<p><br></p>', niet als lege string)."""
     text = re.sub(r"<[^>]+>", "", html or "").strip()
     return not text and "<img" not in (html or "")
+
+
+PAGE_BLOCK_TYPE_LABELS = {
+    "rich_text": "Tekstblok",
+    "image_gallery": "Afbeelding(en)",
+    "columns": "Kolommen",
+    "video": "Video",
+    "button": "Knop",
+}
+
+
+def _next_block_position(page_id):
+    max_position = db.session.query(db.func.max(PageBlock.position)).filter_by(page_id=page_id).scalar() or 0
+    return max_position + 1
+
+
+def _block_summary(block):
+    """Korte samenvatting van een blok voor de blokkenlijst in de admin."""
+    if block.block_type == "rich_text":
+        tekst = html_naar_platte_tekst(block.data.get("html", ""))
+        if not tekst:
+            return "(leeg)"
+        return tekst[:100] + ("…" if len(tekst) > 100 else "")
+    if block.block_type == "image_gallery":
+        n = len(block.data.get("images", []))
+        return f"{n} afbeelding{'en' if n != 1 else ''}"
+    if block.block_type == "columns":
+        n = len(block.data.get("columns", []))
+        return f"{n} kolommen"
+    if block.block_type == "video":
+        return block.data.get("source_url") or "-"
+    if block.block_type == "button":
+        return f'"{block.data.get("label")}" → {block.data.get("url")}'
+    return ""
+
+
+def _parse_block_form(block_type, existing_data):
+    """Leest request.form/request.files uit voor het gegeven bloktype en
+    geeft (data, error) terug. existing_data is de huidige block.data bij
+    bewerken (leeg dict bij toevoegen) - nodig om bestaande afbeeldingen/
+    kolommen te kunnen behouden, vervangen of verwijderen. Ruimt zelf oude
+    afbeeldingsbestanden op die vervangen/verwijderd worden (zelfde patroon
+    als _delete_uploaded_image elders in dit bestand)."""
+    existing_data = existing_data or {}
+
+    if block_type == "rich_text":
+        html = sanitize_html(request.form.get("html") or "")
+        return {"html": html}, None
+
+    if block_type == "image_gallery":
+        images = []
+        bestaande = existing_data.get("images", [])
+        for i, img in enumerate(bestaande):
+            if request.form.get(f"remove_image_{i}"):
+                _delete_uploaded_image(img.get("filename"))
+                continue
+            alt = (request.form.get(f"alt_{i}") or "").strip()
+            images.append({"filename": img.get("filename"), "alt": alt})
+        for bestand in request.files.getlist("new_images"):
+            filename = _save_uploaded_image(bestand)
+            if filename:
+                images.append({"filename": filename, "alt": ""})
+        return {"images": images}, None
+
+    if block_type == "columns":
+        try:
+            aantal = int(request.form.get("column_count") or 2)
+        except ValueError:
+            aantal = 2
+        aantal = 3 if aantal >= 3 else 2
+
+        bestaande = existing_data.get("columns", [])
+        columns = []
+        for i in range(aantal):
+            heading = (request.form.get(f"heading_{i}") or "").strip()
+            text = (request.form.get(f"text_{i}") or "").strip()
+            oude_afbeelding = bestaande[i].get("image") if i < len(bestaande) else None
+            nieuwe_afbeelding = _save_uploaded_image(request.files.get(f"image_{i}"))
+            if nieuwe_afbeelding:
+                _delete_uploaded_image(oude_afbeelding)
+                afbeelding = nieuwe_afbeelding
+            elif request.form.get(f"remove_image_{i}"):
+                _delete_uploaded_image(oude_afbeelding)
+                afbeelding = None
+            else:
+                afbeelding = oude_afbeelding
+            columns.append({"heading": heading, "text": text, "image": afbeelding})
+
+        # Bij het verkleinen van 3 naar 2 kolommen: afbeelding van de kolom
+        # die wegvalt niet laten rondslingeren op schijf.
+        for oude_kolom in bestaande[aantal:]:
+            _delete_uploaded_image(oude_kolom.get("image"))
+
+        return {"columns": columns}, None
+
+    if block_type == "video":
+        url = (request.form.get("url") or "").strip()
+        embed = parse_video_embed(url)
+        if embed is None:
+            return {"url": url}, "Geen geldige YouTube- of Vimeo-URL herkend."
+        provider, embed_id = embed
+        return {"provider": provider, "embed_id": embed_id, "source_url": url}, None
+
+    if block_type == "button":
+        label = (request.form.get("label") or "").strip()
+        url = (request.form.get("url") or "").strip()
+        style = request.form.get("style") if request.form.get("style") in ("primary", "secondary") else "primary"
+        if not label:
+            return {"label": label, "url": url, "style": style}, "Tekst voor de knop is verplicht."
+        if not is_safe_target_url(url):
+            return (
+                {"label": label, "url": url, "style": style},
+                "Ongeldige URL. Gebruik een pad dat begint met '/', of een volledige http(s)-URL.",
+            )
+        return {"label": label, "url": url, "style": style}, None
+
+    return {}, "Onbekend bloktype."
 
 
 @admin_bp.route("/")
@@ -474,7 +593,6 @@ def add_page():
 
     title = (request.form.get("title") or "").strip()
     slug = _slugify(request.form.get("slug") or title)
-    body_html = sanitize_html(request.form.get("body_html") or "")
     is_published = bool(request.form.get("is_published"))
     hero_image = _save_uploaded_image(request.files.get("hero_image"))
 
@@ -493,17 +611,15 @@ def add_page():
         _delete_uploaded_image(hero_image)
         return render_template(
             "admin/page_form.html", user=g.user, page=None, error=error,
-            form_title=title, form_slug=slug, form_body_html=body_html,
-            form_is_published=is_published,
+            form_title=title, form_slug=slug, form_is_published=is_published,
         )
 
-    page = Page(
-        title=title, slug=slug, body_html=body_html,
-        hero_image=hero_image, is_published=is_published,
-    )
+    page = Page(title=title, slug=slug, hero_image=hero_image, is_published=is_published)
     db.session.add(page)
     db.session.commit()
-    return redirect(url_for("admin.pages"))
+    # Meteen doorrollen naar de blokken-builder: een pagina zonder inhoud
+    # heeft weinig nut, en dit is waar die inhoud voortaan opgebouwd wordt.
+    return redirect(url_for("admin.page_blocks", page_id=page.id))
 
 
 @admin_bp.route("/pages/<int:page_id>/edit", methods=["GET", "POST"])
@@ -518,7 +634,6 @@ def edit_page(page_id):
 
     title = (request.form.get("title") or "").strip()
     slug = _slugify(request.form.get("slug") or title)
-    body_html_raw = request.form.get("body_html") or ""
     is_published = bool(request.form.get("is_published"))
 
     error = None
@@ -532,13 +647,11 @@ def edit_page(page_id):
     if error:
         return render_template(
             "admin/page_form.html", user=g.user, page=page, error=error,
-            form_title=title, form_slug=slug, form_body_html=sanitize_html(body_html_raw),
-            form_is_published=is_published,
+            form_title=title, form_slug=slug, form_is_published=is_published,
         )
 
     page.title = title
     page.slug = slug
-    page.body_html = sanitize_html(body_html_raw)
     page.is_published = is_published
 
     new_image = _save_uploaded_image(request.files.get("hero_image"))
@@ -578,10 +691,111 @@ def delete_page(page_id):
         all_pages = Page.query.order_by(Page.title).all()
         return render_template("admin/pages_list.html", user=g.user, pages=all_pages, error=error)
 
+    for block in page.blocks:
+        for filename in block_afbeeldingsbestanden(block):
+            _delete_uploaded_image(filename)
     _delete_uploaded_image(page.hero_image)
-    db.session.delete(page)
+    db.session.delete(page)   # cascadeert naar PageBlock-rijen (Page.blocks-relationship)
     db.session.commit()
     return redirect(url_for("admin.pages"))
+
+
+@admin_bp.route("/pages/<int:page_id>/blocks")
+@admin_required
+def page_blocks(page_id):
+    page = Page.query.get(page_id)
+    if page is None:
+        return redirect(url_for("admin.pages"))
+    return render_template(
+        "admin/page_blocks.html", user=g.user, page=page,
+        block_types=PAGE_BLOCK_TYPES, block_type_labels=PAGE_BLOCK_TYPE_LABELS,
+        block_summary=_block_summary,
+    )
+
+
+@admin_bp.route("/pages/<int:page_id>/blocks/add/<block_type>", methods=["GET", "POST"])
+@admin_required
+def add_page_block(page_id, block_type):
+    page = Page.query.get(page_id)
+    if page is None or block_type not in PAGE_BLOCK_TYPES:
+        abort(404)
+
+    if request.method == "GET":
+        return render_template(
+            "admin/page_block_form.html", user=g.user, page=page, block=None,
+            block_type=block_type, block_type_label=PAGE_BLOCK_TYPE_LABELS[block_type],
+        )
+
+    data, error = _parse_block_form(block_type, {})
+    if error:
+        return render_template(
+            "admin/page_block_form.html", user=g.user, page=page, block=None,
+            block_type=block_type, block_type_label=PAGE_BLOCK_TYPE_LABELS[block_type],
+            error=error, form_data=data,
+        )
+
+    blok = PageBlock(page_id=page.id, block_type=block_type, position=_next_block_position(page.id), data=data)
+    db.session.add(blok)
+    db.session.commit()
+    return redirect(url_for("admin.page_blocks", page_id=page.id))
+
+
+@admin_bp.route("/pages/<int:page_id>/blocks/<int:block_id>/edit", methods=["GET", "POST"])
+@admin_required
+def edit_page_block(page_id, block_id):
+    page = Page.query.get(page_id)
+    block = PageBlock.query.get(block_id)
+    if page is None or block is None or block.page_id != page.id:
+        abort(404)
+
+    if request.method == "GET":
+        return render_template(
+            "admin/page_block_form.html", user=g.user, page=page, block=block,
+            block_type=block.block_type, block_type_label=PAGE_BLOCK_TYPE_LABELS[block.block_type],
+        )
+
+    data, error = _parse_block_form(block.block_type, block.data)
+    if error:
+        return render_template(
+            "admin/page_block_form.html", user=g.user, page=page, block=block,
+            block_type=block.block_type, block_type_label=PAGE_BLOCK_TYPE_LABELS[block.block_type],
+            error=error, form_data=data,
+        )
+
+    block.data = data
+    db.session.commit()
+    return redirect(url_for("admin.page_blocks", page_id=page.id))
+
+
+@admin_bp.route("/pages/<int:page_id>/blocks/<int:block_id>/delete", methods=["POST"])
+@admin_required
+def delete_page_block(page_id, block_id):
+    block = PageBlock.query.get(block_id)
+    if block is not None and block.page_id == page_id:
+        for filename in block_afbeeldingsbestanden(block):
+            _delete_uploaded_image(filename)
+        db.session.delete(block)
+        db.session.commit()
+    return redirect(url_for("admin.page_blocks", page_id=page_id))
+
+
+@admin_bp.route("/pages/<int:page_id>/blocks/reorder", methods=["POST"])
+@admin_required
+def reorder_page_blocks(page_id):
+    """AJAX-endpoint voor het slepen (SortableJS) in de blokken-builder,
+    zelfde patroon als reorder_nav_items() maar dan voor een platte lijst
+    blokken die bij één specifieke pagina horen."""
+    data = request.get_json(silent=True) or {}
+    updates = data.get("items") or []
+
+    for update in updates:
+        block = PageBlock.query.get(update.get("id"))
+        if block is None or block.page_id != page_id:
+            continue
+        block.position = update.get("position", block.position)
+
+    db.session.commit()
+    return jsonify({"ok": True})
 
 
 def _collect_descendant_ids(item_id):

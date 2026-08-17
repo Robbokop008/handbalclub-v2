@@ -2,30 +2,13 @@
 
 {% block title %}Adminpagina - {{ 'Pagina bewerken' if page else 'Nieuwe pagina' }}{% endblock %}
 
-{% block extra_head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='vendor/quill/quill.snow.min.css') }}">
-<style>
-  #quill-editor { background: var(--white); min-height: 300px; }
-  .ql-toolbar.ql-snow { border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
-  .ql-container.ql-snow { border-radius: 0 0 var(--radius-sm) var(--radius-sm); font-size: 15px; }
-  .ql-table-menu-btn { width: auto !important; padding: 0 6px !important; font-size: 16px !important; line-height: 24px !important; }
-  .table-size-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-  .table-size-dialog { background: var(--white); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-hover); min-width: 260px; }
-  .table-size-dialog h3 { margin: 0 0 16px; }
-  .table-size-dialog label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 12px; }
-  .table-size-dialog input { display: block; width: 100%; margin-top: 4px; padding: 6px 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
-  .table-size-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
-  .ql-table-dropdown { position: absolute; z-index: 1000; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow-hover); display: flex; flex-direction: column; min-width: 200px; padding: 4px; }
-  .ql-table-dropdown button { text-align: left; background: none; border: none; padding: 8px 10px; font-size: 13px; border-radius: var(--radius-sm); cursor: pointer; color: var(--ink); }
-  .ql-table-dropdown button:hover { background: var(--blue-light); }
-  .ql-table-dropdown-danger { color: var(--danger); }
-</style>
-{% endblock %}
-
 {% block admin_content %}
 <div class="admin-page-header">
     <h1>{{ 'Pagina bewerken' if page else 'Nieuwe pagina toevoegen' }}</h1>
-    <p>Tekst wordt automatisch opgeschoond bij opslaan (enkel eenvoudige opmaak toegestaan).</p>
+    <p>
+        Titel, slug en publicatiestatus. De inhoud van de pagina bouw je op via blokken
+        {% if page %}(<a href="{{ url_for('admin.page_blocks', page_id=page.id) }}">Blokken beheren &rarr;</a>){% else %}(dat kan zodra deze pagina is aangemaakt){% endif %}.
+    </p>
 </div>
 
 <section class="section">
@@ -44,11 +27,6 @@
             <label for="slug">Slug (URL: /pagina/&lt;slug&gt;)</label>
             <input type="text" id="slug" name="slug" value="{{ form_slug if form_slug is defined else (page.slug if page else '') }}" placeholder="wordt automatisch afgeleid van de titel als je dit leeg laat">
         </div>
-        <div style="grid-column:1/-1;">
-            <label for="quill-editor">Inhoud</label>
-            <div id="quill-editor" data-textarea-id="body_html" data-image-upload-url="{{ url_for('admin.upload_page_image') }}"></div>
-            <textarea id="body_html" name="body_html" style="display:none;">{{ form_body_html if form_body_html is defined else (page.body_html if page else '') }}</textarea>
-        </div>
         <div>
             <label for="hero_image">Afbeelding bovenaan (optioneel)</label>
             <input type="file" id="hero_image" name="hero_image" accept="image/*">
@@ -65,12 +43,4 @@
         </div>
     </form>
 </section>
-{% endblock %}
-
-{% block extra_scripts %}
-<script src="{{ url_for('static', filename='vendor/quill/quill.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/admin_rich_editor.js') }}"></script>
-<script>
-    initAdminRichEditor(document.getElementById('quill-editor'));
-</script>
 {% endblock %}

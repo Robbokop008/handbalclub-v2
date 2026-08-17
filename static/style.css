@@ -1618,6 +1618,49 @@ nav#nav-menu > ul {
 }
 
 /* =========================================================
+   PAGINABLOKKEN (page-builder, zie templates/pages/_blocks/)
+   ========================================================= */
+.page-block + .page-block { margin-top: 28px; }
+
+.block-gallery-single {
+  width: 100%;
+  border-radius: var(--radius);
+}
+
+.block-gallery-tile {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.block-columns-img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+}
+
+.block-video-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.block-video-wrap iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.block-button-wrap { text-align: center; }
+
+/* =========================================================
    SPOND-KALENDER EMBED
    ========================================================= */
 .spond-embed-wrap {

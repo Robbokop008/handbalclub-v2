@@ -1,0 +1,6 @@
+{% set embed_url = video_embed_url(block.data.provider, block.data.embed_id) %}
+{% if embed_url %}
+<div class="block-video-wrap">
+    <iframe src="{{ embed_url }}" title="Video" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+</div>
+{% endif %}

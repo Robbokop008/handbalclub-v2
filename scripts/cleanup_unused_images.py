@@ -11,6 +11,11 @@ Houdt rekening met:
     Team.foto_url, Sponsor.logo, Product.image_url)
   - inline afbeeldingen die via de rich-text-editor in Page.body_html of
     NieuwsBericht.inhoud terechtgekomen zijn (<img src="/static/images/...">)
+    - body_html is legacy sinds de page-builder (zie models.PageBlock), maar
+      de kolom bevat nog steeds de originele inhoud van vóór de migratie
+      (scripts/migrate_pages_to_blocks.py leest ze enkel uit, wist niets)
+  - afbeeldingen gebruikt in PageBlock's (image_gallery-/columns-blokken,
+    zie utils/page_blocks.py)
   - vaste bestanden die rechtstreeks in templates gebruikt worden, niet via
     de databank (favicon.ico)
 
@@ -30,6 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app import create_app
 from models import Page, NieuwsBericht, Team, Sponsor, Product
+from utils.page_blocks import block_afbeeldingsbestanden
 
 # Bestanden die nooit als 'ongebruikt' beschouwd mogen worden, ook al staan
 # ze niet in de databank - rechtstreeks door templates gebruikt.
@@ -53,6 +59,8 @@ def run(effectief_verwijderen):
             if page.hero_image:
                 gebruikt.add(page.hero_image)
             gebruikt |= _inline_afbeeldingen(page.body_html)
+            for block in page.blocks:
+                gebruikt |= set(block_afbeeldingsbestanden(block))
 
         for bericht in NieuwsBericht.query.all():
             if bericht.afbeelding:

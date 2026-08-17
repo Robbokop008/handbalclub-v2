@@ -1,0 +1,156 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - {{ block_type_label }}{% endblock %}
+
+{% block extra_head %}
+{% if block_type == 'rich_text' %}
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/quill/quill.snow.min.css') }}">
+<style>
+  #quill-editor { background: var(--white); min-height: 220px; }
+  .ql-toolbar.ql-snow { border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+  .ql-container.ql-snow { border-radius: 0 0 var(--radius-sm) var(--radius-sm); font-size: 15px; }
+</style>
+{% endif %}
+<style>
+  .block-form-field { margin-bottom: 16px; }
+  .block-form-field label { display: block; font-weight: 600; margin-bottom: 4px; }
+  .block-form-field input[type=text], .block-form-field textarea, .block-form-field select {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: inherit;
+  }
+  .gallery-existing-item { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .gallery-existing-item img { max-height: 70px; border-radius: var(--radius-sm); }
+  .gallery-existing-item input[type=text] { flex: 1; }
+  .column-fieldset { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 16px; }
+  .column-fieldset legend { font-weight: 700; padding: 0 6px; }
+  .column-fieldset img { max-height: 70px; border-radius: var(--radius-sm); display: block; margin-bottom: 8px; }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+{% set d = form_data if form_data is defined else (block.data if block else {}) %}
+
+<div class="admin-page-header">
+    <h1>{{ block_type_label }}</h1>
+    <p><a href="{{ url_for('admin.page_blocks', page_id=page.id) }}">&larr; Terug naar blokken van "{{ page.title }}"</a></p>
+</div>
+
+<section class="section">
+    {% if error %}
+    <p class="alert alert-error" style="margin-bottom:20px;">{{ error }}</p>
+    {% endif %}
+
+    <form action="{{ url_for('admin.edit_page_block', page_id=page.id, block_id=block.id) if block else url_for('admin.add_page_block', page_id=page.id, block_type=block_type) }}"
+          method="post" class="admin-form" style="display:block;" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        {% if block_type == 'rich_text' %}
+        <div class="block-form-field">
+            <label for="quill-editor">Inhoud</label>
+            <div id="quill-editor" data-textarea-id="html" data-image-upload-url="{{ url_for('admin.upload_page_image') }}"></div>
+            <textarea id="html" name="html" style="display:none;">{{ d.html or '' }}</textarea>
+        </div>
+
+        {% elif block_type == 'image_gallery' %}
+        {% if d.images %}
+        <div class="block-form-field">
+            <label>Huidige afbeeldingen</label>
+            {% for img in d.images %}
+            <div class="gallery-existing-item">
+                <img src="{{ url_for('static', filename='images/' + img.filename) }}" alt="">
+                <input type="text" name="alt_{{ loop.index0 }}" value="{{ img.alt or '' }}" placeholder="Alt-tekst (omschrijving)">
+                <label style="font-weight:400;white-space:nowrap;"><input type="checkbox" name="remove_image_{{ loop.index0 }}"> Verwijderen</label>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        <div class="block-form-field">
+            <label for="new_images">Afbeelding(en) toevoegen</label>
+            <input type="file" id="new_images" name="new_images" multiple accept="image/*">
+            <p class="muted" style="font-size:12px;">1 afbeelding wordt groot getoond, 2 of meer als grid.</p>
+        </div>
+
+        {% elif block_type == 'columns' %}
+        {% set kolomaantal = d.columns|length if d.columns else 2 %}
+        <div class="block-form-field">
+            <label for="column_count">Aantal kolommen</label>
+            <select id="column_count" name="column_count">
+                <option value="2" {{ 'selected' if kolomaantal != 3 else '' }}>2 kolommen</option>
+                <option value="3" {{ 'selected' if kolomaantal == 3 else '' }}>3 kolommen</option>
+            </select>
+        </div>
+        {% for i in range(3) %}
+        {% set col = d.columns[i] if d.columns and i < d.columns|length else {} %}
+        <fieldset class="column-fieldset" data-col-index="{{ i }}">
+            <legend>Kolom {{ i + 1 }}</legend>
+            <div class="block-form-field">
+                <label for="heading_{{ i }}">Titel (optioneel)</label>
+                <input type="text" id="heading_{{ i }}" name="heading_{{ i }}" value="{{ col.heading or '' }}">
+            </div>
+            <div class="block-form-field">
+                <label for="text_{{ i }}">Tekst (optioneel)</label>
+                <textarea id="text_{{ i }}" name="text_{{ i }}" rows="3">{{ col.text or '' }}</textarea>
+            </div>
+            {% if col.image %}
+            <img src="{{ url_for('static', filename='images/' + col.image) }}" alt="">
+            <label style="font-weight:400;"><input type="checkbox" name="remove_image_{{ i }}"> Afbeelding verwijderen</label>
+            {% endif %}
+            <div class="block-form-field">
+                <label for="image_{{ i }}">Afbeelding (optioneel)</label>
+                <input type="file" id="image_{{ i }}" name="image_{{ i }}" accept="image/*">
+            </div>
+        </fieldset>
+        {% endfor %}
+
+        {% elif block_type == 'video' %}
+        <div class="block-form-field">
+            <label for="url">YouTube- of Vimeo-URL</label>
+            <input type="text" id="url" name="url" value="{{ d.url or d.source_url or '' }}" placeholder="https://www.youtube.com/watch?v=...">
+        </div>
+
+        {% elif block_type == 'button' %}
+        <div class="block-form-field">
+            <label for="label">Tekst op de knop</label>
+            <input type="text" id="label" name="label" value="{{ d.label or '' }}" placeholder="Bv. Lees meer">
+        </div>
+        <div class="block-form-field">
+            <label for="url">Link (bv. /pagina/over-ons, of een volledige https://-URL)</label>
+            <input type="text" id="url" name="url" value="{{ d.url or '' }}">
+        </div>
+        <div class="block-form-field">
+            <label for="style">Stijl</label>
+            <select id="style" name="style">
+                <option value="primary" {{ 'selected' if (d.style or 'primary') == 'primary' else '' }}>Opvallend (geel)</option>
+                <option value="secondary" {{ 'selected' if d.style == 'secondary' else '' }}>Subtiel</option>
+            </select>
+        </div>
+        {% endif %}
+
+        <div class="form-actions">
+            <button type="submit" class="admin-button">Opslaan</button>
+            <a href="{{ url_for('admin.page_blocks', page_id=page.id) }}" class="btn btn-secondary">Annuleren</a>
+        </div>
+    </form>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if block_type == 'rich_text' %}
+<script src="{{ url_for('static', filename='vendor/quill/quill.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/admin_rich_editor.js') }}"></script>
+<script>
+    initAdminRichEditor(document.getElementById('quill-editor'));
+</script>
+{% elif block_type == 'columns' %}
+<script>
+(function () {
+    var select = document.getElementById('column_count');
+    var thirdFieldset = document.querySelector('.column-fieldset[data-col-index="2"]');
+    function sync() {
+        thirdFieldset.style.display = select.value === '3' ? '' : 'none';
+    }
+    select.addEventListener('change', sync);
+    sync();
+})();
+</script>
+{% endif %}
+{% endblock %}
