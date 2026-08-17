@@ -27,10 +27,10 @@
                     <div class="nieuws-slider-viewport">
                         <div class="nieuws-slider-track">
                             {% for bericht in nieuwsberichten %}
-                                {% set platte_tekst = bericht.inhoud | platte_tekst %}
+                                {% set preview_tekst = bericht.samenvatting or (bericht.inhoud | platte_tekst) %}
                                 <div class="nieuws-slide">
                                     <h3>{{ bericht.titel }}</h3>
-                                    <p class="nieuws-tekst">{{ platte_tekst | truncate(600) }}</p>
+                                    <p class="nieuws-tekst">{{ preview_tekst | truncate(600) }}</p>
                                     <p class="nieuws-lees-meer"><a href="{{ url_for('main.nieuws_detail', bericht_id=bericht.id) }}">lees meer &rarr;</a></p>
                                 </div>
                             {% endfor %}
