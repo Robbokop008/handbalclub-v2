@@ -5,8 +5,11 @@
 {% block admin_content %}
 <div class="admin-page-header">
     <h1>{{ pagina.label }}</h1>
-    {% if pagina.opmerking %}<p>{{ pagina.opmerking }}</p>{% endif %}
-    {% if bekijk_url %}<p><a href="{{ bekijk_url }}" target="_blank" rel="noopener">Bekijk deze pagina &rarr;</a></p>{% endif %}
+    <p>
+        <a href="{{ url_for('admin.pages') }}">&larr; Terug naar Pagina's</a>
+        {% if bekijk_url %}&middot; <a href="{{ bekijk_url }}" target="_blank" rel="noopener">Bekijk deze pagina &rarr;</a>{% endif %}
+    </p>
+    {% if pagina.opmerking %}<p class="muted">{{ pagina.opmerking }}</p>{% endif %}
 </div>
 
 <section class="section">
@@ -26,7 +29,7 @@
 
         <div class="form-actions">
             <button type="submit" class="admin-button">Opslaan</button>
-            <a href="{{ url_for('admin.site_teksten') }}" class="btn btn-secondary">Annuleren</a>
+            <a href="{{ url_for('admin.pages') }}" class="btn btn-secondary">Annuleren</a>
         </div>
     </form>
 </section>

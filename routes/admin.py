@@ -503,22 +503,6 @@ def delete_hoe_gehoord_optie(optie_id):
     return redirect(url_for("admin.inschrijvingsformulier"))
 
 
-@admin_bp.route("/site-teksten")
-@admin_required
-def site_teksten():
-    paginas = []
-    for pagina in SITE_TEXT_PAGINAS:
-        bekijk_url = None
-        if pagina["endpoint"]:
-            try:
-                bekijk_url = url_for(pagina["endpoint"])
-            except BuildError:
-                bekijk_url = None
-        paginas.append({**pagina, "bekijk_url": bekijk_url})
-
-    return render_template("admin/site_teksten.html", user=g.user, paginas=paginas)
-
-
 @admin_bp.route("/site-teksten/<slug>", methods=["GET", "POST"])
 @admin_required
 def edit_site_tekst(slug):
@@ -535,7 +519,7 @@ def edit_site_tekst(slug):
             else:
                 db.session.add(SiteText(sleutel=sleutel, omschrijving=omschrijving, waarde=nieuwe_waarde))
         db.session.commit()
-        return redirect(url_for("admin.site_teksten"))
+        return redirect(url_for("admin.pages"))
 
     waarden = get_site_teksten()
     velden = [(sleutel, omschrijving, waarden[sleutel]) for sleutel, omschrijving, _standaard_waarde in pagina["velden"]]
@@ -566,11 +550,28 @@ def toggle_gdpr_verwerkt(verzoek_id):
     return redirect(url_for("admin.gdpr_verzoeken"))
 
 
+def _vaste_pagina_rijen():
+    """Bouwt de rijen voor de 'vaste' (code-gedreven) pagina's uit
+    SITE_TEXT_PAGINAS, met een 'Bekijk pagina'-URL waar mogelijk - zie
+    utils/site_text.py."""
+    rijen = []
+    for pagina in SITE_TEXT_PAGINAS:
+        bekijk_url = None
+        if pagina["endpoint"]:
+            try:
+                bekijk_url = url_for(pagina["endpoint"])
+            except BuildError:
+                bekijk_url = None
+        rijen.append({"kind": "vast", "title": pagina["label"], "pagina": pagina, "bekijk_url": bekijk_url})
+    return rijen
+
+
 @admin_bp.route("/pages")
 @admin_required
 def pages():
-    all_pages = Page.query.order_by(Page.title).all()
-    return render_template("admin/pages_list.html", user=g.user, pages=all_pages)
+    content_rijen = [{"kind": "content", "title": p.title, "page": p} for p in Page.query.all()]
+    alle_rijen = sorted(content_rijen + _vaste_pagina_rijen(), key=lambda r: r["title"].lower())
+    return render_template("admin/pages_list.html", user=g.user, rijen=alle_rijen)
 
 
 @admin_bp.route("/pages/upload-image", methods=["POST"])
@@ -589,7 +590,7 @@ def upload_page_image():
 @admin_required
 def add_page():
     if request.method == "GET":
-        return render_template("admin/page_form.html", user=g.user, page=None)
+        return render_template("admin/page_form.html", user=g.user)
 
     title = (request.form.get("title") or "").strip()
     slug = _slugify(request.form.get("slug") or title)
@@ -610,16 +611,24 @@ def add_page():
         # verwijzen als de pagina nu niet aangemaakt wordt.
         _delete_uploaded_image(hero_image)
         return render_template(
-            "admin/page_form.html", user=g.user, page=None, error=error,
+            "admin/page_form.html", user=g.user, error=error,
             form_title=title, form_slug=slug, form_is_published=is_published,
         )
 
     page = Page(title=title, slug=slug, hero_image=hero_image, is_published=is_published)
     db.session.add(page)
     db.session.commit()
-    # Meteen doorrollen naar de blokken-builder: een pagina zonder inhoud
+    # Meteen doorrollen naar het bewerkscherm: een pagina zonder inhoud
     # heeft weinig nut, en dit is waar die inhoud voortaan opgebouwd wordt.
-    return redirect(url_for("admin.page_blocks", page_id=page.id))
+    return redirect(url_for("admin.edit_page", page_id=page.id))
+
+
+def _render_page_edit(page, **kwargs):
+    return render_template(
+        "admin/page_edit.html", user=g.user, page=page,
+        block_types=PAGE_BLOCK_TYPES, block_type_labels=PAGE_BLOCK_TYPE_LABELS,
+        block_summary=_block_summary, **kwargs,
+    )
 
 
 @admin_bp.route("/pages/<int:page_id>/edit", methods=["GET", "POST"])
@@ -630,7 +639,7 @@ def edit_page(page_id):
         return redirect(url_for("admin.pages"))
 
     if request.method == "GET":
-        return render_template("admin/page_form.html", user=g.user, page=page)
+        return _render_page_edit(page)
 
     title = (request.form.get("title") or "").strip()
     slug = _slugify(request.form.get("slug") or title)
@@ -645,10 +654,7 @@ def edit_page(page_id):
         error = f"Er bestaat al een andere pagina met slug '{slug}'. Kies een andere titel of slug."
 
     if error:
-        return render_template(
-            "admin/page_form.html", user=g.user, page=page, error=error,
-            form_title=title, form_slug=slug, form_is_published=is_published,
-        )
+        return _render_page_edit(page, error=error, form_title=title, form_slug=slug, form_is_published=is_published)
 
     page.title = title
     page.slug = slug
@@ -660,7 +666,7 @@ def edit_page(page_id):
         page.hero_image = new_image
 
     db.session.commit()
-    return redirect(url_for("admin.pages"))
+    return redirect(url_for("admin.edit_page", page_id=page.id))
 
 
 @admin_bp.route("/pages/<int:page_id>/toggle_published", methods=["POST"])
@@ -688,8 +694,9 @@ def delete_page(page_id):
             f"via {labels}. Verwijder of wijzig eerst dat navigatie-item op de "
             f"Navigatie-pagina, dan kan de pagina hierna wel verwijderd worden."
         )
-        all_pages = Page.query.order_by(Page.title).all()
-        return render_template("admin/pages_list.html", user=g.user, pages=all_pages, error=error)
+        content_rijen = [{"kind": "content", "title": p.title, "page": p} for p in Page.query.all()]
+        alle_rijen = sorted(content_rijen + _vaste_pagina_rijen(), key=lambda r: r["title"].lower())
+        return render_template("admin/pages_list.html", user=g.user, rijen=alle_rijen, error=error)
 
     for block in page.blocks:
         for filename in block_afbeeldingsbestanden(block):
@@ -698,19 +705,6 @@ def delete_page(page_id):
     db.session.delete(page)   # cascadeert naar PageBlock-rijen (Page.blocks-relationship)
     db.session.commit()
     return redirect(url_for("admin.pages"))
-
-
-@admin_bp.route("/pages/<int:page_id>/blocks")
-@admin_required
-def page_blocks(page_id):
-    page = Page.query.get(page_id)
-    if page is None:
-        return redirect(url_for("admin.pages"))
-    return render_template(
-        "admin/page_blocks.html", user=g.user, page=page,
-        block_types=PAGE_BLOCK_TYPES, block_type_labels=PAGE_BLOCK_TYPE_LABELS,
-        block_summary=_block_summary,
-    )
 
 
 @admin_bp.route("/pages/<int:page_id>/blocks/add/<block_type>", methods=["GET", "POST"])
@@ -737,7 +731,7 @@ def add_page_block(page_id, block_type):
     blok = PageBlock(page_id=page.id, block_type=block_type, position=_next_block_position(page.id), data=data)
     db.session.add(blok)
     db.session.commit()
-    return redirect(url_for("admin.page_blocks", page_id=page.id))
+    return redirect(url_for("admin.edit_page", page_id=page.id))
 
 
 @admin_bp.route("/pages/<int:page_id>/blocks/<int:block_id>/edit", methods=["GET", "POST"])
@@ -764,7 +758,7 @@ def edit_page_block(page_id, block_id):
 
     block.data = data
     db.session.commit()
-    return redirect(url_for("admin.page_blocks", page_id=page.id))
+    return redirect(url_for("admin.edit_page", page_id=page.id))
 
 
 @admin_bp.route("/pages/<int:page_id>/blocks/<int:block_id>/delete", methods=["POST"])
@@ -776,7 +770,7 @@ def delete_page_block(page_id, block_id):
             _delete_uploaded_image(filename)
         db.session.delete(block)
         db.session.commit()
-    return redirect(url_for("admin.page_blocks", page_id=page_id))
+    return redirect(url_for("admin.edit_page", page_id=page_id))
 
 
 @admin_bp.route("/pages/<int:page_id>/blocks/reorder", methods=["POST"])

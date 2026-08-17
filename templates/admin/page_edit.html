@@ -1,6 +1,6 @@
 {% extends "admin/_shell.html" %}
 
-{% block title %}Adminpagina - Blokken van {{ page.title }}{% endblock %}
+{% block title %}Adminpagina - {{ page.title }}{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -12,19 +12,58 @@
   .block-summary { flex: 1; color: var(--muted); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .block-item-actions { display: flex; gap: 6px; }
   .block-item-actions form { display: inline-flex; }
+  .page-settings-toggle { cursor: pointer; font-weight: 600; color: var(--blue); }
+  .page-settings-body { margin-top: 16px; }
 </style>
 {% endblock %}
 
 {% block admin_content %}
 <div class="admin-page-header">
-    <h1>Blokken van "{{ page.title }}"</h1>
+    <h1>{{ page.title }}</h1>
     <p>
         <a href="{{ url_for('admin.pages') }}">&larr; Terug naar Pagina's</a>
         {% if page.is_published %}
         &middot; <a href="{{ url_for('pages.view', slug=page.slug) }}" target="_blank" rel="noopener">Bekijk pagina &rarr;</a>
+        {% else %}
+        &middot; <span class="muted">Nog niet gepubliceerd</span>
         {% endif %}
     </p>
 </div>
+
+<section class="section">
+    {% if error %}
+    <p class="alert alert-error" style="margin-bottom:20px;">{{ error }}</p>
+    {% endif %}
+
+    <details class="page-settings" {{ 'open' if error else '' }}>
+        <summary class="page-settings-toggle">Pagina-instellingen (titel, slug, afbeelding, publiceren)</summary>
+        <div class="page-settings-body">
+            <form action="{{ url_for('admin.edit_page', page_id=page.id) }}" method="post" class="admin-form" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div>
+                    <label for="title">Titel</label>
+                    <input type="text" id="title" name="title" value="{{ form_title if form_title is defined else page.title }}" required>
+                </div>
+                <div>
+                    <label for="slug">Slug (URL: /pagina/&lt;slug&gt;)</label>
+                    <input type="text" id="slug" name="slug" value="{{ form_slug if form_slug is defined else page.slug }}">
+                </div>
+                <div>
+                    <label for="hero_image">Afbeelding bovenaan (optioneel)</label>
+                    <input type="file" id="hero_image" name="hero_image" accept="image/*">
+                    {% if page.hero_image %}<p class="muted">Huidige afbeelding: {{ page.hero_image }}</p>{% endif %}
+                </div>
+                <div class="checkbox-field">
+                    {% set published = form_is_published if form_is_published is defined else page.is_published %}
+                    <label for="is_published"><input type="checkbox" id="is_published" name="is_published" {{ 'checked' if published else '' }}> Gepubliceerd (zichtbaar voor bezoekers)</label>
+                </div>
+                <div class="form-actions" style="grid-column:1/-1;">
+                    <button type="submit" class="admin-button">Instellingen opslaan</button>
+                </div>
+            </form>
+        </div>
+    </details>
+</section>
 
 <section class="section">
     <h2 class="section-title" style="margin-bottom:12px;">Blok toevoegen</h2>
@@ -66,7 +105,6 @@
     if (!list) return;
 
     var csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-    var pageId = list.dataset.pageId;
 
     new Sortable(list, {
         handle: '.block-drag-handle',

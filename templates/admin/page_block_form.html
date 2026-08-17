@@ -31,7 +31,7 @@
 
 <div class="admin-page-header">
     <h1>{{ block_type_label }}</h1>
-    <p><a href="{{ url_for('admin.page_blocks', page_id=page.id) }}">&larr; Terug naar blokken van "{{ page.title }}"</a></p>
+    <p><a href="{{ url_for('admin.edit_page', page_id=page.id) }}">&larr; Terug naar "{{ page.title }}"</a></p>
 </div>
 
 <section class="section">
@@ -127,7 +127,7 @@
 
         <div class="form-actions">
             <button type="submit" class="admin-button">Opslaan</button>
-            <a href="{{ url_for('admin.page_blocks', page_id=page.id) }}" class="btn btn-secondary">Annuleren</a>
+            <a href="{{ url_for('admin.edit_page', page_id=page.id) }}" class="btn btn-secondary">Annuleren</a>
         </div>
     </form>
 </section>

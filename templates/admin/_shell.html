@@ -22,12 +22,11 @@
     <div class="admin-layout">
         <nav class="admin-sidebar">
             <a class="admin-sidebar-link{{ ' active' if ep == 'admin.dashboard' else '' }}" href="{{ url_for('admin.dashboard') }}">Dashboard</a>
-            <a class="admin-sidebar-link{{ ' active' if 'page' in ep else '' }}" href="{{ url_for('admin.pages') }}">Pagina's</a>
+            <a class="admin-sidebar-link{{ ' active' if 'page' in ep or 'site_tekst' in ep else '' }}" href="{{ url_for('admin.pages') }}">Pagina's</a>
             <a class="admin-sidebar-link{{ ' active' if 'nieuws' in ep else '' }}" href="{{ url_for('admin.nieuws') }}">Nieuws</a>
             <a class="admin-sidebar-link{{ ' active' if 'sponsor' in ep else '' }}" href="{{ url_for('admin.sponsors') }}">Sponsors</a>
             <a class="admin-sidebar-link{{ ' active' if 'team' in ep else '' }}" href="{{ url_for('admin.teams') }}">Teams</a>
             <a class="admin-sidebar-link{{ ' active' if 'nav' in ep else '' }}" href="{{ url_for('admin.navigation') }}">Navigatie</a>
-            <a class="admin-sidebar-link{{ ' active' if 'site_tekst' in ep else '' }}" href="{{ url_for('admin.site_teksten') }}">Teksten</a>
             <a class="admin-sidebar-link{{ ' active' if 'product' in ep or 'variant' in ep else '' }}" href="{{ url_for('admin.products') }}">Producten</a>
             <a class="admin-sidebar-link{{ ' active' if ep == 'admin.users' else '' }}" href="{{ url_for('admin.users') }}">Gebruikers</a>
             <a class="admin-sidebar-link{{ ' active' if 'order' in ep else '' }}" href="{{ url_for('admin.orders') }}">Bestellingen</a>
