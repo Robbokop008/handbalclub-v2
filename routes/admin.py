@@ -13,7 +13,7 @@ import re
 from pathlib import Path
 from uuid import uuid4
 
-from flask import Blueprint, render_template, request, redirect, url_for, current_app, g, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, current_app, g, jsonify, abort
 from werkzeug.utils import secure_filename
 
 from werkzeug.routing import BuildError
@@ -30,7 +30,7 @@ from models import (
 from utils.auth import admin_required
 from utils.mail import send_admin_cancellation_mail
 from utils.sanitize import sanitize_html
-from utils.site_text import SITE_TEXT_DEFAULTS, get_site_teksten
+from utils.site_text import SITE_TEXT_PAGINAS, vind_pagina, get_site_teksten
 from utils.inschrijving import get_inschrijving_categorieen, get_hoe_gehoord_opties, get_inschrijving_veld_config
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -384,12 +384,32 @@ def delete_hoe_gehoord_optie(optie_id):
     return redirect(url_for("admin.inschrijvingsformulier"))
 
 
-@admin_bp.route("/site-teksten", methods=["GET", "POST"])
+@admin_bp.route("/site-teksten")
 @admin_required
 def site_teksten():
+    paginas = []
+    for pagina in SITE_TEXT_PAGINAS:
+        bekijk_url = None
+        if pagina["endpoint"]:
+            try:
+                bekijk_url = url_for(pagina["endpoint"])
+            except BuildError:
+                bekijk_url = None
+        paginas.append({**pagina, "bekijk_url": bekijk_url})
+
+    return render_template("admin/site_teksten.html", user=g.user, paginas=paginas)
+
+
+@admin_bp.route("/site-teksten/<slug>", methods=["GET", "POST"])
+@admin_required
+def edit_site_tekst(slug):
+    pagina = vind_pagina(slug)
+    if pagina is None:
+        abort(404)
+
     if request.method == "POST":
         bestaande = {r.sleutel: r for r in SiteText.query.all()}
-        for _groep, sleutel, omschrijving, standaard_waarde in SITE_TEXT_DEFAULTS:
+        for sleutel, omschrijving, standaard_waarde in pagina["velden"]:
             nieuwe_waarde = (request.form.get(sleutel) or "").strip() or standaard_waarde
             if sleutel in bestaande:
                 bestaande[sleutel].waarde = nieuwe_waarde
@@ -399,13 +419,15 @@ def site_teksten():
         return redirect(url_for("admin.site_teksten"))
 
     waarden = get_site_teksten()
-    groepen = []
-    for groep, sleutel, omschrijving, _standaard_waarde in SITE_TEXT_DEFAULTS:
-        if not groepen or groepen[-1][0] != groep:
-            groepen.append((groep, []))
-        groepen[-1][1].append((sleutel, omschrijving, waarden[sleutel]))
+    velden = [(sleutel, omschrijving, waarden[sleutel]) for sleutel, omschrijving, _standaard_waarde in pagina["velden"]]
+    bekijk_url = None
+    if pagina["endpoint"]:
+        try:
+            bekijk_url = url_for(pagina["endpoint"])
+        except BuildError:
+            bekijk_url = None
 
-    return render_template("admin/site_teksten.html", user=g.user, groepen=groepen)
+    return render_template("admin/site_tekst_form.html", user=g.user, pagina=pagina, velden=velden, bekijk_url=bekijk_url)
 
 
 @admin_bp.route("/gdpr-verzoeken")

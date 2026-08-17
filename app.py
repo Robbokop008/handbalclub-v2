@@ -102,6 +102,14 @@ def create_app(config_name="development"):
             .order_by(Sponsor.position).limit(2).all()
         }
 
+    # Footer-copyrightjaar: automatisch het huidige jaar, niet iets wat een
+    # admin kan laten "vergeten bijwerken" - zie templates/base.html.
+    from datetime import datetime as _datetime
+
+    @app.context_processor
+    def inject_huidig_jaar():
+        return {"huidig_jaar": _datetime.utcnow().year}
+
     # Jinja-filter die gesaniteerde rich-text HTML (nieuwsberichten) omzet
     # naar leesbare platte tekst voor previews - zie utils/sanitize.py.
     from utils.sanitize import html_naar_platte_tekst

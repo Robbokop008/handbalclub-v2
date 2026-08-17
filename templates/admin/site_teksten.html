@@ -2,48 +2,38 @@
 
 {% block title %}Adminpagina - Teksten{% endblock %}
 
-{% block extra_head %}
-<style>
-  .site-tekst-groep { margin-bottom: 28px; }
-  .site-tekst-groep h2 { margin-bottom: 12px; }
-  .site-tekst-veld { margin-bottom: 16px; }
-  .site-tekst-veld label { display: block; font-weight: 600; margin-bottom: 4px; }
-  .site-tekst-veld .muted { font-weight: 400; font-size: 12px; }
-  .site-tekst-veld textarea, .site-tekst-veld input[type=text] {
-    width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: inherit;
-  }
-</style>
-{% endblock %}
-
 {% block admin_content %}
 <div class="admin-page-header">
     <h1>Teksten beheren</h1>
-    <p>Hero-titels en introzinnen die verspreid over de site staan. Een veld leegmaken herstelt de standaardtekst bij opslaan.</p>
+    <p>Hero-titels en introzinnen, per pagina. Bekijk eerst de pagina zelf, en bewerk dan enkel de teksten die daarop staan.</p>
 </div>
 
 <section class="section">
-    <form action="{{ url_for('admin.site_teksten') }}" method="post" class="admin-form" style="display:block;">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-        {% for groep, velden in groepen %}
-        <div class="site-tekst-groep">
-            <h2 class="section-title">{{ groep }}</h2>
-            {% for sleutel, omschrijving, waarde in velden %}
-            <div class="site-tekst-veld">
-                <label for="{{ sleutel }}">{{ omschrijving }}</label>
-                {% if waarde|length > 100 %}
-                <textarea id="{{ sleutel }}" name="{{ sleutel }}" rows="2">{{ waarde }}</textarea>
-                {% else %}
-                <input type="text" id="{{ sleutel }}" name="{{ sleutel }}" value="{{ waarde }}">
-                {% endif %}
-            </div>
-            {% endfor %}
-        </div>
-        {% endfor %}
-
-        <div class="form-actions">
-            <button type="submit" class="admin-button">Opslaan</button>
-        </div>
-    </form>
+    <div class="table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Pagina</th>
+                    <th>Acties</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pagina in paginas %}
+                <tr>
+                    <td>
+                        {{ pagina.label }}
+                        {% if pagina.opmerking %}<br><span class="muted" style="font-size:12px;">{{ pagina.opmerking }}</span>{% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('admin.edit_site_tekst', slug=pagina.slug) }}" class="admin-button btn-sm">Bewerken</a>
+                        {% if pagina.bekijk_url %}
+                        <a href="{{ pagina.bekijk_url }}" class="btn btn-secondary btn-sm" target="_blank" rel="noopener">Bekijk pagina</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </section>
 {% endblock %}

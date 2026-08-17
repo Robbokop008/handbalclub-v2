@@ -27,7 +27,7 @@
             <a class="admin-sidebar-link{{ ' active' if 'sponsor' in ep else '' }}" href="{{ url_for('admin.sponsors') }}">Sponsors</a>
             <a class="admin-sidebar-link{{ ' active' if 'team' in ep else '' }}" href="{{ url_for('admin.teams') }}">Teams</a>
             <a class="admin-sidebar-link{{ ' active' if 'nav' in ep else '' }}" href="{{ url_for('admin.navigation') }}">Navigatie</a>
-            <a class="admin-sidebar-link{{ ' active' if ep == 'admin.site_teksten' else '' }}" href="{{ url_for('admin.site_teksten') }}">Teksten</a>
+            <a class="admin-sidebar-link{{ ' active' if 'site_tekst' in ep else '' }}" href="{{ url_for('admin.site_teksten') }}">Teksten</a>
             <a class="admin-sidebar-link{{ ' active' if 'product' in ep or 'variant' in ep else '' }}" href="{{ url_for('admin.products') }}">Producten</a>
             <a class="admin-sidebar-link{{ ' active' if ep == 'admin.users' else '' }}" href="{{ url_for('admin.users') }}">Gebruikers</a>
             <a class="admin-sidebar-link{{ ' active' if 'order' in ep else '' }}" href="{{ url_for('admin.orders') }}">Bestellingen</a>
