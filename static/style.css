@@ -1006,13 +1006,18 @@ body.club-page { background: var(--blue); }
 .club-card p:last-child { margin-bottom: 0; }
 
 /* Zelfde motief als de zwevende kaarten op de homepage-hero: het
-   clubembleem hangt vast aan de missie-kaart, in de rechteronderhoek,
-   en steekt er bewust een stukje rechts/onder buiten uit. */
+   clubembleem hangt vast aan de missie-kaart, in de rechteronderhoek.
+   Bewust een groot, opvallend embleem dat met net iets minder dan de
+   helft van zijn breedte over de rechterrand hangt (en gerust een
+   stukje over de visie-kaart ernaast mag steken). */
 .club-intro-badge {
   position: absolute;
-  right: -45px;
-  bottom: -45px;
-  width: 200px;
+  right: -130px;
+  bottom: -70px;
+  width: 300px;
+  /* Beide kaarten zijn position:relative; zonder dit zou de visie-kaart
+     (later in de DOM) over het overhangende deel van het logo tekenen. */
+  z-index: 2;
 }
 
 .club-accordion {
