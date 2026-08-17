@@ -3,58 +3,13 @@
 {% block title %}Handbal Sint-Truiden{% endblock %}
 
 {% block content %}
-<section class="hero" id="home">
-    <div class="hero-content">
-        <h1>{{ site_teksten.home_hero_titel }}</h1>
-        <p>{{ site_teksten.home_hero_subtitel }}</p>
-    </div>
-</section>
+<section class="home-hero">
+    <div class="home-hero-photo-placeholder" style="background-image:url('{{ url_for('static', filename='images/home-hero-team-photo.jpg') }}');"></div>
 
-<section class="section home-layout">
-    <div class="home-main">
-        <h2 class="section-title">Laatste nieuws</h2>
-        {% if nieuwsberichten %}
-            <div class="values-grid">
-                {% for bericht in nieuwsberichten %}
-                    {% set platte_tekst = bericht.inhoud | platte_tekst %}
-                    <div class="value-card nieuws-card{{ ' groot' if bericht.groot else '' }}">
-                        {% if bericht.afbeelding %}
-                        <img src="{{ url_for('static', filename='images/' + bericht.afbeelding) }}" alt="{{ bericht.titel }}" style="width:100%;border-radius:var(--radius-sm);margin-bottom:12px;">
-                        {% endif %}
-                        <h3>{{ bericht.titel }}</h3>
-                        <p class="nieuws-tekst">{{ platte_tekst | truncate(3000) }}</p>
-                        <p class="nieuws-lees-meer"><a href="{{ url_for('main.nieuws_detail', bericht_id=bericht.id) }}">Lees meer &rarr;</a></p>
-                    </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <p class="muted" style="text-align:center;">Nog geen nieuwsberichten geplaatst.</p>
-        {% endif %}
-    </div>
-
-    <aside class="home-sidebar">
-        {% if sponsors %}
-        <div class="home-sidebar-block">
-            <h2 class="section-title">Onze sponsors</h2>
-            <div class="sponsor-bar sponsor-bar-sidebar">
-                {% for sponsor in sponsors %}
-                    {% if sponsor.website_url %}
-                    <a href="{{ sponsor.website_url }}" target="_blank" rel="noopener" class="sponsor-logo-link" title="{{ sponsor.naam }}">
-                        <img src="{{ url_for('static', filename='images/' + sponsor.logo) }}" alt="{{ sponsor.naam }}">
-                    </a>
-                    {% else %}
-                    <span class="sponsor-logo-link" title="{{ sponsor.naam }}">
-                        <img src="{{ url_for('static', filename='images/' + sponsor.logo) }}" alt="{{ sponsor.naam }}">
-                    </span>
-                    {% endif %}
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-
-        <div class="home-sidebar-block">
-            <h2 class="section-title">Wedstrijden deze week</h2>
-            <div class="spond-embed-wrap spond-embed-wrap-sidebar">
+    <div class="home-hero-inner">
+        <div class="home-hero-card home-hero-kalender">
+            <h2 class="section-title">Kalender</h2>
+            <div class="spond-embed-wrap spond-embed-wrap-card">
                 <iframe
                     src="{{ spond_embed_url }}"
                     title="Spond wedstrijdkalender"
@@ -64,6 +19,81 @@
             </div>
             <p style="text-align:center;margin-top:16px;"><a href="{{ url_for('kalender.wedstrijden') }}">Bekijk de volledige kalender &rarr;</a></p>
         </div>
-    </aside>
+
+        <div class="home-hero-card home-hero-nieuws">
+            <h2 class="section-title">Laatste nieuws</h2>
+            {% if nieuwsberichten %}
+                <div class="nieuws-slider" data-nieuws-slider>
+                    <div class="nieuws-slider-viewport">
+                        <div class="nieuws-slider-track">
+                            {% for bericht in nieuwsberichten %}
+                                {% set platte_tekst = bericht.inhoud | platte_tekst %}
+                                <div class="nieuws-slide">
+                                    <h3>{{ bericht.titel }}</h3>
+                                    <p class="nieuws-tekst">{{ platte_tekst | truncate(600) }}</p>
+                                    <p class="nieuws-lees-meer"><a href="{{ url_for('main.nieuws_detail', bericht_id=bericht.id) }}">lees meer &rarr;</a></p>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% if nieuwsberichten|length > 1 %}
+                    <div class="nieuws-slider-dots">
+                        {% for bericht in nieuwsberichten %}
+                            <button type="button" class="nieuws-slider-dot" data-index="{{ loop.index0 }}" aria-label="Nieuwsitem {{ loop.index }}"></button>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <p>Nog geen nieuwsberichten geplaatst.</p>
+            {% endif %}
+        </div>
+    </div>
 </section>
+
+<section class="section promo-cards">
+    <div class="promo-card promo-card-has-social">
+        <div class="promo-card-text">
+            <h2>sporten op maat van onze kleinste vriendjes</h2>
+            <p class="promo-card-subtitle">3-6 jaar</p>
+            <p class="promo-card-lees-meer"><a href="{{ url_for('jeugd.ballenbaasjes') }}">lees meer &rarr;</a></p>
+        </div>
+        <img class="promo-card-image" src="{{ url_for('static', filename='images/ballenbaasjes-sporttraject.png') }}" alt="De Ballenbaasjes sporttraject 3-6 jarigen">
+        <div class="promo-card-social">
+            <a href="https://www.instagram.com/hbsinttruiden/" target="_blank" rel="noopener" aria-label="Instagram">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.5" cy="6.5" r="1"/></svg>
+            </a>
+            <a href="https://www.facebook.com/hbsinttruiden/" target="_blank" rel="noopener" aria-label="Facebook">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M13.5 21v-8h2.7l.4-3.1h-3.1V8c0-.9.25-1.5 1.55-1.5H16.7V3.7c-.27-.04-1.2-.12-2.28-.12-2.26 0-3.8 1.38-3.8 3.9v2.4H8v3.1h2.62V21h2.88z"/></svg>
+            </a>
+        </div>
+    </div>
+
+    <div class="promo-card promo-card-stacked">
+        <div class="promo-card-text">
+            <h2>sporten op maat van onze grootste vrienden</h2>
+            <p class="promo-card-subtitle">enthousiaste sportievelingen, niet-handballers en ex-spelers</p>
+            <p class="promo-card-lees-meer"><a href="{{ url_for('main.team_detail', slug='fithandbal') }}">lees meer &rarr;</a></p>
+        </div>
+        <img class="promo-card-fit-logo" src="{{ url_for('static', filename='images/fit-handbal-logo.png') }}" alt="FIT Handbal">
+    </div>
+</section>
+
+<section class="home-closing">
+    <div class="home-closing-inner">
+        <img class="home-closing-sport-vlaanderen-logo" src="{{ url_for('static', filename='images/logosportvlaanderen_partner.png') }}" alt="Sport Vlaanderen">
+        <div class="home-closing-social">
+            <a href="https://www.instagram.com/hbsinttruiden/" target="_blank" rel="noopener" aria-label="Instagram">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.5" cy="6.5" r="1"/></svg>
+            </a>
+            <a href="https://www.facebook.com/hbsinttruiden/" target="_blank" rel="noopener" aria-label="Facebook">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M13.5 21v-8h2.7l.4-3.1h-3.1V8c0-.9.25-1.5 1.55-1.5H16.7V3.7c-.27-.04-1.2-.12-2.28-.12-2.26 0-3.8 1.38-3.8 3.9v2.4H8v3.1h2.62V21h2.88z"/></svg>
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/home_slider.js') }}"></script>
 {% endblock %}

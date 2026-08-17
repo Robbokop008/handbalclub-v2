@@ -7,9 +7,34 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
 </head>
-<body>
+<body{% if request.endpoint == 'main.home' %} class="home-page"{% endif %}>
     <header class="site-header">
         <div class="navbar">
+
+            <a href="{{ url_for('main.home') }}" class="brand">
+                <span class="brand-text">
+                    <span class="brand-text-line1">Handbal</span>
+                    <span class="brand-text-line2">Sint-Truiden</span>
+                </span>
+                <img class="brand-badge" src="{{ url_for('static', filename='images/18919afe-6798-4a27-9306-3ecf4c779bb8.png') }}" alt="Handbal Sint-Truiden">
+            </a>
+
+            <div class="header-sponsors">
+                {% for sponsor in header_sponsors %}
+                    {% if sponsor.website_url %}
+                    <a href="{{ sponsor.website_url }}" target="_blank" rel="noopener" class="header-sponsor-logo" title="{{ sponsor.naam }}">
+                        <img src="{{ url_for('static', filename='images/' + sponsor.logo) }}" alt="{{ sponsor.naam }}">
+                    </a>
+                    {% else %}
+                    <span class="header-sponsor-logo" title="{{ sponsor.naam }}">
+                        <img src="{{ url_for('static', filename='images/' + sponsor.logo) }}" alt="{{ sponsor.naam }}">
+                    </span>
+                    {% endif %}
+                {% endfor %}
+                {% for _ in range(2 - header_sponsors|length) %}
+                    <span class="header-sponsor-logo header-sponsor-placeholder">logo hoofdsponsor</span>
+                {% endfor %}
+            </div>
 
             <div class="menu-toggle" id="menu-toggle">
                 <span></span>

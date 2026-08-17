@@ -91,6 +91,17 @@ def create_app(config_name="development"):
     def inject_site_teksten():
         return {"site_teksten": get_site_teksten()}
 
+    # Stelt de eerste 2 actieve sponsors beschikbaar in elke template, voor
+    # de "hoofdsponsor"-logo's naast het hamburgermenu in de header.
+    from models import Sponsor
+
+    @app.context_processor
+    def inject_header_sponsors():
+        return {
+            "header_sponsors": Sponsor.query.filter_by(is_active=True)
+            .order_by(Sponsor.position).limit(2).all()
+        }
+
     # Jinja-filter die gesaniteerde rich-text HTML (nieuwsberichten) omzet
     # naar leesbare platte tekst voor previews - zie utils/sanitize.py.
     from utils.sanitize import html_naar_platte_tekst

@@ -10,7 +10,7 @@ profiel) die wel inloggen vereist.
 from flask import Blueprint, render_template, request, current_app, abort, redirect, url_for
 
 from extensions import db, limiter
-from models import Team, TEAM_SECTIE_LABELS, NieuwsBericht, VergeetMijVerzoek, Sponsor
+from models import Team, TEAM_SECTIE_LABELS, NieuwsBericht, VergeetMijVerzoek
 from utils.mail import send_contact_mail, send_vergeet_mij_notification
 
 main_bp = Blueprint("main", __name__)
@@ -19,11 +19,10 @@ main_bp = Blueprint("main", __name__)
 @main_bp.route("/")
 def home():
     laatste_nieuws = (
-        NieuwsBericht.query.order_by(NieuwsBericht.position).limit(3).all()
+        NieuwsBericht.query.order_by(NieuwsBericht.position).limit(5).all()
     )
-    sponsors = Sponsor.query.filter_by(is_active=True).order_by(Sponsor.position).all()
     return render_template(
-        "index.html", nieuwsberichten=laatste_nieuws, sponsors=sponsors,
+        "index.html", nieuwsberichten=laatste_nieuws,
         spond_embed_url=current_app.config["SPOND_EMBED_URL"],
     )
 
