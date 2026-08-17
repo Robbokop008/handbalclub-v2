@@ -1012,8 +1012,8 @@ body.club-page { background: var(--blue); }
    stukje over de visie-kaart ernaast mag steken). */
 .club-intro-badge {
   position: absolute;
-  right: -130px;
-  bottom: -70px;
+  right: -115px;
+  bottom: -105px;
   width: 300px;
   /* Beide kaarten zijn position:relative; zonder dit zou de visie-kaart
      (later in de DOM) over het overhangende deel van het logo tekenen. */
