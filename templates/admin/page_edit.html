@@ -14,6 +14,15 @@
   .block-item-actions form { display: inline-flex; }
   .page-settings-toggle { cursor: pointer; font-weight: 600; color: var(--blue); }
   .page-settings-body { margin-top: 16px; }
+  .page-edit-layout { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 28px; align-items: start; }
+  .page-edit-preview { position: sticky; top: 20px; }
+  .page-preview-frame-wrap { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; height: 82vh; background: var(--white); box-shadow: var(--shadow); }
+  .page-preview-frame-wrap iframe { width: 100%; height: 100%; border: 0; }
+  @media (max-width: 1100px) {
+    .page-edit-layout { grid-template-columns: 1fr; }
+    .page-edit-preview { position: static; }
+    .page-preview-frame-wrap { height: 60vh; }
+  }
 </style>
 {% endblock %}
 
@@ -30,71 +39,82 @@
     </p>
 </div>
 
-<section class="section">
-    {% if error %}
-    <p class="alert alert-error" style="margin-bottom:20px;">{{ error }}</p>
-    {% endif %}
+<div class="page-edit-layout">
+    <div class="page-edit-main">
+        <section class="section">
+            {% if error %}
+            <p class="alert alert-error" style="margin-bottom:20px;">{{ error }}</p>
+            {% endif %}
 
-    <details class="page-settings" {{ 'open' if error else '' }}>
-        <summary class="page-settings-toggle">Pagina-instellingen (titel, slug, afbeelding, publiceren)</summary>
-        <div class="page-settings-body">
-            <form action="{{ url_for('admin.edit_page', page_id=page.id) }}" method="post" class="admin-form" enctype="multipart/form-data">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div>
-                    <label for="title">Titel</label>
-                    <input type="text" id="title" name="title" value="{{ form_title if form_title is defined else page.title }}" required>
+            <details class="page-settings" {{ 'open' if error else '' }}>
+                <summary class="page-settings-toggle">Pagina-instellingen (titel, slug, afbeelding, publiceren)</summary>
+                <div class="page-settings-body">
+                    <form action="{{ url_for('admin.edit_page', page_id=page.id) }}" method="post" class="admin-form" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div>
+                            <label for="title">Titel</label>
+                            <input type="text" id="title" name="title" value="{{ form_title if form_title is defined else page.title }}" required>
+                        </div>
+                        <div>
+                            <label for="slug">Slug (URL: /pagina/&lt;slug&gt;)</label>
+                            <input type="text" id="slug" name="slug" value="{{ form_slug if form_slug is defined else page.slug }}">
+                        </div>
+                        <div>
+                            <label for="hero_image">Afbeelding bovenaan (optioneel)</label>
+                            <input type="file" id="hero_image" name="hero_image" accept="image/*">
+                            {% if page.hero_image %}<p class="muted">Huidige afbeelding: {{ page.hero_image }}</p>{% endif %}
+                        </div>
+                        <div class="checkbox-field">
+                            {% set published = form_is_published if form_is_published is defined else page.is_published %}
+                            <label for="is_published"><input type="checkbox" id="is_published" name="is_published" {{ 'checked' if published else '' }}> Gepubliceerd (zichtbaar voor bezoekers)</label>
+                        </div>
+                        <div class="form-actions" style="grid-column:1/-1;">
+                            <button type="submit" class="admin-button">Instellingen opslaan</button>
+                        </div>
+                    </form>
                 </div>
-                <div>
-                    <label for="slug">Slug (URL: /pagina/&lt;slug&gt;)</label>
-                    <input type="text" id="slug" name="slug" value="{{ form_slug if form_slug is defined else page.slug }}">
-                </div>
-                <div>
-                    <label for="hero_image">Afbeelding bovenaan (optioneel)</label>
-                    <input type="file" id="hero_image" name="hero_image" accept="image/*">
-                    {% if page.hero_image %}<p class="muted">Huidige afbeelding: {{ page.hero_image }}</p>{% endif %}
-                </div>
-                <div class="checkbox-field">
-                    {% set published = form_is_published if form_is_published is defined else page.is_published %}
-                    <label for="is_published"><input type="checkbox" id="is_published" name="is_published" {{ 'checked' if published else '' }}> Gepubliceerd (zichtbaar voor bezoekers)</label>
-                </div>
-                <div class="form-actions" style="grid-column:1/-1;">
-                    <button type="submit" class="admin-button">Instellingen opslaan</button>
-                </div>
-            </form>
-        </div>
-    </details>
-</section>
+            </details>
+        </section>
 
-<section class="section">
-    <h2 class="section-title" style="margin-bottom:12px;">Blok toevoegen</h2>
-    <div class="block-add-row">
-        {% for bt in block_types %}
-        <a href="{{ url_for('admin.add_page_block', page_id=page.id, block_type=bt) }}" class="admin-button btn-sm">+ {{ block_type_labels[bt] }}</a>
-        {% endfor %}
-    </div>
-
-    <h2 class="section-title" style="margin-bottom:12px;">Inhoud (volgorde = weergave op de pagina)</h2>
-    {% if page.blocks %}
-    <div class="block-list" id="block-list" data-page-id="{{ page.id }}">
-        {% for block in page.blocks %}
-        <div class="block-item" data-id="{{ block.id }}">
-            <span class="block-drag-handle" title="Sleep om te herordenen">&#9776;</span>
-            <span class="block-type-badge">{{ block_type_labels[block.block_type] }}</span>
-            <span class="block-summary">{{ block_summary(block) }}</span>
-            <div class="block-item-actions">
-                <a href="{{ url_for('admin.edit_page_block', page_id=page.id, block_id=block.id) }}" class="admin-button btn-sm">Bewerken</a>
-                <form action="{{ url_for('admin.delete_page_block', page_id=page.id, block_id=block.id) }}" method="post">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Dit blok definitief verwijderen?');">Verwijderen</button>
-                </form>
+        <section class="section">
+            <h2 class="section-title" style="margin-bottom:12px;">Blok toevoegen</h2>
+            <div class="block-add-row">
+                {% for bt in block_types %}
+                <a href="{{ url_for('admin.add_page_block', page_id=page.id, block_type=bt) }}" class="admin-button btn-sm">+ {{ block_type_labels[bt] }}</a>
+                {% endfor %}
             </div>
-        </div>
-        {% endfor %}
+
+            <h2 class="section-title" style="margin-bottom:12px;">Inhoud (volgorde = weergave op de pagina)</h2>
+            {% if page.blocks %}
+            <div class="block-list" id="block-list" data-page-id="{{ page.id }}">
+                {% for block in page.blocks %}
+                <div class="block-item" data-id="{{ block.id }}">
+                    <span class="block-drag-handle" title="Sleep om te herordenen">&#9776;</span>
+                    <span class="block-type-badge">{{ block_type_labels[block.block_type] }}</span>
+                    <span class="block-summary">{{ block_summary(block) }}</span>
+                    <div class="block-item-actions">
+                        <a href="{{ url_for('admin.edit_page_block', page_id=page.id, block_id=block.id) }}" class="admin-button btn-sm">Bewerken</a>
+                        <form action="{{ url_for('admin.delete_page_block', page_id=page.id, block_id=block.id) }}" method="post">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Dit blok definitief verwijderen?');">Verwijderen</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p>Deze pagina heeft nog geen blokken. Voeg er hierboven één toe.</p>
+            {% endif %}
+        </section>
     </div>
-    {% else %}
-    <p>Deze pagina heeft nog geen blokken. Voeg er hierboven één toe.</p>
-    {% endif %}
-</section>
+
+    <aside class="page-edit-preview">
+        <h2 class="section-title" style="margin-bottom:12px;">Live voorbeeld</h2>
+        <div class="page-preview-frame-wrap">
+            <iframe id="page-preview-frame" src="{{ url_for('admin.preview_page', page_id=page.id) }}" title="Live voorbeeld van de pagina"></iframe>
+        </div>
+    </aside>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -117,6 +137,13 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
                 body: JSON.stringify({ items: items }),
+            }).then(function () {
+                // De preview-iframe herlaadt niet vanzelf mee bij een sleep-
+                // herordening (geen page-reload zoals bij de andere blok-
+                // acties) - forceer een herlaad zodat de volgorde ook daar
+                // meteen klopt.
+                var frame = document.getElementById('page-preview-frame');
+                if (frame) frame.src = frame.src;
             });
         },
     });

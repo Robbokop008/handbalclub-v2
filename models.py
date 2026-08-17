@@ -294,7 +294,10 @@ class Page(db.Model):
         return f"<Page {self.slug}>"
 
 
-PAGE_BLOCK_TYPES = ["rich_text", "image_gallery", "columns", "video", "button"]
+PAGE_BLOCK_TYPES = [
+    "rich_text", "image_gallery", "columns", "video", "button",
+    "quote", "faq", "stats", "embed_html",
+]
 
 
 class PageBlock(db.Model):

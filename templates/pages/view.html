@@ -9,14 +9,15 @@
     </div>
 </section>
 
-<section class="section" style="max-width:800px;">
+<section class="section">
     {% if page.hero_image %}
-        <img src="{{ url_for('static', filename='images/' + page.hero_image) }}" alt="{{ page.title }}" style="width:100%;border-radius:var(--radius);margin-bottom:24px;">
+        <img class="block-width-normaal" src="{{ url_for('static', filename='images/' + page.hero_image) }}" alt="{{ page.title }}" style="width:100%;border-radius:var(--radius);margin-bottom:24px;display:block;">
     {% endif %}
 
     <div class="page-body">
         {% for block in page.blocks %}
-        <div class="page-block">
+        {% set weergave = resolve_style(block.data) %}
+        <div class="page-block block-align-{{ weergave.align }} block-bg-{{ weergave.background }} block-width-{{ weergave.width }} block-spacing-{{ weergave.spacing }}">
             {% include "pages/_blocks/" + block.block_type + ".html" %}
         </div>
         {% endfor %}

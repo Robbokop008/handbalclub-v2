@@ -105,6 +105,10 @@ PAGE_BLOCK_TYPE_LABELS = {
     "columns": "Kolommen",
     "video": "Video",
     "button": "Knop",
+    "quote": "Citaat",
+    "faq": "Veelgestelde vragen",
+    "stats": "Statistieken",
+    "embed_html": "HTML/embed",
 }
 
 
@@ -130,7 +134,36 @@ def _block_summary(block):
         return block.data.get("source_url") or "-"
     if block.block_type == "button":
         return f'"{block.data.get("label")}" → {block.data.get("url")}'
+    if block.block_type == "quote":
+        tekst = block.data.get("text") or ""
+        return f'"{tekst[:80]}"' + ("…" if len(tekst) > 80 else "")
+    if block.block_type == "faq":
+        n = len(block.data.get("items", []))
+        return f"{n} vraag/antwoord"
+    if block.block_type == "stats":
+        n = len(block.data.get("items", []))
+        return f"{n} statistiek{'en' if n != 1 else ''}"
+    if block.block_type == "embed_html":
+        return "Aangepaste HTML/embed"
     return ""
+
+
+def _parse_weergave_fields():
+    """Leest de gedeelde 'Weergave'-velden (uitlijning/achtergrond/breedte/
+    witruimte) die op élk blokformulier staan - zie utils.page_blocks.
+    STYLE_DEFAULTS voor de toegelaten waarden. Heet bewust 'weergave' i.p.v.
+    'style' als data-sleutel, want het knop-blok gebruikt 'style' al voor
+    zijn eigen kleur (primary/secondary)."""
+    align = request.form.get("weergave_align")
+    background = request.form.get("weergave_background")
+    width = request.form.get("weergave_width")
+    spacing = request.form.get("weergave_spacing")
+    return {
+        "align": align if align in ("left", "center", "right") else "left",
+        "background": background if background in ("none", "licht", "blauw", "donker") else "none",
+        "width": width if width in ("smal", "normaal", "breed") else "normaal",
+        "spacing": spacing if spacing in ("compact", "normaal", "ruim") else "normaal",
+    }
 
 
 def _parse_block_form(block_type, existing_data):
@@ -139,14 +172,17 @@ def _parse_block_form(block_type, existing_data):
     bewerken (leeg dict bij toevoegen) - nodig om bestaande afbeeldingen/
     kolommen te kunnen behouden, vervangen of verwijderen. Ruimt zelf oude
     afbeeldingsbestanden op die vervangen/verwijderd worden (zelfde patroon
-    als _delete_uploaded_image elders in dit bestand)."""
+    als _delete_uploaded_image elders in dit bestand). Voegt de gedeelde
+    'weergave'-stijlvelden toe aan het resultaat, ongeacht bloktype."""
     existing_data = existing_data or {}
+    data = {}
+    error = None
 
     if block_type == "rich_text":
         html = sanitize_html(request.form.get("html") or "")
-        return {"html": html}, None
+        data = {"html": html}
 
-    if block_type == "image_gallery":
+    elif block_type == "image_gallery":
         images = []
         bestaande = existing_data.get("images", [])
         for i, img in enumerate(bestaande):
@@ -159,14 +195,14 @@ def _parse_block_form(block_type, existing_data):
             filename = _save_uploaded_image(bestand)
             if filename:
                 images.append({"filename": filename, "alt": ""})
-        return {"images": images}, None
+        data = {"images": images}
 
-    if block_type == "columns":
+    elif block_type == "columns":
         try:
             aantal = int(request.form.get("column_count") or 2)
         except ValueError:
             aantal = 2
-        aantal = 3 if aantal >= 3 else 2
+        aantal = min(max(aantal, 2), 4)
 
         bestaande = existing_data.get("columns", [])
         columns = []
@@ -185,35 +221,74 @@ def _parse_block_form(block_type, existing_data):
                 afbeelding = oude_afbeelding
             columns.append({"heading": heading, "text": text, "image": afbeelding})
 
-        # Bij het verkleinen van 3 naar 2 kolommen: afbeelding van de kolom
-        # die wegvalt niet laten rondslingeren op schijf.
+        # Bij het verkleinen van het aantal kolommen: afbeeldingen van de
+        # kolommen die wegvallen niet laten rondslingeren op schijf.
         for oude_kolom in bestaande[aantal:]:
             _delete_uploaded_image(oude_kolom.get("image"))
 
-        return {"columns": columns}, None
+        data = {"columns": columns}
 
-    if block_type == "video":
+    elif block_type == "video":
         url = (request.form.get("url") or "").strip()
         embed = parse_video_embed(url)
         if embed is None:
-            return {"url": url}, "Geen geldige YouTube- of Vimeo-URL herkend."
-        provider, embed_id = embed
-        return {"provider": provider, "embed_id": embed_id, "source_url": url}, None
+            data, error = {"url": url}, "Geen geldige YouTube- of Vimeo-URL herkend."
+        else:
+            provider, embed_id = embed
+            data = {"provider": provider, "embed_id": embed_id, "source_url": url}
 
-    if block_type == "button":
+    elif block_type == "button":
         label = (request.form.get("label") or "").strip()
         url = (request.form.get("url") or "").strip()
-        style = request.form.get("style") if request.form.get("style") in ("primary", "secondary") else "primary"
+        stijl = request.form.get("style") if request.form.get("style") in ("primary", "secondary") else "primary"
+        data = {"label": label, "url": url, "style": stijl}
         if not label:
-            return {"label": label, "url": url, "style": style}, "Tekst voor de knop is verplicht."
-        if not is_safe_target_url(url):
-            return (
-                {"label": label, "url": url, "style": style},
-                "Ongeldige URL. Gebruik een pad dat begint met '/', of een volledige http(s)-URL.",
-            )
-        return {"label": label, "url": url, "style": style}, None
+            error = "Tekst voor de knop is verplicht."
+        elif not is_safe_target_url(url):
+            error = "Ongeldige URL. Gebruik een pad dat begint met '/', of een volledige http(s)-URL."
 
-    return {}, "Onbekend bloktype."
+    elif block_type == "quote":
+        text = (request.form.get("text") or "").strip()
+        auteur = (request.form.get("auteur") or "").strip()
+        data = {"text": text, "auteur": auteur}
+
+    elif block_type == "faq":
+        try:
+            aantal = int(request.form.get("item_count") or 3)
+        except ValueError:
+            aantal = 3
+        aantal = min(max(aantal, 1), 6)
+        items = []
+        for i in range(aantal):
+            vraag = (request.form.get(f"vraag_{i}") or "").strip()
+            antwoord = (request.form.get(f"antwoord_{i}") or "").strip()
+            if vraag or antwoord:
+                items.append({"vraag": vraag, "antwoord": antwoord})
+        data = {"items": items}
+
+    elif block_type == "stats":
+        try:
+            aantal = int(request.form.get("item_count") or 3)
+        except ValueError:
+            aantal = 3
+        aantal = min(max(aantal, 1), 4)
+        items = []
+        for i in range(aantal):
+            getal = (request.form.get(f"getal_{i}") or "").strip()
+            label = (request.form.get(f"stat_label_{i}") or "").strip()
+            if getal or label:
+                items.append({"getal": getal, "label": label})
+        data = {"items": items}
+
+    elif block_type == "embed_html":
+        html = sanitize_html(request.form.get("html") or "")
+        data = {"html": html}
+
+    else:
+        return {}, "Onbekend bloktype."
+
+    data["weergave"] = _parse_weergave_fields()
+    return data, error
 
 
 @admin_bp.route("/")
@@ -572,6 +647,19 @@ def pages():
     content_rijen = [{"kind": "content", "title": p.title, "page": p} for p in Page.query.all()]
     alle_rijen = sorted(content_rijen + _vaste_pagina_rijen(), key=lambda r: r["title"].lower())
     return render_template("admin/pages_list.html", user=g.user, rijen=alle_rijen)
+
+
+@admin_bp.route("/pages/<int:page_id>/preview")
+@admin_required
+def preview_page(page_id):
+    """Toont de pagina precies zoals bezoekers ze zouden zien, ongeacht
+    is_published - voor de live-preview-iframe in het bewerkscherm. In
+    tegenstelling tot pages.view (de publieke route) is dit enkel voor
+    ingelogde admins bereikbaar."""
+    page = Page.query.get(page_id)
+    if page is None:
+        abort(404)
+    return render_template("pages/view.html", page=page)
 
 
 @admin_bp.route("/pages/upload-image", methods=["POST"])

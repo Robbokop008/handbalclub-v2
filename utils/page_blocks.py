@@ -25,3 +25,17 @@ def block_afbeeldingsbestanden(block):
     """Geeft een lijst bestandsnamen (in static/images/) terug die dit
     blok gebruikt."""
     return afbeeldingen_uit_data(block.block_type, block.data)
+
+
+STYLE_DEFAULTS = {"align": "left", "background": "none", "width": "normaal", "spacing": "normaal"}
+
+
+def resolve_style(data):
+    """Vult het 'weergave'-subveld van een blok aan met standaardwaarden voor
+    ontbrekende sleutels - blokken die aangemaakt zijn vóór deze stijlvelden
+    bestonden, hebben nog geen 'weergave'-sleutel en tonen zo gewoon hun oude
+    (standaard) uiterlijk. Heet bewust niet 'style', want het knop-blok
+    gebruikt die sleutel al voor zijn eigen kleur (primary/secondary). Als
+    Jinja-global geregistreerd, zie app.py."""
+    weergave = (data or {}).get("weergave") or {}
+    return {**STYLE_DEFAULTS, **weergave}

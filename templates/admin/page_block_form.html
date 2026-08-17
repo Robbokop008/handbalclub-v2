@@ -20,9 +20,12 @@
   .gallery-existing-item { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
   .gallery-existing-item img { max-height: 70px; border-radius: var(--radius-sm); }
   .gallery-existing-item input[type=text] { flex: 1; }
-  .column-fieldset { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 16px; }
-  .column-fieldset legend { font-weight: 700; padding: 0 6px; }
-  .column-fieldset img { max-height: 70px; border-radius: var(--radius-sm); display: block; margin-bottom: 8px; }
+  .item-fieldset { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 16px; }
+  .item-fieldset legend { font-weight: 700; padding: 0 6px; }
+  .item-fieldset img { max-height: 70px; border-radius: var(--radius-sm); display: block; margin-bottom: 8px; }
+  .weergave-fieldset { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; margin: 24px 0; }
+  .weergave-fieldset legend { font-weight: 700; padding: 0 6px; }
+  .weergave-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
 </style>
 {% endblock %}
 
@@ -74,13 +77,14 @@
         <div class="block-form-field">
             <label for="column_count">Aantal kolommen</label>
             <select id="column_count" name="column_count">
-                <option value="2" {{ 'selected' if kolomaantal != 3 else '' }}>2 kolommen</option>
+                <option value="2" {{ 'selected' if kolomaantal == 2 else '' }}>2 kolommen</option>
                 <option value="3" {{ 'selected' if kolomaantal == 3 else '' }}>3 kolommen</option>
+                <option value="4" {{ 'selected' if kolomaantal == 4 else '' }}>4 kolommen</option>
             </select>
         </div>
-        {% for i in range(3) %}
+        {% for i in range(4) %}
         {% set col = d.columns[i] if d.columns and i < d.columns|length else {} %}
-        <fieldset class="column-fieldset" data-col-index="{{ i }}">
+        <fieldset class="item-fieldset column-fieldset" data-col-index="{{ i }}">
             <legend>Kolom {{ i + 1 }}</legend>
             <div class="block-form-field">
                 <label for="heading_{{ i }}">Titel (optioneel)</label>
@@ -117,13 +121,120 @@
             <input type="text" id="url" name="url" value="{{ d.url or '' }}">
         </div>
         <div class="block-form-field">
-            <label for="style">Stijl</label>
+            <label for="style">Kleur</label>
             <select id="style" name="style">
                 <option value="primary" {{ 'selected' if (d.style or 'primary') == 'primary' else '' }}>Opvallend (geel)</option>
                 <option value="secondary" {{ 'selected' if d.style == 'secondary' else '' }}>Subtiel</option>
             </select>
         </div>
+
+        {% elif block_type == 'quote' %}
+        <div class="block-form-field">
+            <label for="text">Citaat</label>
+            <textarea id="text" name="text" rows="3">{{ d.text or '' }}</textarea>
+        </div>
+        <div class="block-form-field">
+            <label for="auteur">Auteur/functie (optioneel)</label>
+            <input type="text" id="auteur" name="auteur" value="{{ d.auteur or '' }}" placeholder="Bv. Jan Janssens, voorzitter">
+        </div>
+
+        {% elif block_type == 'faq' %}
+        {% set aantal_items = d.get('items')|length if d.get('items') else 3 %}
+        <div class="block-form-field">
+            <label for="item_count">Aantal vragen</label>
+            <select id="item_count" name="item_count">
+                {% for n in range(1, 7) %}
+                <option value="{{ n }}" {{ 'selected' if aantal_items == n else '' }}>{{ n }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% for i in range(6) %}
+        {% set item = d.get('items')[i] if d.get('items') and i < d.get('items')|length else {} %}
+        <fieldset class="item-fieldset faq-item-fieldset" data-item-index="{{ i }}">
+            <legend>Vraag {{ i + 1 }}</legend>
+            <div class="block-form-field">
+                <label for="vraag_{{ i }}">Vraag</label>
+                <input type="text" id="vraag_{{ i }}" name="vraag_{{ i }}" value="{{ item.vraag or '' }}">
+            </div>
+            <div class="block-form-field">
+                <label for="antwoord_{{ i }}">Antwoord</label>
+                <textarea id="antwoord_{{ i }}" name="antwoord_{{ i }}" rows="3">{{ item.antwoord or '' }}</textarea>
+            </div>
+        </fieldset>
+        {% endfor %}
+
+        {% elif block_type == 'stats' %}
+        {% set aantal_items = d.get('items')|length if d.get('items') else 3 %}
+        <div class="block-form-field">
+            <label for="item_count">Aantal statistieken</label>
+            <select id="item_count" name="item_count">
+                {% for n in range(1, 5) %}
+                <option value="{{ n }}" {{ 'selected' if aantal_items == n else '' }}>{{ n }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% for i in range(4) %}
+        {% set item = d.get('items')[i] if d.get('items') and i < d.get('items')|length else {} %}
+        <fieldset class="item-fieldset stats-item-fieldset" data-item-index="{{ i }}">
+            <legend>Statistiek {{ i + 1 }}</legend>
+            <div class="block-form-field">
+                <label for="getal_{{ i }}">Getal (bv. 500+)</label>
+                <input type="text" id="getal_{{ i }}" name="getal_{{ i }}" value="{{ item.getal or '' }}">
+            </div>
+            <div class="block-form-field">
+                <label for="stat_label_{{ i }}">Label (bv. leden)</label>
+                <input type="text" id="stat_label_{{ i }}" name="stat_label_{{ i }}" value="{{ item.label or '' }}">
+            </div>
+        </fieldset>
+        {% endfor %}
+
+        {% elif block_type == 'embed_html' %}
+        <div class="block-form-field">
+            <label for="html">HTML / embed-code</label>
+            <textarea id="html" name="html" rows="8" style="font-family:monospace;font-size:13px;">{{ d.html or '' }}</textarea>
+            <p class="muted" style="font-size:12px;">Wordt automatisch opgeschoond (enkel eenvoudige, veilige HTML toegestaan) - handig voor bv. een Google Maps-embed.</p>
+        </div>
         {% endif %}
+
+        {% set weergave = resolve_style(d) %}
+        <fieldset class="weergave-fieldset">
+            <legend>Weergave</legend>
+            <div class="weergave-grid">
+                <div class="block-form-field">
+                    <label for="weergave_align">Uitlijning</label>
+                    <select id="weergave_align" name="weergave_align">
+                        <option value="left" {{ 'selected' if weergave.align == 'left' else '' }}>Links</option>
+                        <option value="center" {{ 'selected' if weergave.align == 'center' else '' }}>Midden</option>
+                        <option value="right" {{ 'selected' if weergave.align == 'right' else '' }}>Rechts</option>
+                    </select>
+                </div>
+                <div class="block-form-field">
+                    <label for="weergave_background">Achtergrond</label>
+                    <select id="weergave_background" name="weergave_background">
+                        <option value="none" {{ 'selected' if weergave.background == 'none' else '' }}>Geen</option>
+                        <option value="licht" {{ 'selected' if weergave.background == 'licht' else '' }}>Licht</option>
+                        <option value="blauw" {{ 'selected' if weergave.background == 'blauw' else '' }}>Blauw</option>
+                        <option value="donker" {{ 'selected' if weergave.background == 'donker' else '' }}>Donker</option>
+                    </select>
+                </div>
+                <div class="block-form-field">
+                    <label for="weergave_width">Breedte</label>
+                    <select id="weergave_width" name="weergave_width">
+                        <option value="smal" {{ 'selected' if weergave.width == 'smal' else '' }}>Smal</option>
+                        <option value="normaal" {{ 'selected' if weergave.width == 'normaal' else '' }}>Normaal</option>
+                        <option value="breed" {{ 'selected' if weergave.width == 'breed' else '' }}>Breed</option>
+                    </select>
+                </div>
+                <div class="block-form-field">
+                    <label for="weergave_spacing">Witruimte errond</label>
+                    <select id="weergave_spacing" name="weergave_spacing">
+                        <option value="compact" {{ 'selected' if weergave.spacing == 'compact' else '' }}>Compact</option>
+                        <option value="normaal" {{ 'selected' if weergave.spacing == 'normaal' else '' }}>Normaal</option>
+                        <option value="ruim" {{ 'selected' if weergave.spacing == 'ruim' else '' }}>Ruim</option>
+                    </select>
+                </div>
+            </div>
+        </fieldset>
 
         <div class="form-actions">
             <button type="submit" class="admin-button">Opslaan</button>
@@ -144,9 +255,42 @@
 <script>
 (function () {
     var select = document.getElementById('column_count');
-    var thirdFieldset = document.querySelector('.column-fieldset[data-col-index="2"]');
+    var fieldsets = document.querySelectorAll('.column-fieldset[data-col-index="2"], .column-fieldset[data-col-index="3"]');
     function sync() {
-        thirdFieldset.style.display = select.value === '3' ? '' : 'none';
+        var aantal = parseInt(select.value, 10);
+        fieldsets.forEach(function (fs) {
+            fs.style.display = (parseInt(fs.dataset.colIndex, 10) < aantal) ? '' : 'none';
+        });
+    }
+    select.addEventListener('change', sync);
+    sync();
+})();
+</script>
+{% elif block_type == 'faq' %}
+<script>
+(function () {
+    var select = document.getElementById('item_count');
+    var fieldsets = document.querySelectorAll('.faq-item-fieldset');
+    function sync() {
+        var aantal = parseInt(select.value, 10);
+        fieldsets.forEach(function (fs) {
+            fs.style.display = (parseInt(fs.dataset.itemIndex, 10) < aantal) ? '' : 'none';
+        });
+    }
+    select.addEventListener('change', sync);
+    sync();
+})();
+</script>
+{% elif block_type == 'stats' %}
+<script>
+(function () {
+    var select = document.getElementById('item_count');
+    var fieldsets = document.querySelectorAll('.stats-item-fieldset');
+    function sync() {
+        var aantal = parseInt(select.value, 10);
+        fieldsets.forEach(function (fs) {
+            fs.style.display = (parseInt(fs.dataset.itemIndex, 10) < aantal) ? '' : 'none';
+        });
     }
     select.addEventListener('change', sync);
     sync();

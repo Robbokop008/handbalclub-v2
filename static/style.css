@@ -1620,7 +1620,30 @@ nav#nav-menu > ul {
 /* =========================================================
    PAGINABLOKKEN (page-builder, zie templates/pages/_blocks/)
    ========================================================= */
-.page-block + .page-block { margin-top: 28px; }
+.page-block { margin-top: 28px; }
+.page-block:first-child { margin-top: 0; }
+
+/* Weergave-varianten, gekozen per blok in de admin (zie utils/page_blocks.
+   resolve_style + het "Weergave"-formulierstukje in page_block_form.html). */
+.block-width-smal { max-width: 600px; margin-left: auto; margin-right: auto; }
+.block-width-normaal { max-width: 800px; margin-left: auto; margin-right: auto; }
+.block-width-breed { max-width: 1100px; margin-left: auto; margin-right: auto; }
+
+.block-align-left { text-align: left; }
+.block-align-center { text-align: center; }
+.block-align-right { text-align: right; }
+
+.block-bg-licht, .block-bg-blauw, .block-bg-donker { border-radius: var(--radius); padding: 28px; }
+.block-bg-licht { background: var(--blue-light); }
+.block-bg-blauw { background: var(--blue); color: var(--white); }
+.block-bg-blauw h2, .block-bg-blauw h3, .block-bg-blauw h4, .block-bg-blauw a { color: var(--white); }
+.block-bg-donker { background: var(--blue-dark); color: var(--white); }
+.block-bg-donker h2, .block-bg-donker h3, .block-bg-donker h4, .block-bg-donker a { color: var(--white); }
+
+.page-block.block-spacing-compact { margin-top: 12px; }
+.page-block.block-spacing-ruim { margin-top: 48px; }
+.page-block.block-spacing-compact:first-child,
+.page-block.block-spacing-ruim:first-child { margin-top: 0; }
 
 .block-gallery-single {
   width: 100%;
@@ -1658,7 +1681,72 @@ nav#nav-menu > ul {
   border: 0;
 }
 
-.block-button-wrap { text-align: center; }
+/* Uitlijning van de knop komt van de block-align-* wrapperklasse hierboven. */
+
+.block-quote {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.block-quote p {
+  font-size: 22px;
+  font-style: italic;
+  color: inherit;
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.block-quote cite {
+  display: block;
+  font-style: normal;
+  font-weight: 700;
+  color: inherit;
+  opacity: 0.7;
+  font-size: 14px;
+}
+
+.block-faq { display: flex; flex-direction: column; gap: 10px; text-align: left; }
+
+.block-faq-item {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+}
+
+.block-faq-item summary {
+  font-weight: 700;
+  color: var(--blue);
+  cursor: pointer;
+}
+
+.block-faq-item p { margin: 10px 0 0; color: var(--muted); }
+
+.block-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 32px;
+}
+
+.block-stat { text-align: center; }
+
+.block-stat-getal {
+  display: block;
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--blue);
+}
+
+.block-bg-blauw .block-stat-getal, .block-bg-donker .block-stat-getal { color: var(--yellow); }
+
+.block-stat-label {
+  display: block;
+  color: inherit;
+  opacity: 0.7;
+  font-size: 14px;
+}
 
 /* =========================================================
    SPOND-KALENDER EMBED

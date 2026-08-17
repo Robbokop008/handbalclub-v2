@@ -9,7 +9,7 @@ en de app in kleinere, overzichtelijke stukken (blueprints) kan opdelen.
 Starten voor development doe je via run.py, niet via dit bestand direct.
 """
 
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 
 from config import config_by_name, ONVEILIGE_STANDAARD_SECRET_KEY
 from extensions import db, csrf, limiter
@@ -122,6 +122,12 @@ def create_app(config_name="development"):
 
     app.add_template_global(build_video_embed_url, name="video_embed_url")
 
+    # Jinja-global om de stijlvelden (uitlijning/achtergrond/breedte/witruimte)
+    # van een pagina-blok met defaults aan te vullen - zie utils/page_blocks.py.
+    from utils.page_blocks import resolve_style
+
+    app.add_template_global(resolve_style, name="resolve_style")
+
     # Eigen foutpagina's i.p.v. Flask/Werkzeug's kale standaardpagina's:
     # 404 (onbestaande URL) en 429 (rate limit overschreden, bv. te vaak
     # inloggen na elkaar - zie @limiter.limit(...) in routes/auth.py).
@@ -140,7 +146,14 @@ def create_app(config_name="development"):
     @app.after_request
     def voeg_security_headers_toe(response):
         response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
+        # De admin-preview van een pagina moet in een eigen <iframe> in het
+        # bewerkscherm kunnen tonen (zie admin.preview_page) - enkel daar
+        # SAMEORIGIN i.p.v. DENY, zodat framen van buitenaf nog steeds
+        # geblokkeerd blijft.
+        if request.endpoint == "admin.preview_page":
+            response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        else:
+            response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         return response
 

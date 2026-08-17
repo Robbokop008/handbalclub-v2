@@ -1,0 +1,6 @@
+{% if block.data.text %}
+<blockquote class="block-quote">
+    <p>&ldquo;{{ block.data.text }}&rdquo;</p>
+    {% if block.data.auteur %}<cite>&mdash; {{ block.data.auteur }}</cite>{% endif %}
+</blockquote>
+{% endif %}
