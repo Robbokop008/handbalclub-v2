@@ -1568,13 +1568,14 @@ nav#nav-menu > ul {
 }
 
 /* Op erg smalle schermen past de kop (brand + sponsors + hamburger +
-   winkelmandje) niet op één rij naast elkaar; de hoofdsponsor-logo's
-   verdwijnen dan uit de header (ze staan ook nog in de sponsorstrook
-   verderop op de homepage) zodat de rij niet omslaat. */
+   winkelmandje) niet op één rij naast elkaar - de hoofdsponsor-logo's
+   vallen dan naar een eigen, gecentreerde tweede rij i.p.v. te verdwijnen
+   (ze staan nergens anders meer op de site sinds de sponsorstrook op de
+   homepage weg is). */
 @media (max-width: 480px) {
   .site-header { padding: 0 16px; }
-  .navbar { gap: 12px; }
-  .header-sponsors { display: none; }
+  .navbar { gap: 12px; flex-wrap: wrap; row-gap: 10px; }
+  .header-sponsors { order: 5; width: 100%; justify-content: center; margin-left: 0; }
   .brand-badge { height: 38px; }
   .brand-text-line1 { font-size: 16px; }
   .brand-text-line2 { font-size: 12px; }
