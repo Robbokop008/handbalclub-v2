@@ -799,14 +799,20 @@ form textarea { min-height: 120px; resize: vertical; }
 /* =========================================================
    PROMO-KAARTEN (sporten op maat)
    ========================================================= */
-/* align-items:start i.p.v. het grid-standaard "stretch": de twee kaarten
-   hoeven niet even hoog te zijn, elke kaart volgt gewoon haar eigen
-   inhoud (zie mockup - de FIT-Handbal-kaart is duidelijk compacter dan
-   de Ballenbaasjes-kaart). */
+/* Links een gestapelde kolom (Ballenbaasjes + Flanders Trophy, zie
+   .promo-cards-stack), rechts de FIT-Handbal-kaart - align-items:stretch
+   (grid-standaard) laat die kaart de volledige hoogte van de linkerstapel
+   volgen, net als in de mockup. */
 .promo-cards {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  align-items: start;
+  align-items: stretch;
+  gap: 24px;
+}
+
+.promo-cards-stack {
+  display: flex;
+  flex-direction: column;
   gap: 24px;
 }
 
@@ -880,6 +886,20 @@ form textarea { min-height: 120px; resize: vertical; }
   border-radius: var(--radius-sm);
   object-fit: contain;
   box-shadow: var(--shadow);
+}
+
+/* Tijdelijke plaatshouder (nog geen eigen Flanders Trophy-beeld) - zelfde
+   compacte formaat als de kaart zelf, in het clubblauw i.p.v. grijs zodat
+   ze meteen als "logo/beeldmerk" leest i.p.v. als lege placeholder. */
+.promo-card-icon-placeholder {
+  flex-shrink: 0;
+  width: 120px;
+  height: 120px;
+  border-radius: var(--radius-sm);
+  background: var(--blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Neemt ongeveer de volledige breedte van de kaart in (met de kaart-padding

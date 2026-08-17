@@ -24,6 +24,9 @@ def home():
     return render_template(
         "index.html", nieuwsberichten=laatste_nieuws,
         spond_embed_url=current_app.config["SPOND_EMBED_URL"],
+        flanders_trophy_website_url=current_app.config["FLANDERS_TROPHY_WEBSITE_URL"],
+        flanders_trophy_instagram_url=current_app.config["FLANDERS_TROPHY_INSTAGRAM_URL"],
+        flanders_trophy_facebook_url=current_app.config["FLANDERS_TROPHY_FACEBOOK_URL"],
     )
 
 
