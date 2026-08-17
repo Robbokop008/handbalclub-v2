@@ -73,14 +73,16 @@ def run():
         pos += 1
         _add(None, pos, "Nieuws", item_type="route", route_endpoint="main.nieuws")
 
+        # "Club" is één samengevoegde overzichtspagina (missie/visie +
+        # accordions voor Contact/Historiek/API/Verzekering) i.p.v. een
+        # dropdown naar 5 aparte pagina's - zie routes/club.py:overzicht().
         pos += 1
-        club = _add(None, pos, "Club", item_type="category")
-        _add(club, 1, "Missie en Visie", item_type="page", page_id=_page_id("club-missie-en-visie"))
-        _add(club, 2, "Bestuur", item_type="page", page_id=_page_id("club-bestuur"))
-        _add(club, 3, "Historiek", item_type="page", page_id=_page_id("club-historiek"))
-        _add(club, 4, "Verzekeringsformulier", item_type="page", page_id=_page_id("club-verzekering"))
-        _add(club, 5, "Aanspreekpunt Integriteit", item_type="page", page_id=_page_id("club-aanspreekpunt-integriteit"))
-        _add(club, 6, "Contact", item_type="route", route_endpoint="main.contact")
+        _add(None, pos, "Club", item_type="route", route_endpoint="club.overzicht")
+
+        # Het contactformulier hing voorheen onder Club > Contact; nu Club
+        # geen dropdown meer is, staat het als eigen top-level item.
+        pos += 1
+        _add(None, pos, "Contact", item_type="route", route_endpoint="main.contact")
 
         pos += 1
         kalender = _add(None, pos, "Kalender", item_type="category")

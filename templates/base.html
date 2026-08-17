@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
 </head>
-<body{% if request.endpoint == 'main.home' %} class="home-page"{% endif %}>
+<body{% if request.endpoint == 'main.home' %} class="home-page"{% elif request.endpoint == 'club.overzicht' %} class="club-page"{% endif %}>
     <header class="site-header">
         <div class="navbar">
 

@@ -965,6 +965,165 @@ form textarea { min-height: 120px; resize: vertical; }
 .home-closing-social a:hover { background: rgba(255, 255, 255, 0.1); }
 
 /* =========================================================
+   CLUB-PAGINA (/club/)
+   ========================================================= */
+/* Zelfde "overal navy" aanpak als de homepage (zie body.home-page). */
+body.club-page { background: var(--blue); }
+
+.club-hero {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 56px 40px 8px;
+}
+
+.club-hero h1 {
+  margin: 0;
+  color: var(--yellow);
+  font-weight: 800;
+  font-style: italic;
+  font-size: 42px;
+}
+
+.club-intro {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  align-items: start;
+  gap: 24px;
+  padding-bottom: 88px;
+}
+
+.club-card {
+  background: var(--yellow);
+  color: var(--blue-dark);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 32px;
+}
+
+.club-card-visie { margin-top: 28px; }
+
+.club-card h2 { margin: 0 0 12px; font-size: 22px; }
+.club-card p { margin: 0 0 12px; line-height: 1.6; }
+.club-card p:last-child { margin-bottom: 0; }
+
+/* Zelfde motief als de zwevende kaarten op de homepage-hero: het
+   clubembleem overlapt bewust de onderrand van beide kaarten. */
+.club-intro-badge {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 130px;
+}
+
+.club-accordion {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 8px 40px 64px;
+  display: flex;
+  flex-direction: column;
+}
+
+.club-accordion-item {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 22px 0;
+}
+
+.club-accordion-item summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--yellow);
+  font-weight: 800;
+  font-size: 20px;
+}
+
+.club-accordion-item summary::-webkit-details-marker { display: none; }
+
+.club-accordion-item summary::after {
+  content: "";
+  flex-shrink: 0;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  margin-left: 16px;
+  transition: transform 0.15s ease;
+}
+
+.club-accordion-item[open] > summary::after { transform: rotate(-135deg); }
+
+.club-accordion-body {
+  padding-top: 18px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.club-accordion-body p { margin: 0 0 14px; line-height: 1.6; }
+.club-accordion-body p:last-child { margin-bottom: 0; }
+.club-accordion-body ul { margin: 0 0 14px; padding-left: 22px; }
+.club-accordion-body li { margin-bottom: 6px; line-height: 1.6; }
+.club-accordion-body a { color: var(--yellow); }
+
+.club-subaccordion-item {
+  margin: 4px 0;
+  padding: 10px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.club-subaccordion-item summary {
+  color: var(--yellow);
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.club-subaccordion-item summary::after {
+  width: 7px;
+  height: 7px;
+}
+
+.club-contact-list {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+}
+
+.club-contact-list li { margin-bottom: 8px; }
+
+.club-contact-list a {
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration: none;
+}
+
+.club-contact-list a:hover { color: var(--yellow); }
+
+.club-verzekering-placeholder {
+  max-width: 360px;
+  margin: 4px 0 18px;
+  padding: 40px 20px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--blue-dark);
+  text-align: center;
+  font-size: 14px;
+}
+
+.club-verzekering-download a { font-weight: 700; }
+
+@media (max-width: 760px) {
+  .club-hero { padding: 40px 20px 8px; }
+  .club-hero h1 { font-size: 30px; }
+  .club-intro { grid-template-columns: 1fr; padding: 0 20px 96px; }
+  .club-card-visie { margin-top: 0; }
+  .club-accordion { padding: 8px 20px 48px; }
+}
+
+/* =========================================================
    CART
    ========================================================= */
 .cart-panel {
