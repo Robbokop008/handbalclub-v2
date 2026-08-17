@@ -1010,9 +1010,9 @@ body.club-page { background: var(--blue); }
    en steekt er bewust een stukje rechts/onder buiten uit. */
 .club-intro-badge {
   position: absolute;
-  right: -18px;
-  bottom: -18px;
-  width: 110px;
+  right: -45px;
+  bottom: -45px;
+  width: 200px;
 }
 
 .club-accordion {
