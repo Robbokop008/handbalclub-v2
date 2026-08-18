@@ -100,12 +100,11 @@ def run():
         # Zelfde als Dames: "Heren 1" en "Heren 2" op één overzichtspagina
         # i.p.v. als 2 aparte teamlinks - zie routes/heren.py:overzicht().
         _add(teams, 2, "Heren", item_type="route", route_endpoint="heren.overzicht")
-        _add(teams, 3, "G-Handbal", item_type="divider")
         # G-Handbal heeft sinds kort een eigen restyled overzichtspagina
         # i.p.v. de generieke teams/team_detail.html, met daarop nu ook de
-        # inschrijvingslink - zie routes/ghandbal.py:index(). Geen apart
-        # "Inschrijving G-Handbal"-navitem meer nodig.
-        _add(teams, 4, "G-Handbal", item_type="route", route_endpoint="ghandbal.index")
+        # inschrijvingslink - zie routes/ghandbal.py:index(). Zelfde aanpak
+        # als Dames/Heren hierboven: gewoon 1 route-item, geen divider meer.
+        _add(teams, 3, "G-Handbal", item_type="route", route_endpoint="ghandbal.index")
         _add(teams, 6, "FIT-Handbal", item_type="divider")
         _add(teams, 7, "FIT-Handbal", item_type="team", team_id=_team_id("fithandbal"))
 

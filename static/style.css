@@ -1317,13 +1317,11 @@ body.club-page, body.kalender-page, body.dames-page, body.heren-page, body.jeugd
 
 .ghandbal-logo {
   position: absolute;
-  right: -20px;
-  top: -130px;
+  right: -60px;
+  top: -90px;
   width: 180px;
   height: 180px;
-  object-fit: cover;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-hover);
+  object-fit: contain;
   z-index: 2;
 }
 
