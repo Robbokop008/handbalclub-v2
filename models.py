@@ -45,6 +45,16 @@ class Team(db.Model):
     omschrijving = db.Column(db.Text)
     foto_url = db.Column(db.String(255))                             # bestandsnaam in static/images/
 
+    # Prestatiebadges op de Dames/Heren-overzichtspagina's (zie
+    # templates/_team_macros.html:team_achievements()) - per team anders,
+    # dus geen vaste tekst maar hier bewerkbaar. None = nog niet ingevuld
+    # (toont "X" i.p.v. een echt getal); aantal_europese_wedstrijden=None
+    # laat die badge bovendien helemaal weg (niet elk team heeft Europees
+    # gespeeld).
+    aantal_bekers = db.Column(db.Integer)
+    aantal_landstitels = db.Column(db.Integer)
+    aantal_europese_wedstrijden = db.Column(db.Integer)
+
     def __repr__(self):
         return f"<Team {self.naam}>"
 

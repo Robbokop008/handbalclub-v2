@@ -10,11 +10,16 @@
 {% endif %}
 {% endmacro %}
 
-{% macro team_achievements(europees=true) %}
+{# europees bepaalt of de badge structureel voor dit team getoond wordt
+   (Dames Regio/Heren 2 hebben nooit Europees gespeeld - dat blijft een
+   keuze per template-aanroep), los van het aantal zelf: dat komt nu uit
+   team.aantal_* (bewerkbaar via /admin/teams), en valt terug op "X"
+   zolang een admin dat nog niet heeft ingevuld. #}
+{% macro team_achievements(team, europees=true) %}
 <div class="club-achievements">
     <div class="club-achievement club-achievement-beker">
         <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 4h8v4a4 4 0 0 1-8 0V4z"/><path d="M8 5H5a2 2 0 0 0 2 3.5"/><path d="M16 5h3a2 2 0 0 1-2 3.5"/><path d="M12 12v3"/><path d="M9 19h6"/><path d="M10 15h4l1 4H9l1-4z"/></svg>
-        <span>X-voudig bekerkampioen</span>
+        <span>{{ team.aantal_bekers if team and team.aantal_bekers is not none else 'X' }}-voudig bekerkampioen</span>
     </div>
     {% if europees %}
     <div class="club-achievement club-achievement-europees">
@@ -27,12 +32,12 @@
                 <circle cx="3.9" cy="12" r="1"/><circle cx="4.9" cy="8.3" r="1"/><circle cx="7.8" cy="5.1" r="1"/>
             </g>
         </svg>
-        <span>X Europese wedstrijden gespeeld</span>
+        <span>{{ team.aantal_europese_wedstrijden if team and team.aantal_europese_wedstrijden is not none else 'X' }} Europese wedstrijden gespeeld</span>
     </div>
     {% endif %}
     <div class="club-achievement club-achievement-lands">
         <svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor"><path d="M4 9l3.5 4L12 6l4.5 7L20 9l-1.5 9h-13L4 9z"/></svg>
-        <span>X-voudig landskampioen</span>
+        <span>{{ team.aantal_landstitels if team and team.aantal_landstitels is not none else 'X' }}-voudig landskampioen</span>
     </div>
 </div>
 {% endmacro %}

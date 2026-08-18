@@ -9,7 +9,7 @@
         <summary>Heren 1</summary>
         <div class="club-accordion-body">
             {{ team_macros.team_photo(team_1, "Ploegfoto Heren 1") }}
-            {{ team_macros.team_achievements(europees=true) }}
+            {{ team_macros.team_achievements(team_1, europees=true) }}
         </div>
     </details>
 
@@ -17,7 +17,7 @@
         <summary>Heren 2</summary>
         <div class="club-accordion-body">
             {{ team_macros.team_photo(team_2, "Ploegfoto Heren 2") }}
-            {{ team_macros.team_achievements(europees=false) }}
+            {{ team_macros.team_achievements(team_2, europees=false) }}
         </div>
     </details>
 </section>

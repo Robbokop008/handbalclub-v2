@@ -55,6 +55,23 @@
             <textarea id="omschrijving" name="omschrijving" rows="6">{{ form_omschrijving if form_omschrijving is defined else (team.omschrijving or '' if team else '') }}</textarea>
         </div>
 
+        <div style="grid-column:1/-1;">
+            <label>Prestatiebadges (Dames/Heren-overzichtspagina, optioneel)</label>
+            <p class="muted" style="margin:-4px 0 12px;">Leeg = toont "X" op de site (nog niet ingevuld). Laat "Europese wedstrijden" leeg als dit team nooit Europees gespeeld heeft - die badge wordt dan gewoon niet getoond.</p>
+        </div>
+        <div>
+            <label for="aantal_bekers">Aantal bekers</label>
+            <input type="number" min="0" id="aantal_bekers" name="aantal_bekers" value="{{ form_aantal_bekers if form_aantal_bekers is defined else (team.aantal_bekers if team and team.aantal_bekers is not none else '') }}">
+        </div>
+        <div>
+            <label for="aantal_landstitels">Aantal landstitels</label>
+            <input type="number" min="0" id="aantal_landstitels" name="aantal_landstitels" value="{{ form_aantal_landstitels if form_aantal_landstitels is defined else (team.aantal_landstitels if team and team.aantal_landstitels is not none else '') }}">
+        </div>
+        <div>
+            <label for="aantal_europese_wedstrijden">Aantal Europese wedstrijden</label>
+            <input type="number" min="0" id="aantal_europese_wedstrijden" name="aantal_europese_wedstrijden" value="{{ form_aantal_europese_wedstrijden if form_aantal_europese_wedstrijden is defined else (team.aantal_europese_wedstrijden if team and team.aantal_europese_wedstrijden is not none else '') }}">
+        </div>
+
         <div class="form-actions" style="grid-column:1/-1;">
             <button type="submit" class="admin-button">Opslaan</button>
             <a href="{{ url_for('admin.teams') }}" class="btn btn-secondary">Annuleren</a>

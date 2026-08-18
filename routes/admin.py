@@ -81,6 +81,21 @@ def _slugify(text):
     return text.strip("-")
 
 
+def _parse_optioneel_positief_getal(value):
+    """Parseert een optioneel getalveld (bv. aantal bekers): lege invoer -> None
+    (toont "X" op de site, zie templates/_team_macros.html), geeft (waarde, fout) terug."""
+    value = (value or "").strip()
+    if not value:
+        return None, None
+    try:
+        getal = int(value)
+    except ValueError:
+        return None, "Vul een geheel getal in (of laat leeg)."
+    if getal < 0:
+        return None, "Vul een getal van 0 of hoger in."
+    return getal, None
+
+
 def _parse_datetime_local(value):
     """Parseert de waarde van een <input type="datetime-local"> (bv. '2026-08-08T14:30'),
     geeft None terug als de waarde leeg of ongeldig is."""
@@ -1325,6 +1340,9 @@ def add_team():
     categorie = (request.form.get("categorie") or "").strip() or None
     trainer = (request.form.get("trainer") or "").strip() or None
     omschrijving = (request.form.get("omschrijving") or "").strip() or None
+    aantal_bekers, fout_bekers = _parse_optioneel_positief_getal(request.form.get("aantal_bekers"))
+    aantal_landstitels, fout_landstitels = _parse_optioneel_positief_getal(request.form.get("aantal_landstitels"))
+    aantal_europese_wedstrijden, fout_europees = _parse_optioneel_positief_getal(request.form.get("aantal_europese_wedstrijden"))
 
     error = None
     if not naam:
@@ -1335,6 +1353,8 @@ def add_team():
         error = "Slug is verplicht."
     elif Team.query.filter_by(slug=slug).first() is not None:
         error = f"Er bestaat al een team met slug '{slug}'."
+    elif fout_bekers or fout_landstitels or fout_europees:
+        error = fout_bekers or fout_landstitels or fout_europees
 
     if error:
         return render_template(
@@ -1342,12 +1362,17 @@ def add_team():
             team_secties=TEAM_SECTIES, sectie_labels=TEAM_SECTIE_LABELS,
             form_naam=naam, form_slug=slug, form_sectie=sectie, form_categorie=categorie,
             form_trainer=trainer, form_omschrijving=omschrijving,
+            form_aantal_bekers=aantal_bekers if aantal_bekers is not None else "",
+            form_aantal_landstitels=aantal_landstitels if aantal_landstitels is not None else "",
+            form_aantal_europese_wedstrijden=aantal_europese_wedstrijden if aantal_europese_wedstrijden is not None else "",
         )
 
     foto_url = _save_uploaded_image(request.files.get("foto"))
     team = Team(
         naam=naam, slug=slug, sectie=sectie, categorie=categorie,
         trainer=trainer, omschrijving=omschrijving, foto_url=foto_url,
+        aantal_bekers=aantal_bekers, aantal_landstitels=aantal_landstitels,
+        aantal_europese_wedstrijden=aantal_europese_wedstrijden,
     )
     db.session.add(team)
     db.session.commit()
@@ -1370,6 +1395,9 @@ def edit_team(team_id):
     categorie = (request.form.get("categorie") or "").strip() or None
     trainer = (request.form.get("trainer") or "").strip() or None
     omschrijving = (request.form.get("omschrijving") or "").strip() or None
+    aantal_bekers, fout_bekers = _parse_optioneel_positief_getal(request.form.get("aantal_bekers"))
+    aantal_landstitels, fout_landstitels = _parse_optioneel_positief_getal(request.form.get("aantal_landstitels"))
+    aantal_europese_wedstrijden, fout_europees = _parse_optioneel_positief_getal(request.form.get("aantal_europese_wedstrijden"))
 
     error = None
     if not naam:
@@ -1380,6 +1408,8 @@ def edit_team(team_id):
         error = "Slug is verplicht."
     elif Team.query.filter(Team.slug == slug, Team.id != team.id).first() is not None:
         error = f"Er bestaat al een ander team met slug '{slug}'."
+    elif fout_bekers or fout_landstitels or fout_europees:
+        error = fout_bekers or fout_landstitels or fout_europees
 
     if error:
         return render_template(
@@ -1387,6 +1417,9 @@ def edit_team(team_id):
             team_secties=TEAM_SECTIES, sectie_labels=TEAM_SECTIE_LABELS,
             form_naam=naam, form_slug=slug, form_sectie=sectie, form_categorie=categorie,
             form_trainer=trainer, form_omschrijving=omschrijving,
+            form_aantal_bekers=aantal_bekers if aantal_bekers is not None else "",
+            form_aantal_landstitels=aantal_landstitels if aantal_landstitels is not None else "",
+            form_aantal_europese_wedstrijden=aantal_europese_wedstrijden if aantal_europese_wedstrijden is not None else "",
         )
 
     team.naam = naam
@@ -1395,6 +1428,9 @@ def edit_team(team_id):
     team.categorie = categorie
     team.trainer = trainer
     team.omschrijving = omschrijving
+    team.aantal_bekers = aantal_bekers
+    team.aantal_landstitels = aantal_landstitels
+    team.aantal_europese_wedstrijden = aantal_europese_wedstrijden
 
     new_foto = _save_uploaded_image(request.files.get("foto"))
     if new_foto:

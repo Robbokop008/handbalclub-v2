@@ -2,8 +2,9 @@
 scripts/migrate_site_text_cleanup.py
 --------------------------------------
 Eenmalig opkuisscript voor de admin-paginabeheer: verwijdert data die dood
-werd sinds de restyling van Home/Kalender en de samenvoeging van Club naar
-1 pagina, en die de admin dus voor niets zou tonen/laten bewerken:
+werd sinds de restyling van Home/Kalender en de samenvoeging van Club/
+Jeugd naar 1 overzichtspagina, en die de admin dus voor niets zou tonen/
+laten bewerken:
 
 1. De 2 Page-rijen "kalender-trainingen" en "kalender-evenementen" - deze
    werden door geen enkele route of navigatie-item meer aangesproken (de
@@ -14,6 +15,15 @@ werd sinds de restyling van Home/Kalender en de samenvoeging van Club naar
    niet meer in utils/site_text.py (zie SITE_TEXT_PAGINAS) omdat Home en
    Kalender geen tekst-hero meer tonen; een admin die ze via /admin/pages
    zou bewerken zag voorheen geen enkel effect op de site.
+3. De 5 losse Club-pagina's ("club-missie-en-visie", "club-bestuur",
+   "club-historiek", "club-verzekering", "club-aanspreekpunt-integriteit")
+   en "jeugd-aanspreekpunt-integriteit" - hun inhoud staat intussen
+   hardcoded op templates/club/overzicht.html en
+   templates/jeugd/overzicht.html, dus bewerken via /admin/pages had geen
+   effect meer. De oude /club/... en /jeugd/aanspreekpunt-integriteit-
+   URL's redirecten voortaan rechtstreeks naar de overzichtspagina i.p.v.
+   naar deze Page-rijen (zie routes/club.py en routes/jeugd.py), dus
+   verwijderen breekt geen bestaande links.
 
 Idempotent: als de rijen al weg zijn, gebeurt er niets.
 
@@ -30,7 +40,12 @@ from app import create_app
 from extensions import db
 from models import Page, SiteText
 
-DODE_PAGE_SLUGS = ["kalender-trainingen", "kalender-evenementen"]
+DODE_PAGE_SLUGS = [
+    "kalender-trainingen", "kalender-evenementen",
+    "club-missie-en-visie", "club-bestuur", "club-historiek",
+    "club-verzekering", "club-aanspreekpunt-integriteit",
+    "jeugd-aanspreekpunt-integriteit",
+]
 DODE_SITE_TEXT_SLEUTELS = [
     "home_hero_titel", "home_hero_subtitel",
     "kalender_hero_titel", "kalender_hero_subtitel",

@@ -16,8 +16,20 @@ niet meer hier, anders zou opnieuw draaien de oude pagina's terugzetten.
 "kalender-trainingen" en "kalender-evenementen" stonden hier ook, maar
 werden nooit door een route of navigatie-item aangesproken (dode data
 sinds Kalender een hardcoded accordion-pagina werd) en zijn dus
-verwijderd - zie scripts/migrate_site_text_cleanup.py voor de eenmalige
-opkuis van de reeds bestaande rijen.
+verwijderd.
+
+De 5 losse Club-pagina's ("club-missie-en-visie", "club-bestuur",
+"club-historiek", "club-verzekering", "club-aanspreekpunt-integriteit")
+en "jeugd-aanspreekpunt-integriteit" stonden hier ook, maar hun inhoud
+staat intussen hardcoded op de nieuwe overzichtspagina's (zie
+templates/club/overzicht.html en templates/jeugd/overzicht.html) - een
+admin die deze Page-rijen bewerkte zag dus geen effect meer op de
+site. Ook verwijderd; de oude /club/... en /jeugd/aanspreekpunt-
+integriteit-URL's redirecten nu rechtstreeks naar de overzichtspagina
+i.p.v. naar deze Page-rijen (zie routes/club.py en routes/jeugd.py).
+
+Zie scripts/migrate_site_text_cleanup.py voor de eenmalige opkuis van de
+reeds bestaande rijen van al deze verwijderde pagina's.
 
 Idempotent: opnieuw draaien overschrijft bestaande rijen met dezelfde slug
 in plaats van duplicaten aan te maken.
@@ -54,58 +66,6 @@ PAGES = [
             <p>We investeren sterk in jeugdwerking en talentontwikkeling binnen de club.</p>
             <h3>Teamspirit</h3>
             <p>Respect, inzet en samenhorigheid vormen de kern van onze clubcultuur.</p>
-        """,
-    },
-    {
-        "slug": "club-missie-en-visie",
-        "title": "Missie en Visie",
-        "body_html": """
-            <h2>Onze missie</h2>
-            <p>[Placeholder] Handbal Sint-Truiden wil een familiale, toegankelijke handbalclub zijn waar sportieve ontwikkeling en plezier hand in hand gaan, voor spelers van alle leeftijden en niveaus.</p>
-            <h2>Onze visie</h2>
-            <p>[Placeholder] We streven naar duurzame sportieve groei, met een sterke jeugdwerking als fundament en respect, teamgeest en inzet als kernwaarden.</p>
-        """,
-    },
-    {
-        "slug": "club-bestuur",
-        "title": "Bestuur",
-        "body_html": """
-            <p>[Placeholder] Overzicht van de bestuursleden van Handbal Sint-Truiden, met hun functie binnen de club.</p>
-            <h3>Voorzitter</h3>
-            <p>Naam - functie</p>
-            <h3>Secretaris</h3>
-            <p>Naam - functie</p>
-            <h3>Penningmeester</h3>
-            <p>Naam - functie</p>
-        """,
-    },
-    {
-        "slug": "club-historiek",
-        "title": "Historiek",
-        "body_html": "<p>[Placeholder] Het verhaal van Handbal Sint-Truiden, van de oprichting in 1977 tot vandaag.</p>",
-    },
-    {
-        "slug": "club-verzekering",
-        "title": "Verzekeringsformulier",
-        "body_html": """
-            <p>[Placeholder] Informatie over de sportverzekering en het formulier dat je moet gebruiken bij een blessure of ongeval.</p>
-            <p>Hier komt normaal een downloadbaar PDF-formulier of een link naar het verzekeringsdocument.</p>
-        """,
-    },
-    {
-        "slug": "club-aanspreekpunt-integriteit",
-        "title": "Aanspreekpunt Persoonlijke Integriteit",
-        "body_html": """
-            <p>[Placeholder] Handbal Sint-Truiden hecht veel belang aan een veilige sportomgeving. Onze Aanspreekpunt Persoonlijke Integriteit (API) is er om grensoverschrijdend gedrag te melden of bespreekbaar te maken.</p>
-            <p><strong>Contactpersoon:</strong> naam - e-mailadres</p>
-        """,
-    },
-    {
-        "slug": "jeugd-aanspreekpunt-integriteit",
-        "title": "Aanspreekpunt Persoonlijke Integriteit - Jeugd",
-        "body_html": """
-            <p>[Placeholder] Ook binnen de jeugdwerking kan je bij onze API terecht met vragen of meldingen over grensoverschrijdend gedrag.</p>
-            <p><strong>Contactpersoon:</strong> naam - e-mailadres</p>
         """,
     },
     {

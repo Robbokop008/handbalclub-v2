@@ -143,7 +143,10 @@ def m14():
 
 @jeugd_bp.route("/aanspreekpunt-integriteit")
 def api():
-    return redirect(url_for("pages.view", slug="jeugd-aanspreekpunt-integriteit"), code=301)
+    # Deze inhoud staat niet meer los (zie jeugd/overzicht.html: "Het
+    # welzijn van de speler" verwijst nu naar de externe VHV-pagina) - de
+    # losse Page-rij is opgeruimd, zie scripts/migrate_site_text_cleanup.py.
+    return redirect(url_for("jeugd.overzicht"), code=301)
 
 
 @jeugd_bp.route("/welzijn")
