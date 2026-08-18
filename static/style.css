@@ -964,7 +964,7 @@ form textarea { min-height: 120px; resize: vertical; }
    ========================================================= */
 /* Zelfde "overal navy" aanpak als de homepage (zie body.home-page) - ook
    voor de kalenderpagina, die dezelfde accordion-stijl hergebruikt. */
-body.club-page, body.kalender-page, body.dames-page, body.heren-page, body.jeugd-page, body.ghandbal-page { background: var(--blue); }
+body.club-page, body.kalender-page, body.dames-page, body.heren-page, body.jeugd-page, body.ghandbal-page, body.fithandbal-page { background: var(--blue); }
 
 .club-hero {
   max-width: var(--max-width);
@@ -1308,14 +1308,16 @@ body.club-page, body.kalender-page, body.dames-page, body.heren-page, body.jeugd
 }
 
 /* =========================================================
-   G-HANDBAL-PAGINA (/g-handbal/)
+   1-TEAM-INFOPAGINA'S (/g-handbal/, /fit-handbal/)
    ========================================================= */
 /* Eén kaart (i.p.v. de missie/visie-tweeling op de Club-pagina), met het
-   G-Handbal-embleem dat over de rechterbovenhoek hangt - zelfde motief
-   als .club-intro-badge, maar dan bovenaan i.p.v. onderaan. */
-.ghandbal-card { max-width: 760px; }
+   embleem van het team dat over de rechterbovenhoek hangt - zelfde motief
+   als .club-intro-badge, maar dan bovenaan i.p.v. onderaan. Gedeeld door
+   G-Handbal en FIT-Handbal, die allebei dezelfde opmaak gebruiken (zie
+   templates/ghandbal/overzicht.html en templates/fithandbal/overzicht.html). */
+.team-intro-card { max-width: 760px; }
 
-.ghandbal-logo {
+.team-intro-logo {
   position: absolute;
   right: -60px;
   top: -90px;
@@ -1325,22 +1327,22 @@ body.club-page, body.kalender-page, body.dames-page, body.heren-page, body.jeugd
   z-index: 2;
 }
 
-.ghandbal-training { padding-top: 8px; }
+.team-training { padding-top: 8px; }
 
-.ghandbal-subheading {
+.team-subheading {
   margin: 0 0 14px;
   color: var(--yellow);
   font-weight: 800;
   font-size: 20px;
 }
 
-.ghandbal-training > p { color: rgba(255, 255, 255, 0.9); line-height: 1.6; margin: 0 0 14px; }
+.team-training > p { color: rgba(255, 255, 255, 0.9); line-height: 1.6; margin: 0 0 14px; }
 
-.ghandbal-inschrijving-link a { color: var(--blue-dark); font-weight: 700; text-decoration: none; }
+.team-inschrijving-link a { color: var(--blue-dark); font-weight: 700; text-decoration: none; }
 
 @media (max-width: 760px) {
-  .ghandbal-card { max-width: none; }
-  .ghandbal-logo { position: static; width: 140px; height: 140px; margin: 0 0 16px; }
+  .team-intro-card { max-width: none; }
+  .team-intro-logo { position: static; width: 140px; height: 140px; margin: 0 0 16px; }
 }
 
 /* =========================================================

@@ -1,16 +1,20 @@
 """
 routes/fithandbal.py
 ---------------------
-FIT-Handbal is een team (zie models.Team, slug "fithandbal") en wordt
-beheerd via de Teams-sectie van de admin - deze route blijft als
-permanente 301-redirect bestaan.
+FIT-Handbal heeft sinds kort een eigen restyled overzichtspagina i.p.v.
+de generieke teams/team_detail.html - zelfde aanpak als
+routes/ghandbal.py:index(). FIT-Handbal blijft wel een gewoon Team (zie
+models.Team, slug "fithandbal") voor de ploegfoto.
 """
 
-from flask import Blueprint, redirect, url_for
+from flask import Blueprint, render_template
+
+from models import Team
 
 fithandbal_bp = Blueprint("fithandbal", __name__, url_prefix="/fit-handbal")
 
 
 @fithandbal_bp.route("/")
 def index():
-    return redirect(url_for("main.team_detail", slug="fithandbal"), code=301)
+    team = Team.query.filter_by(slug="fithandbal").first()
+    return render_template("fithandbal/overzicht.html", team=team)

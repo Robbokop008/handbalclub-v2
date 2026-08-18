@@ -30,7 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app import create_app
 from extensions import db
-from models import NavItem, Page, Team
+from models import NavItem, Page
 
 
 def _page_id(slug):
@@ -38,13 +38,6 @@ def _page_id(slug):
     if page is None:
         raise RuntimeError(f"Page met slug '{slug}' niet gevonden - draai eerst scripts/seed_pages.py")
     return page.id
-
-
-def _team_id(slug):
-    team = Team.query.filter_by(slug=slug).first()
-    if team is None:
-        raise RuntimeError(f"Team met slug '{slug}' niet gevonden - draai eerst scripts/seed_teams.py")
-    return team.id
 
 
 def _add(parent, position, label, **kwargs):
@@ -105,8 +98,9 @@ def run():
         # inschrijvingslink - zie routes/ghandbal.py:index(). Zelfde aanpak
         # als Dames/Heren hierboven: gewoon 1 route-item, geen divider meer.
         _add(teams, 3, "G-Handbal", item_type="route", route_endpoint="ghandbal.index")
-        _add(teams, 6, "FIT-Handbal", item_type="divider")
-        _add(teams, 7, "FIT-Handbal", item_type="team", team_id=_team_id("fithandbal"))
+        # Zelfde aanpak als G-Handbal: eigen restyled overzichtspagina i.p.v.
+        # de generieke teampagina - zie routes/fithandbal.py:index().
+        _add(teams, 6, "FIT-Handbal", item_type="route", route_endpoint="fithandbal.index")
 
         # "Jeugd" is één samengevoegde overzichtspagina (Beleidsplan/
         # Interesse/Ballenbaasjes als zwevende kaarten + JM08&JM10/JM12/
