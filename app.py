@@ -127,8 +127,6 @@ def create_app(config_name="development"):
         "main.contact": "content-page",
         "main.nieuws": "content-page",
         "main.nieuws_detail": "content-page",
-        "main.teams": "content-page",
-        "main.team_detail": "content-page",
         "pages.view": "content-page",
         "auth.login": "auth-page",
         "auth.register": "auth-page",

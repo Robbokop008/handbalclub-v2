@@ -21,10 +21,14 @@ def _resolve_url(item):
             return None
         return url_for("pages.view", slug=item.page.slug)
 
+    # item_type "team" bestaat niet meer: dat linkte naar de generieke
+    # /teams/<slug> (main.team_detail), die verwijderd is nu elk team een
+    # eigen restyled overzichtspagina heeft. Nergens meer aan te maken via
+    # de admin (zie templates/admin/navigation.html), maar als er ooit nog
+    # zo'n rij in de database zit, faalt dit stil i.p.v. de hele site te
+    # laten crashen op een onbestaande route.
     if item.item_type == "team":
-        if item.team is None:
-            return None
-        return url_for("main.team_detail", slug=item.team.slug)
+        return None
 
     if item.item_type == "route":
         try:

@@ -72,6 +72,14 @@ def run():
         pos += 1
         _add(None, pos, "Club", item_type="route", route_endpoint="club.overzicht")
 
+        # "Over ons" stond voorheen enkel als link onder in de footer (waar
+        # hij visueel niet als link herkenbaar was - zelfde kop-stijl als de
+        # niet-klikbare "Support"/"Volg ons" ernaast) en was daardoor in de
+        # praktijk onvindbaar. Zelfde aanpak als Vacatures: een eigen,
+        # zichtbare plek in het hoofdmenu.
+        pos += 1
+        _add(None, pos, "Over ons", item_type="page", page_id=_page_id("over-ons"))
+
         # Het contactformulier hing voorheen onder Club > Contact; nu Club
         # geen dropdown meer is, staat het als eigen top-level item.
         pos += 1

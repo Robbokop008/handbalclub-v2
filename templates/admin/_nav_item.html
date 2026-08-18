@@ -13,12 +13,6 @@
                 <option value="{{ p.id }}" {{ 'selected' if item.page_id == p.id else '' }}>{{ p.title }}</option>
                 {% endfor %}
             </select>
-            {% elif item.item_type == 'team' %}
-            <select name="team_id">
-                {% for t in all_teams %}
-                <option value="{{ t.id }}" {{ 'selected' if item.team_id == t.id else '' }}>{{ t.naam }}</option>
-                {% endfor %}
-            </select>
             {% elif item.item_type == 'route' %}
             <input type="text" name="route_endpoint" value="{{ item.route_endpoint or '' }}" placeholder="bv. shop.products">
             {% elif item.item_type == 'external' %}

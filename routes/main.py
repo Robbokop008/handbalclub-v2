@@ -1,16 +1,22 @@
 """
 routes/main.py
 ---------------
-Routes voor het publieke, informatieve deel van de site: home, teams,
-nieuws, over ons en contact. Bewust NIET achter een login, in
-tegenstelling tot de webshop-functionaliteit (winkelmandje, afrekenen,
-profiel) die wel inloggen vereist.
+Routes voor het publieke, informatieve deel van de site: home, nieuws,
+over ons en contact. Bewust NIET achter een login, in tegenstelling tot
+de webshop-functionaliteit (winkelmandje, afrekenen, profiel) die wel
+inloggen vereist.
+
+De vroegere generieke "/teams" en "/teams/<slug>" (het volledige
+teamoverzicht en een per-team detailpagina) zijn verwijderd: sinds elk
+team een eigen restyled overzichtspagina heeft (Dames/Heren/Jeugd/
+G-Handbal/FIT-Handbal), linkte niets meer naar deze generieke pagina's -
+zie de projectaudit die dit aan het licht bracht.
 """
 
 from flask import Blueprint, render_template, request, current_app, abort, redirect, url_for
 
 from extensions import db, limiter
-from models import Team, TEAM_SECTIE_LABELS, NieuwsBericht, VergeetMijVerzoek
+from models import NieuwsBericht, VergeetMijVerzoek
 from utils.mail import send_contact_mail, send_vergeet_mij_notification
 
 main_bp = Blueprint("main", __name__)
@@ -28,28 +34,6 @@ def home():
         flanders_trophy_instagram_url=current_app.config["FLANDERS_TROPHY_INSTAGRAM_URL"],
         flanders_trophy_facebook_url=current_app.config["FLANDERS_TROPHY_FACEBOOK_URL"],
     )
-
-
-@main_bp.route("/teams")
-def teams():
-    alle_teams = Team.query.all()
-    per_sectie = {}
-    for team in alle_teams:
-        per_sectie.setdefault(team.sectie, []).append(team)
-    groepen = [
-        (label, per_sectie[sectie])
-        for sectie, label in TEAM_SECTIE_LABELS.items()
-        if sectie in per_sectie
-    ]
-    return render_template("teams.html", groepen=groepen)
-
-
-@main_bp.route("/teams/<slug>")
-def team_detail(slug):
-    team = Team.query.filter_by(slug=slug).first()
-    if team is None:
-        abort(404)
-    return render_template("teams/team_detail.html", team=team)
 
 
 @main_bp.route("/nieuws")

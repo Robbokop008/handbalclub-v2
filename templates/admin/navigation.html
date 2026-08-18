@@ -49,7 +49,6 @@
                 <option value="category">Categorie (dropdown)</option>
                 <option value="divider">Groepslabel (binnen een categorie)</option>
                 <option value="page" selected>Pagina</option>
-                <option value="team">Team</option>
                 <option value="route">Vaste route</option>
                 <option value="external">Externe URL</option>
             </select>
@@ -68,14 +67,6 @@
             <select id="add-page" name="page_id">
                 {% for p in all_pages %}
                 <option value="{{ p.id }}">{{ p.title }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="nav-target-field" data-for="team">
-            <label for="add-team">Team</label>
-            <select id="add-team" name="team_id">
-                {% for t in all_teams %}
-                <option value="{{ t.id }}">{{ t.naam }}</option>
                 {% endfor %}
             </select>
         </div>

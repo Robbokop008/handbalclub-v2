@@ -1,10 +1,10 @@
 """
 routes/ghandbal.py
 -------------------
-G-Handbal (handbal voor personen met een beperking) heeft sinds kort een
-eigen restyled overzichtspagina i.p.v. de generieke teams/team_detail.html
-- zelfde aanpak als routes/club.py:overzicht(). G-Handbal blijft wel een
-gewoon Team (zie models.Team, slug "ghandbal") voor de ploegfoto.
+G-Handbal (handbal voor personen met een beperking) heeft een eigen
+restyled overzichtspagina - zelfde aanpak als routes/club.py:overzicht().
+G-Handbal blijft wel een gewoon Team (zie models.Team, slug "ghandbal")
+voor de ploegfoto.
 """
 
 from flask import Blueprint, redirect, render_template, url_for

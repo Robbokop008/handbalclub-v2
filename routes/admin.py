@@ -887,10 +887,6 @@ def _validate_nav_target(item_type, page_id, team_id, route_endpoint, external_u
         if not page_id or Page.query.get(page_id) is None:
             return "Kies een geldige pagina."
         return None
-    if item_type == "team":
-        if not team_id or Team.query.get(team_id) is None:
-            return "Kies een geldig team."
-        return None
     if item_type == "route":
         if not route_endpoint:
             return "Geef een route-eindpunt op (bv. 'shop.products')."
@@ -910,10 +906,9 @@ def _nav_admin_context(error=None):
     top_items = NavItem.query.filter_by(parent_id=None).order_by(NavItem.position).all()
     categories = [i for i in top_items if i.item_type == "category"]
     all_pages = Page.query.order_by(Page.title).all()
-    all_teams = Team.query.order_by(Team.sectie, Team.naam).all()
     return dict(
         user=g.user, top_items=top_items, categories=categories,
-        all_pages=all_pages, all_teams=all_teams, error=error,
+        all_pages=all_pages, error=error,
     )
 
 

@@ -1,8 +1,7 @@
 """
 routes/fithandbal.py
 ---------------------
-FIT-Handbal heeft sinds kort een eigen restyled overzichtspagina i.p.v.
-de generieke teams/team_detail.html - zelfde aanpak als
+FIT-Handbal heeft een eigen restyled overzichtspagina - zelfde aanpak als
 routes/ghandbal.py:index(). FIT-Handbal blijft wel een gewoon Team (zie
 models.Team, slug "fithandbal") voor de ploegfoto.
 """
