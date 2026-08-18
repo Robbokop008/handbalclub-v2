@@ -1,22 +1,23 @@
 """
 routes/ghandbal.py
 -------------------
-G-Handbal (handbal voor personen met een beperking). Het
-inschrijvingsformulier is hetzelfde als bij Jeugd - zie sitemap
-("is het zelfde inschrijvingsformulier") - met de categorie 'G-Handbal'
-alvast voorgeselecteerd. G-Handbal is een team (zie models.Team, slug
-"ghandbal") en wordt beheerd via de Teams-sectie van de admin - deze route
-blijft als permanente 301-redirect bestaan.
+G-Handbal (handbal voor personen met een beperking) heeft sinds kort een
+eigen restyled overzichtspagina i.p.v. de generieke teams/team_detail.html
+- zelfde aanpak als routes/club.py:overzicht(). G-Handbal blijft wel een
+gewoon Team (zie models.Team, slug "ghandbal") voor de ploegfoto.
 """
 
-from flask import Blueprint, redirect, url_for
+from flask import Blueprint, redirect, render_template, url_for
+
+from models import Team
 
 ghandbal_bp = Blueprint("ghandbal", __name__, url_prefix="/g-handbal")
 
 
 @ghandbal_bp.route("/")
 def index():
-    return redirect(url_for("main.team_detail", slug="ghandbal"), code=301)
+    team = Team.query.filter_by(slug="ghandbal").first()
+    return render_template("ghandbal/overzicht.html", team=team)
 
 
 @ghandbal_bp.route("/inschrijving")

@@ -964,7 +964,7 @@ form textarea { min-height: 120px; resize: vertical; }
    ========================================================= */
 /* Zelfde "overal navy" aanpak als de homepage (zie body.home-page) - ook
    voor de kalenderpagina, die dezelfde accordion-stijl hergebruikt. */
-body.club-page, body.kalender-page, body.dames-page, body.heren-page, body.jeugd-page { background: var(--blue); }
+body.club-page, body.kalender-page, body.dames-page, body.heren-page, body.jeugd-page, body.ghandbal-page { background: var(--blue); }
 
 .club-hero {
   max-width: var(--max-width);
@@ -1305,6 +1305,53 @@ body.club-page, body.kalender-page, body.dames-page, body.heren-page, body.jeugd
     max-width: none;
     margin-bottom: 20px;
   }
+}
+
+/* =========================================================
+   G-HANDBAL-PAGINA (/g-handbal/)
+   ========================================================= */
+/* Eén kaart (i.p.v. de missie/visie-tweeling op de Club-pagina), met het
+   G-Handbal-embleem dat over de rechterbovenhoek hangt - zelfde motief
+   als .club-intro-badge, maar dan bovenaan i.p.v. onderaan. */
+.ghandbal-card { max-width: 760px; }
+
+.ghandbal-logo,
+.ghandbal-logo-placeholder {
+  position: absolute;
+  right: -50px;
+  top: -60px;
+  width: 200px;
+  z-index: 2;
+}
+
+.ghandbal-logo-placeholder {
+  height: 200px;
+  background: rgba(255, 255, 255, 0.3);
+  border: 2px dashed rgba(3, 35, 73, 0.4);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--blue-dark);
+  font-size: 13px;
+  text-align: center;
+  padding: 12px;
+}
+
+.ghandbal-training { padding-top: 8px; }
+
+.ghandbal-subheading {
+  margin: 0 0 14px;
+  color: var(--yellow);
+  font-weight: 800;
+  font-size: 20px;
+}
+
+.ghandbal-training > p { color: rgba(255, 255, 255, 0.9); line-height: 1.6; margin: 0 0 14px; }
+
+@media (max-width: 760px) {
+  .ghandbal-card { max-width: none; }
+  .ghandbal-logo, .ghandbal-logo-placeholder { position: static; width: 140px; height: 140px; margin: 0 0 16px; }
 }
 
 /* =========================================================
