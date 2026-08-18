@@ -3,16 +3,14 @@
 {% block title %}Accountinstellingen{% endblock %}
 
 {% block content %}
-<section class="hero hero-short">
-    <div class="hero-content">
-        <h1>{{ site_teksten.account_instellingen_hero_titel }}</h1>
-        <p>{{ site_teksten.account_instellingen_hero_subtitel }}</p>
-    </div>
+<section class="club-hero">
+    <h1>{{ site_teksten.account_instellingen_hero_titel }}</h1>
+    <p>{{ site_teksten.account_instellingen_hero_subtitel }}</p>
 </section>
 
 <section class="section">
     <div class="grid">
-        <div class="card">
+        <div class="account-card">
             <form action="{{ url_for('auth.update_profile') }}" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <label>Vul de velden in die u wilt veranderen:</label>
@@ -29,7 +27,7 @@
                 <input id="password" name="password" type="password">
 
                 <div class="form-actions">
-                    <button class="btn btn-primary" type="submit">Wijzigingen opslaan</button>
+                    <button class="btn btn-dark" type="submit">Wijzigingen opslaan</button>
                     <button class="btn btn-danger" type="submit" form="frm_delete_account">Account verwijderen</button>
                 </div>
 
@@ -42,10 +40,10 @@
             </form>
         </div>
 
-        <aside class="card" style="text-align:center;">
+        <aside class="account-card" style="text-align:center;">
             <div class="avatar" style="margin:0 auto;">{{ user.initials }}</div>
-            <h3 style="margin-top:12px;color:var(--blue);">Profiel</h3>
-            <p class="muted">Beheer avatar, email en meer.</p>
+            <h3 style="margin-top:12px;color:var(--blue-dark);">Profiel</h3>
+            <p style="color:rgba(3,35,73,0.7);">Beheer avatar, email en meer.</p>
         </aside>
     </div>
 </section>

@@ -110,6 +110,36 @@ def create_app(config_name="development"):
     def inject_huidig_jaar():
         return {"huidig_jaar": _datetime.utcnow().year}
 
+    # Welke body-class (navy achtergrond + restyled kaarten/hero, zie
+    # static/style.css) een pagina krijgt, per route-endpoint. Dit was een
+    # groeiende if/elif-keten in templates/base.html - bij elke nieuwe
+    # restyled pagina werd dat onoverzichtelijker, vandaar een gewone
+    # Python-lookup i.p.v. nog een {% elif %} toe te voegen.
+    PAGINA_STIJL_PER_ENDPOINT = {
+        "main.home": "home-page",
+        "club.overzicht": "club-page",
+        "kalender.overzicht": "kalender-page",
+        "dames.overzicht": "dames-page",
+        "heren.overzicht": "heren-page",
+        "jeugd.overzicht": "jeugd-page",
+        "ghandbal.index": "ghandbal-page",
+        "fithandbal.index": "fithandbal-page",
+        "main.contact": "content-page",
+        "main.nieuws": "content-page",
+        "main.nieuws_detail": "content-page",
+        "main.teams": "content-page",
+        "main.team_detail": "content-page",
+        "pages.view": "content-page",
+        "auth.login": "auth-page",
+        "auth.register": "auth-page",
+        "auth.profile": "auth-page",
+        "auth.account_settings": "auth-page",
+    }
+
+    @app.context_processor
+    def inject_body_page_class():
+        return {"body_page_class": PAGINA_STIJL_PER_ENDPOINT.get(request.endpoint)}
+
     # Jinja-filter die gesaniteerde rich-text HTML (nieuwsberichten) omzet
     # naar leesbare platte tekst voor previews - zie utils/sanitize.py.
     from utils.sanitize import html_naar_platte_tekst

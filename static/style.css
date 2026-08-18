@@ -1346,6 +1346,121 @@ body.club-page, body.kalender-page, body.dames-page, body.heren-page, body.jeugd
 }
 
 /* =========================================================
+   CONTENT- & AUTH-PAGINA'S
+   (contact, nieuws, generieke pagina's, teams, login/registreren/
+   profiel/account - alle andere publieke pagina's in dezelfde navy/gele
+   stijl als Club/Kalender/Dames/Heren/Jeugd/G-Handbal/FIT-Handbal)
+   ========================================================= */
+body.content-page, body.auth-page { background: var(--blue); }
+
+/* Ondertitel onder de .club-hero-titel (contact-intro, login/profiel-
+   subtitel, nieuws-detail datum/categorie, ...) - .club-hero stylede tot
+   nu toe enkel de h1. */
+.club-hero p {
+  margin: 12px 0 0;
+  max-width: 640px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* "Papieren" kaart voor vrije/rijke inhoud (nieuws-detail, generieke
+   pagina's via de blokken-CMS): i.p.v. de kaart zelf ook geel te maken
+   (wat elk bestaand bloktype - tabellen, kolommen, FAQ, ... - opnieuw
+   zou moeten stylen) blijft dit een lichte "pagina" op de navy
+   achtergrond, zoals de kaften van een brochure. */
+.content-card {
+  max-width: 900px;
+  margin: 0 auto;
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 40px;
+}
+
+.content-card > img { max-width: 100%; border-radius: var(--radius-sm); }
+
+/* Overzicht-grids (nieuws, teams): gele kaarten i.p.v. de witte
+   .value-card, zelfde motief als .club-card/.promo-card elders. */
+.content-grid {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.content-preview-card {
+  background: var(--yellow);
+  color: var(--blue-dark);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.content-preview-card.groot { grid-column: span 2; }
+@media (max-width: 640px) { .content-preview-card.groot { grid-column: span 1; } }
+
+.content-preview-card img { width: 100%; border-radius: var(--radius-sm); margin-bottom: 14px; }
+.content-preview-card h3 { margin: 0 0 6px; font-size: 19px; }
+.content-preview-meta { margin: 0 0 10px; font-size: 13px; opacity: 0.75; }
+
+.content-preview-tekst {
+  margin: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  overflow: hidden;
+  line-height: 1.6;
+}
+
+.content-preview-card.groot .content-preview-tekst { -webkit-line-clamp: 10; }
+
+.content-preview-lees-meer { margin-top: auto; padding-top: 14px; }
+.content-preview-lees-meer a { color: var(--blue-dark); font-weight: 700; text-decoration: none; }
+
+/* Auth-kaart (login/registreren) - zelfde motief als .club-card, maar
+   smaller en gecentreerd. */
+.auth-card {
+  max-width: 420px;
+  margin: 0 auto;
+  background: var(--yellow);
+  color: var(--blue-dark);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-hover);
+  padding: 32px;
+}
+
+.auth-card h2 { margin: 0 0 4px; font-size: 22px; }
+.auth-card .login-note { text-align: center; margin-top: 18px; font-size: 14px; color: rgba(3, 35, 73, 0.7); }
+.auth-card .login-note a { color: var(--blue-dark); font-weight: 700; text-decoration: none; }
+
+/* Donkere knop-variant, voor gebruik binnen een gele kaart (waar de
+   standaard gele .btn-primary/.cta-button niet zou opvallen). */
+.btn-dark {
+  background: var(--blue-dark);
+  color: var(--white);
+}
+
+.btn-dark:hover { filter: brightness(1.15); }
+
+/* Accountinstellingen: zelfde gele kaart als .profile-card (zie de
+   PROFILE-sectie verderop), maar dat blok bestond al voor account_settings
+   niet - vandaar een eigen klasse i.p.v. .card (die blijft ongemoeid,
+   want ook gebruikt door de webshop). */
+.account-card {
+  background: var(--yellow);
+  color: var(--blue-dark);
+  border: none;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 28px;
+}
+
+/* =========================================================
    CART
    ========================================================= */
 .cart-panel {
@@ -1427,28 +1542,36 @@ body.club-page, body.kalender-page, body.dames-page, body.heren-page, body.jeugd
 }
 
 .profile-card {
-  background: var(--white);
-  border: 1px solid var(--border);
+  background: var(--yellow);
+  color: var(--blue-dark);
+  border: none;
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 28px;
 }
 
-.profile-card h2 { margin: 0 0 8px; color: var(--blue); font-size: 20px; }
-.profile-card > p { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
+.profile-card h2 { margin: 0 0 8px; color: var(--blue-dark); font-size: 20px; }
+.profile-card > p { color: rgba(3, 35, 73, 0.75); font-size: 14px; margin: 0 0 16px; }
 
 .profile-item {
   padding: 12px 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid rgba(3, 35, 73, 0.15);
 }
 
 .profile-item:last-child { border-bottom: none; }
 
-.profile-item span { display: block; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+.profile-item span { display: block; font-size: 12px; color: rgba(3, 35, 73, 0.7); text-transform: uppercase; letter-spacing: 0.4px; }
 .profile-item p { margin: 4px 0 0; font-weight: 600; }
 
 .profile-actions { display: flex; flex-direction: column; gap: 10px; }
-.profile-actions .profile-action-button { text-align: center; }
+
+/* De standaard gele .profile-action-button valt weg op de nu ook gele
+   .profile-card - donkere variant, zelfde motief als .btn-dark. */
+.profile-actions .profile-action-button {
+  background: var(--blue-dark);
+  color: var(--white);
+  text-align: center;
+}
 
 .order-list { display: flex; flex-direction: column; gap: 12px; }
 

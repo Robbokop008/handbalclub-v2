@@ -3,20 +3,20 @@
 {% block title %}{{ bericht.titel }} - Handbal Sint-Truiden{% endblock %}
 
 {% block content %}
-<section class="hero hero-short">
-    <div class="hero-content">
-        <h1>{{ bericht.titel }}</h1>
-        <p>{{ bericht.gepubliceerd_op.strftime('%d-%m-%Y') if bericht.gepubliceerd_op else '' }} · {{ bericht.categorie }}</p>
-    </div>
+<section class="club-hero">
+    <h1>{{ bericht.titel }}</h1>
+    <p>{{ bericht.gepubliceerd_op.strftime('%d-%m-%Y') if bericht.gepubliceerd_op else '' }} · {{ bericht.categorie }}</p>
 </section>
 
-<section class="section" style="max-width:800px;">
-    {% if bericht.afbeelding %}
-    <img src="{{ url_for('static', filename='images/' + bericht.afbeelding) }}" alt="{{ bericht.titel }}" style="width:100%;border-radius:var(--radius);margin-bottom:24px;">
-    {% endif %}
+<section class="section">
+    <div class="content-card">
+        {% if bericht.afbeelding %}
+        <img src="{{ url_for('static', filename='images/' + bericht.afbeelding) }}" alt="{{ bericht.titel }}" style="margin-bottom:24px;">
+        {% endif %}
 
-    <div class="page-body">{{ bericht.inhoud | safe }}</div>
+        <div class="page-body">{{ bericht.inhoud | safe }}</div>
 
-    <p style="margin-top:32px;"><a href="{{ url_for('main.nieuws') }}" class="btn btn-secondary">&larr; Terug naar nieuws</a></p>
+        <p style="margin-top:32px;"><a href="{{ url_for('main.nieuws') }}" class="btn btn-secondary">&larr; Terug naar nieuws</a></p>
+    </div>
 </section>
 {% endblock %}

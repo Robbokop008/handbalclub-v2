@@ -3,15 +3,13 @@
 {% block title %}Handbal Sint-Truiden | Login{% endblock %}
 
 {% block content %}
-<section class="hero hero-short">
-    <div class="hero-content">
-        <h1>{{ site_teksten.login_hero_titel }}</h1>
-        <p>{{ site_teksten.login_hero_subtitel }}</p>
-    </div>
+<section class="club-hero">
+    <h1>{{ site_teksten.login_hero_titel }}</h1>
+    <p>{{ site_teksten.login_hero_subtitel }}</p>
 </section>
 
 <section class="section" style="padding-top:0;">
-    <div class="login-card">
+    <div class="auth-card">
         <h2>Welkom terug</h2>
         <form action="{{ url_for('auth.login') }}" method="post">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -25,7 +23,7 @@
                 <p class="error">{{ error }}</p>
             {% endif %}
 
-            <button type="submit" class="cta-button login-button">Inloggen</button>
+            <button type="submit" class="btn-dark btn login-button">Inloggen</button>
         </form>
         <p class="login-note">Nieuw hier? <a href="{{ url_for('auth.register') }}">Maak een account aan</a></p>
     </div>

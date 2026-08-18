@@ -3,35 +3,35 @@
 {% block title %}Contact - Handbal Sint-Truiden{% endblock %}
 
 {% block content %}
-<section class="hero hero-short">
-    <div class="hero-content">
-        <h1>{{ site_teksten.contact_hero_titel }}</h1>
-        <p>{{ site_teksten.contact_hero_intro }}</p>
-    </div>
+<section class="club-hero">
+    <h1>{{ site_teksten.contact_hero_titel }}</h1>
+    <p>{{ site_teksten.contact_hero_intro }}</p>
 </section>
 
-<section class="section" style="max-width:600px;">
+<section class="section">
     {% if success %}
-        <p class="alert alert-success">{{ success }}</p>
+        <p class="alert alert-success" style="max-width:600px;">{{ success }}</p>
     {% endif %}
 
-    <form action="{{ url_for('main.contact') }}" method="POST">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="auth-card" style="max-width:600px;">
+        <form action="{{ url_for('main.contact') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        <label for="name">Naam</label>
-        <input type="text" id="name" name="name" value="{{ name or '' }}" required>
+            <label for="name">Naam</label>
+            <input type="text" id="name" name="name" value="{{ name or '' }}" required>
 
-        <label for="email">Email</label>
-        <input type="email" id="email" name="email" value="{{ email or '' }}" required>
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" value="{{ email or '' }}" required>
 
-        <label for="message">Bericht</label>
-        <textarea id="message" name="message" required>{{ message or '' }}</textarea>
+            <label for="message">Bericht</label>
+            <textarea id="message" name="message" required>{{ message or '' }}</textarea>
 
-        {% if error %}
-            <p class="error">{{ error }}</p>
-        {% endif %}
+            {% if error %}
+                <p class="error">{{ error }}</p>
+            {% endif %}
 
-        <button type="submit" class="cta-button" style="margin-top:20px;">Verzend uw bericht</button>
-    </form>
+            <button type="submit" class="btn-dark btn" style="margin-top:20px;">Verzend uw bericht</button>
+        </form>
+    </div>
 </section>
 {% endblock %}
