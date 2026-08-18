@@ -1,22 +1,22 @@
 {% extends "base.html" %}
 {% import "_team_macros.html" as team_macros %}
 
-{% block title %}Dames - Handbal Sint-Truiden{% endblock %}
+{% block title %}Heren - Handbal Sint-Truiden{% endblock %}
 
 {% block content %}
 <section class="section club-accordion">
     <details class="club-accordion-item">
-        <summary>Dames 1 &amp; Beloften</summary>
+        <summary>Heren 1</summary>
         <div class="club-accordion-body">
-            {{ team_macros.team_photo(team_1_beloften, "Ploegfoto Dames 1 & Beloften") }}
+            {{ team_macros.team_photo(team_1, "Ploegfoto Heren 1") }}
             {{ team_macros.team_achievements(europees=true) }}
         </div>
     </details>
 
     <details class="club-accordion-item">
-        <summary>Dames Regio</summary>
+        <summary>Heren 2</summary>
         <div class="club-accordion-body">
-            {{ team_macros.team_photo(team_regio, "Ploegfoto Dames Regio") }}
+            {{ team_macros.team_photo(team_2, "Ploegfoto Heren 2") }}
             {{ team_macros.team_achievements(europees=false) }}
         </div>
     </details>

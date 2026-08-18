@@ -964,7 +964,7 @@ form textarea { min-height: 120px; resize: vertical; }
    ========================================================= */
 /* Zelfde "overal navy" aanpak als de homepage (zie body.home-page) - ook
    voor de kalenderpagina, die dezelfde accordion-stijl hergebruikt. */
-body.club-page, body.kalender-page, body.dames-page { background: var(--blue); }
+body.club-page, body.kalender-page, body.dames-page, body.heren-page { background: var(--blue); }
 
 .club-hero {
   max-width: var(--max-width);

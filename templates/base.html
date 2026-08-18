@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
 </head>
-<body{% if request.endpoint == 'main.home' %} class="home-page"{% elif request.endpoint == 'club.overzicht' %} class="club-page"{% elif request.endpoint == 'kalender.overzicht' %} class="kalender-page"{% elif request.endpoint == 'dames.overzicht' %} class="dames-page"{% endif %}>
+<body{% if request.endpoint == 'main.home' %} class="home-page"{% elif request.endpoint == 'club.overzicht' %} class="club-page"{% elif request.endpoint == 'kalender.overzicht' %} class="kalender-page"{% elif request.endpoint == 'dames.overzicht' %} class="dames-page"{% elif request.endpoint == 'heren.overzicht' %} class="heren-page"{% endif %}>
     <header class="site-header">
         <div class="navbar">
 
