@@ -1315,27 +1315,16 @@ body.club-page, body.kalender-page, body.dames-page, body.heren-page, body.jeugd
    als .club-intro-badge, maar dan bovenaan i.p.v. onderaan. */
 .ghandbal-card { max-width: 760px; }
 
-.ghandbal-logo,
-.ghandbal-logo-placeholder {
+.ghandbal-logo {
   position: absolute;
-  right: -50px;
-  top: -60px;
-  width: 200px;
-  z-index: 2;
-}
-
-.ghandbal-logo-placeholder {
-  height: 200px;
-  background: rgba(255, 255, 255, 0.3);
-  border: 2px dashed rgba(3, 35, 73, 0.4);
+  right: -20px;
+  top: -130px;
+  width: 180px;
+  height: 180px;
+  object-fit: cover;
   border-radius: var(--radius);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--blue-dark);
-  font-size: 13px;
-  text-align: center;
-  padding: 12px;
+  box-shadow: var(--shadow-hover);
+  z-index: 2;
 }
 
 .ghandbal-training { padding-top: 8px; }
@@ -1349,9 +1338,11 @@ body.club-page, body.kalender-page, body.dames-page, body.heren-page, body.jeugd
 
 .ghandbal-training > p { color: rgba(255, 255, 255, 0.9); line-height: 1.6; margin: 0 0 14px; }
 
+.ghandbal-inschrijving-link a { color: var(--blue-dark); font-weight: 700; text-decoration: none; }
+
 @media (max-width: 760px) {
   .ghandbal-card { max-width: none; }
-  .ghandbal-logo, .ghandbal-logo-placeholder { position: static; width: 140px; height: 140px; margin: 0 0 16px; }
+  .ghandbal-logo { position: static; width: 140px; height: 140px; margin: 0 0 16px; }
 }
 
 /* =========================================================

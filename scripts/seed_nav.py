@@ -102,10 +102,10 @@ def run():
         _add(teams, 2, "Heren", item_type="route", route_endpoint="heren.overzicht")
         _add(teams, 3, "G-Handbal", item_type="divider")
         # G-Handbal heeft sinds kort een eigen restyled overzichtspagina
-        # i.p.v. de generieke teams/team_detail.html - zie
-        # routes/ghandbal.py:index().
+        # i.p.v. de generieke teams/team_detail.html, met daarop nu ook de
+        # inschrijvingslink - zie routes/ghandbal.py:index(). Geen apart
+        # "Inschrijving G-Handbal"-navitem meer nodig.
         _add(teams, 4, "G-Handbal", item_type="route", route_endpoint="ghandbal.index")
-        _add(teams, 5, "Inschrijving G-Handbal", item_type="route", route_endpoint="ghandbal.inschrijving")
         _add(teams, 6, "FIT-Handbal", item_type="divider")
         _add(teams, 7, "FIT-Handbal", item_type="team", team_id=_team_id("fithandbal"))
 

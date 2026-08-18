@@ -1,13 +1,16 @@
 """
 scripts/migrate_ghandbal_nav.py
 --------------------------------
-Eenmalig migratiescript: het "G-Handbal"-navitem onder Teams wees naar de
-generieke teams/team_detail.html (item_type='team'). G-Handbal heeft nu
-een eigen restyled overzichtspagina (zie routes/ghandbal.py:index()), dus
-dit item wordt een gewoon route-item.
+Eenmalig migratiescript, in 2 stappen:
+1. Het "G-Handbal"-navitem onder Teams wees naar de generieke
+   teams/team_detail.html (item_type='team'). G-Handbal heeft nu een
+   eigen restyled overzichtspagina (zie routes/ghandbal.py:index()), dus
+   dit item wordt een gewoon route-item.
+2. De inschrijvingslink staat nu ook op die overzichtspagina zelf, dus
+   het aparte "Inschrijving G-Handbal"-navitem kan weg - er blijft zo nog
+   maar 1 link over voor deze categorie.
 
-Idempotent: als het item al item_type='route' heeft, wordt er niets meer
-aangepast.
+Idempotent: als er niets meer te migreren valt, gebeurt er niets.
 
 Gebruik:
     python scripts/migrate_ghandbal_nav.py
@@ -32,15 +35,24 @@ def run():
             return
 
         item = NavItem.query.filter_by(parent_id=teams.id, label="G-Handbal", item_type="team").first()
-        if item is None:
-            print("geen 'G-Handbal'-team-navitem gevonden, niets te doen (mogelijk al gemigreerd)")
-            return
+        if item is not None:
+            item.item_type = "route"
+            item.route_endpoint = "ghandbal.index"
+            item.team_id = None
+            print("'G-Handbal' wijst nu naar ghandbal.index i.p.v. de generieke teampagina")
+        else:
+            print("geen 'G-Handbal'-team-navitem gevonden (mogelijk al gemigreerd)")
 
-        item.item_type = "route"
-        item.route_endpoint = "ghandbal.index"
-        item.team_id = None
+        inschrijving = NavItem.query.filter_by(
+            parent_id=teams.id, label="Inschrijving G-Handbal", item_type="route"
+        ).first()
+        if inschrijving is not None:
+            db.session.delete(inschrijving)
+            print("'Inschrijving G-Handbal'-navitem verwijderd (staat nu op de overzichtspagina)")
+        else:
+            print("geen apart 'Inschrijving G-Handbal'-navitem gevonden (mogelijk al gemigreerd)")
+
         db.session.commit()
-        print("'G-Handbal' wijst nu naar ghandbal.index i.p.v. de generieke teampagina")
 
 
 if __name__ == "__main__":
