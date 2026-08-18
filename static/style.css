@@ -1237,7 +1237,7 @@ body.club-page, body.kalender-page, body.dames-page, body.heren-page, body.jeugd
    hergebruikt de .promo-card-opmaak 1-op-1, zie templates/jeugd/overzicht.html). */
 .jeugd-hero {
   position: relative;
-  height: 760px;
+  height: 800px;
   margin-bottom: 96px;
 }
 
@@ -1290,7 +1290,7 @@ body.club-page, body.kalender-page, body.dames-page, body.heren-page, body.jeugd
 .jeugd-hero-ballenbaasjes {
   position: absolute;
   right: 40px;
-  top: 540px;
+  top: 580px;
   width: 380px;
   max-width: calc(100% - 80px);
 }
