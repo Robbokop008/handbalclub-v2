@@ -5,27 +5,20 @@
 
 {% block content %}
 <section class="club-hero">
-    <h1>Handbal voor iedereen!</h1>
+    <h1>{{ site_teksten.fithandbal_hero_titel }}</h1>
 </section>
 
 <section class="section team-intro">
     <div class="club-card team-intro-card">
-        <h2>handbal voor 30-plussers</h2>
-        <p>Fithandbal is een nieuw concept, uitgewerkt door de Vlaamse Handbalvereniging i.s.m. de Vlaamse Overheid, om 30-plussers de kans te geven om &eacute;&eacute;n keer per week recreatief aan handbal te doen.</p>
-        <p>Het fithandbalaanbod: wekelijks een sportieve activiteit die verdeeld zal zijn in drie blokken:</p>
-        <p><strong>PULSE</strong>: cardiovasculaire training</p>
-        <p><strong>POWER</strong>: stabilisatie- en krachtcircuit</p>
-        <p><strong>PLAY</strong>: handbaloefeningen en wedstrijdvormen</p>
-        <p>Met deze activiteit willen we dus een nieuwe vorm van handbalbeleving op de kaart zetten. Het is niet alleen vernieuwend omdat we ons richten op een andere leeftijdsgroep, maar ook omdat we ons concentreren op de aspecten: <strong>fysieke fitheid, sociale contacten en amusement</strong>.</p>
-        <p>Dames en heren trainen en spelen gemengd en er is de mogelijkheid om een aantal keren per jaar met je fithandbalploeg vrijblijvend te kunnen deelnemen aan een (driehoeks)tornooi, waarbij je speelt tegen ploegen die hetzelfde concept uitvoeren. Tijdens deze tornooien staan amusement en fair-play centraal.</p>
+        <h2>{{ site_teksten.fithandbal_card_titel }}</h2>
+        {{ site_teksten.fithandbal_card_tekst | safe }}
         <img class="team-intro-logo" src="{{ url_for('static', filename='images/fit-handbal-logo.png') }}" alt="FIT Handbal">
     </div>
 </section>
 
 <section class="section team-training">
-    <h2 class="team-subheading">Eens komen kijken of meespelen?</h2>
-    <p>Dat kan! Onze FIT-handballers trainen elke woensdag in de Trudohal (Sint-Jansstraat)<br>20:30u - 21:45u</p>
-    <p>Aansluitend kunnen we dan met zijn allen nog gezellig wat drinken, de zogenaamde 3e helft.<br>Voor meer info: <a href="mailto:fithandbal@handbalsint-truiden.be">fithandbal@handbalsint-truiden.be</a></p>
+    <h2 class="team-subheading">{{ site_teksten.fithandbal_training_titel }}</h2>
+    {{ site_teksten.fithandbal_training_tekst | safe }}
     {{ team_macros.team_photo(team, "Ploegfoto FIT-Handbal") }}
 </section>
 

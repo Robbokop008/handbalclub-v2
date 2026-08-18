@@ -24,34 +24,24 @@
             <div class="club-accordion-main">
                 <details class="club-subaccordion-item">
                     <summary>G-Handbal</summary>
-                    <ul class="club-schedule-list">
-                        <li>&lt;12 jaar: zondag 10:00u - 11:00u, sporthal Trudo</li>
-                        <li>&gt;12 jaar: zondag 11:00u - 12:00u, sporthal Trudo</li>
-                    </ul>
+                    {{ site_teksten.kalender_trainingen_ghandbal | safe }}
                 </details>
                 <details class="club-subaccordion-item">
                     <summary>De Ballenbaasjes (3-6 jaar)</summary>
-                    <ul class="club-schedule-list">
-                        <li>1e kleuterklas: woensdag 16:15u - 17:15u, mattenzaal sporthal Trudo</li>
-                        <li>2e kleuterklas: woensdag 17:30u - 18:30u, sporthal Trudo</li>
-                        <li>3e kleuterklas: woensdag 17:30u - 18:30u*, sporthal Trudo</li>
-                        <li class="club-schedule-note">*met aansluitend kleuterhandbal voor de 3e kleuterklas: 18:30u - 19:00u, sporthal Trudo</li>
-                    </ul>
+                    {{ site_teksten.kalender_trainingen_ballenbaasjes | safe }}
                 </details>
                 <details class="club-subaccordion-item">
                     <summary>JM08 &amp; JM10 (1e - 4e leerjaar)</summary>
-                    <p class="club-schedule-note">Binnenkort meer over de trainingsuren van JM08 &amp; JM10.</p>
+                    {{ site_teksten.kalender_trainingen_jm0810 | safe }}
                 </details>
                 <details class="club-subaccordion-item">
                     <summary>JM12 (5e - 6e leerjaar)</summary>
-                    <p class="club-schedule-note">Binnenkort meer over de trainingsuren van JM12.</p>
+                    {{ site_teksten.kalender_trainingen_jm12 | safe }}
                 </details>
             </div>
             <div class="club-card club-cta-card">
-                <h3>Wil je handbal eens proberen?</h3>
-                <p>Train <strong>1 maand gratis</strong> mee en ontdek welke talenten jij hebt op het veld!</p>
-                <p>Voor meer info: <a href="mailto:jeugd@handbalsint-truiden.be">jeugd@handbalsint-truiden.be</a></p>
-                <p>Check de trainingsuren en kom eens langs.</p>
+                <h3>{{ site_teksten.kalender_trainingen_cta_titel }}</h3>
+                {{ site_teksten.kalender_trainingen_cta_tekst | safe }}
             </div>
         </div>
     </details>
@@ -60,22 +50,11 @@
         <summary>Evenementen</summary>
         <div class="club-accordion-body club-accordion-body-split">
             <div class="club-accordion-main">
-                <p>Onze club is jaarlijks aanwezig op verschillende evenementen. Op die manier houden we club financieel gezond! We rekenen hiervoor ook op de hulp van onze vrijwilligers.</p>
-                <p>Wil je zelf ook eens komen helpen? Laat het ons weten!</p>
-                <p>Voor meer info: <a href="mailto:evenementen@handbalsint-truiden.be">evenementen@handbalsint-truiden.be</a></p>
-                <p>Hier is alvast een overzicht van onze vaste afspraken:</p>
-                <p><strong>26 december - 30 december: JUMPING (Mechelen)</strong><br>
-                Beleef de internationale jumping van vlak bij de wedstrijdpistes! We werken elke dag met 2 shiften.</p>
-                <p><strong>Februari: Karnaval Tongeren</strong><br>
-                Kom mee achter de toog tijdens de geweldige karnavalsfeer van Tongeren (zaterdagavond op Alaaf of zondag op de kidsday).</p>
-                <p><strong>Maart: het Schlagerfestival in de Trixxo-arena</strong><br>
-                Elk jaar mag onze club de toog doen tijdens het schlagerfestival. Ga mee los achter de toog, met onze heren en dames! Wees snel, want de plaatsen zijn beperkt!</p>
+                {{ site_teksten.kalender_evenementen_tekst | safe }}
             </div>
             <div class="club-card club-cta-card">
-                <h3>Flanders Handball Trophy</h3>
-                <p>Elke jaar tijdens het paasweekend organiseert onze club het <strong>grootste handbaltornooi van de BeNeLux</strong>.</p>
-                <p>Een uniek evenement met een ongeëvenaarde sfeer, waarbij uiteraard elke helpende hand welkom is.</p>
-                <p>Mis dit niet en wees onder de indruk van onze clubprestatie!</p>
+                <h3>{{ site_teksten.kalender_evenementen_cta_titel }}</h3>
+                {{ site_teksten.kalender_evenementen_cta_tekst | safe }}
                 <div class="club-cta-card-social">
                     <a href="{{ flanders_trophy_instagram_url }}" target="_blank" rel="noopener" aria-label="Instagram">
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.5" cy="6.5" r="1"/></svg>

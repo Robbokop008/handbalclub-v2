@@ -9,22 +9,20 @@
 
     <div class="jeugd-hero-inner">
         <div class="jeugd-hero-card jeugd-hero-beleidsplan">
-            <h2>Beleidsplan Jeugd</h2>
-            <p>De jeugdafdeling van HB Sint-Truiden wil zoveel mogelijk kinderen kennis laten maken met de handbalsport.</p>
-            <p>Het wil daarbij ook jongeren van 3-18 jaar opleiden en begeleiden in functie van doorstroming naar de eerste ploeg. De jongeren die uit onze jeugdwerking komen zullen blijk geven van een kwalitatief sterke handbalopleiding en dragen waarden zoals Inzet en Respect hoog in het vaandel.</p>
+            <h2>{{ site_teksten.jeugd_beleidsplan_titel }}</h2>
+            {{ site_teksten.jeugd_beleidsplan_tekst | safe }}
             <p class="jeugd-hero-lees-meer"><a href="{{ url_for('pages.view', slug='jeugd-jeugdbeleidsplan') }}">lees meer &rarr;</a></p>
         </div>
 
         <div class="jeugd-hero-card jeugd-hero-interesse">
-            <h2>Interesse?</h2>
-            <p>Wat fijn dat jij (of je kind) interesse hebt in handbal!</p>
-            <p>Via <a href="{{ url_for('jeugd.inschrijving') }}">dit inschrijvingsformulier</a> kan je je gegevens doorgeven waardoor je automatisch geregistreerd bent voor de gratis promotie-verzekering (<strong>1 maand gratis meetrainen</strong>)!</p>
+            <h2>{{ site_teksten.jeugd_interesse_titel }}</h2>
+            {{ site_teksten.jeugd_interesse_tekst | safe }}
         </div>
 
         <div class="jeugd-hero-ballenbaasjes promo-card promo-card-has-social">
             <div class="promo-card-text">
-                <h2>sporten op maat van onze kleinste vriendjes</h2>
-                <p class="promo-card-subtitle">verhalend bewegen voor kinderen van 3-6 jaar</p>
+                <h2>{{ site_teksten.jeugd_ballenbaasjes_titel }}</h2>
+                <p class="promo-card-subtitle">{{ site_teksten.jeugd_ballenbaasjes_subtitel }}</p>
                 <p class="promo-card-lees-meer"><a href="{{ url_for('jeugd.ballenbaasjes') }}">lees meer &rarr;</a></p>
             </div>
             <img class="promo-card-image" src="{{ url_for('static', filename='images/ballenbaasjes-sporttraject.png') }}" alt="De Ballenbaasjes sporttraject 3-6 jarigen">
@@ -44,12 +42,7 @@
     <details class="club-accordion-item">
         <summary>JM08 &amp; JM10</summary>
         <div class="club-accordion-body">
-            <p>Jongens en meisjes van het 1e - 4e leerjaar, spelen tot 2x per maand een tornooitje.</p>
-            <p>Trainingen zijn op de volgende momenten:</p>
-            <ul class="club-schedule-list">
-                <li>woensdag: 17:30u - 19:00u (Trudohal, Sint-Jansstraat)</li>
-                <li>zaterdag: 11:00u - 12:30u (Lago, Olympialaan)</li>
-            </ul>
+            {{ site_teksten.jeugd_jm0810_tekst | safe }}
             {{ team_macros.team_photo(team_jm08_jm10, "Ploegfoto JM08 & JM10") }}
         </div>
     </details>
@@ -57,13 +50,7 @@
     <details class="club-accordion-item">
         <summary>JM12</summary>
         <div class="club-accordion-body">
-            <p>Jongens en meisjes van het 5e - 6e leerjaar.</p>
-            <p>Trainingen zijn op de volgende momenten:</p>
-            <ul class="club-schedule-list">
-                <li>maandag: 18:00u - 19:30u (Trudohal, Sint-Jansstraat)</li>
-                <li>woensdag: 17:30u - 19:00u (Trudohal, Sint-Jansstraat)</li>
-                <li>donderdag: 17:30u - 19:30u (sporthal Jodenstraat)</li>
-            </ul>
+            {{ site_teksten.jeugd_jm12_tekst | safe }}
             {{ team_macros.team_photo(team_jm12, "Ploegfoto JM12") }}
         </div>
     </details>
@@ -71,12 +58,7 @@
     <details class="club-accordion-item">
         <summary>JM14</summary>
         <div class="club-accordion-body">
-            <p>Jongens en meisjes van het 1e - 2e middelbaar.</p>
-            <p>Trainingen zijn op de volgende momenten:</p>
-            <ul class="club-schedule-list">
-                <li>maandag: 18:00u - 19:30u (sporthal Jodenstraat)</li>
-                <li>donderdag: 17:30u - 19:30u (Lago, Olympialaan)</li>
-            </ul>
+            {{ site_teksten.jeugd_jm14_tekst | safe }}
             {{ team_macros.team_photo(None, "Ploegfoto JM14") }}
         </div>
     </details>
@@ -84,8 +66,8 @@
     <details class="club-accordion-item">
         <summary>Het welzijn van de speler</summary>
         <div class="club-accordion-body">
-            <p>Via onderstaande link vind je meer info over gezond sport, verzekering, API, ethisch verantwoord sporten en het antidopingbeleid van de VHV.</p>
-            <p><a href="{{ url_for('jeugd.welzijn') }}" target="_blank" rel="noopener">VHV: Het welzijn van de speler &rarr;</a></p>
+            {{ site_teksten.jeugd_welzijn_tekst | safe }}
+            <p><a href="{{ url_for('jeugd.welzijn') }}" target="_blank" rel="noopener">{{ site_teksten.jeugd_welzijn_link_label }} &rarr;</a></p>
         </div>
     </details>
 </section>

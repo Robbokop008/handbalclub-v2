@@ -6,7 +6,7 @@
 {% block content %}
 <section class="section club-accordion">
     <details class="club-accordion-item">
-        <summary>Dames 1 &amp; Beloften</summary>
+        <summary>{{ team_1_beloften.naam if team_1_beloften else "Dames 1 & Beloften" }}</summary>
         <div class="club-accordion-body">
             {{ team_macros.team_photo(team_1_beloften, "Ploegfoto Dames 1 & Beloften") }}
             {{ team_macros.team_achievements(team_1_beloften, europees=true) }}
@@ -14,7 +14,7 @@
     </details>
 
     <details class="club-accordion-item">
-        <summary>Dames Regio</summary>
+        <summary>{{ team_regio.naam if team_regio else "Dames Regio" }}</summary>
         <div class="club-accordion-body">
             {{ team_macros.team_photo(team_regio, "Ploegfoto Dames Regio") }}
             {{ team_macros.team_achievements(team_regio, europees=false) }}

@@ -571,8 +571,11 @@ def edit_site_tekst(slug):
 
     if request.method == "POST":
         bestaande = {r.sleutel: r for r in SiteText.query.all()}
-        for sleutel, omschrijving, standaard_waarde in pagina["velden"]:
-            nieuwe_waarde = (request.form.get(sleutel) or "").strip() or standaard_waarde
+        for sleutel, omschrijving, standaard_waarde, veld_type in pagina["velden"]:
+            ruwe_waarde = (request.form.get(sleutel) or "").strip()
+            if veld_type == "html":
+                ruwe_waarde = sanitize_html(ruwe_waarde)
+            nieuwe_waarde = ruwe_waarde or standaard_waarde
             if sleutel in bestaande:
                 bestaande[sleutel].waarde = nieuwe_waarde
             else:
@@ -581,7 +584,10 @@ def edit_site_tekst(slug):
         return redirect(url_for("admin.pages"))
 
     waarden = get_site_teksten()
-    velden = [(sleutel, omschrijving, waarden[sleutel]) for sleutel, omschrijving, _standaard_waarde in pagina["velden"]]
+    velden = [
+        (sleutel, omschrijving, waarden[sleutel], veld_type)
+        for sleutel, omschrijving, _standaard_waarde, veld_type in pagina["velden"]
+    ]
     bekijk_url = None
     if pagina["endpoint"]:
         try:

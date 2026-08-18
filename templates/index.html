@@ -55,8 +55,8 @@
     <div class="promo-cards-stack">
         <div class="promo-card promo-card-has-social">
             <div class="promo-card-text">
-                <h2>sporten op maat van onze kleinste vriendjes</h2>
-                <p class="promo-card-subtitle">3-6 jaar</p>
+                <h2>{{ site_teksten.promo_ballenbaasjes_titel }}</h2>
+                <p class="promo-card-subtitle">{{ site_teksten.promo_ballenbaasjes_subtitel }}</p>
                 <p class="promo-card-lees-meer"><a href="{{ url_for('jeugd.ballenbaasjes') }}">lees meer &rarr;</a></p>
             </div>
             <img class="promo-card-image" src="{{ url_for('static', filename='images/ballenbaasjes-sporttraject.png') }}" alt="De Ballenbaasjes sporttraject 3-6 jarigen">
@@ -72,8 +72,8 @@
 
         <div class="promo-card promo-card-has-social">
             <div class="promo-card-text">
-                <h2>grootste handbaltornooi in BeNeLux</h2>
-                <p class="promo-card-subtitle">tijdens het Paasweekend</p>
+                <h2>{{ site_teksten.promo_flanders_titel }}</h2>
+                <p class="promo-card-subtitle">{{ site_teksten.promo_flanders_subtitel }}</p>
                 <p class="promo-card-lees-meer"><a href="{{ flanders_trophy_website_url }}" target="_blank" rel="noopener">lees meer &rarr;</a></p>
             </div>
             <img class="promo-card-flanders-image" src="{{ url_for('static', filename='images/fht.png') }}" alt="Flanders Trophy">
@@ -90,8 +90,8 @@
 
     <div class="promo-card promo-card-stacked">
         <div class="promo-card-text">
-            <h2>sporten op maat van onze grootste vrienden</h2>
-            <p class="promo-card-subtitle">enthousiaste sportievelingen, niet-handballers en ex-spelers</p>
+            <h2>{{ site_teksten.promo_fit_titel }}</h2>
+            <p class="promo-card-subtitle">{{ site_teksten.promo_fit_subtitel }}</p>
             <p class="promo-card-lees-meer"><a href="{{ url_for('fithandbal.index') }}">lees meer &rarr;</a></p>
         </div>
         <img class="promo-card-fit-logo" src="{{ url_for('static', filename='images/fit-handbal-logo.png') }}" alt="FIT Handbal">

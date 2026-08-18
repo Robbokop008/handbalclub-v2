@@ -2,6 +2,15 @@
 
 {% block title %}Adminpagina - {{ pagina.label }}{% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/quill/quill.snow.min.css') }}">
+<style>
+  .site-tekst-quill { background: var(--white); min-height: 140px; }
+  .ql-toolbar.ql-snow { border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+  .ql-container.ql-snow { border-radius: 0 0 var(--radius-sm) var(--radius-sm); font-size: 15px; }
+</style>
+{% endblock %}
+
 {% block admin_content %}
 <div class="admin-page-header">
     <h1>{{ pagina.label }}</h1>
@@ -16,10 +25,13 @@
     <form action="{{ url_for('admin.edit_site_tekst', slug=pagina.slug) }}" method="post" class="admin-form" style="display:block;">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        {% for sleutel, omschrijving, waarde in velden %}
+        {% for sleutel, omschrijving, waarde, veld_type in velden %}
         <div style="margin-bottom:16px;">
             <label for="{{ sleutel }}">{{ omschrijving }}</label>
-            {% if waarde|length > 100 %}
+            {% if veld_type == 'html' %}
+            <div id="quill-{{ sleutel }}" class="site-tekst-quill" data-textarea-id="{{ sleutel }}" data-image-upload-url="{{ url_for('admin.upload_page_image') }}"></div>
+            <textarea id="{{ sleutel }}" name="{{ sleutel }}" style="display:none;">{{ waarde }}</textarea>
+            {% elif waarde|length > 100 %}
             <textarea id="{{ sleutel }}" name="{{ sleutel }}" rows="3" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;">{{ waarde }}</textarea>
             {% else %}
             <input type="text" id="{{ sleutel }}" name="{{ sleutel }}" value="{{ waarde }}" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;">
@@ -33,4 +45,14 @@
         </div>
     </form>
 </section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='vendor/quill/quill.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/admin_rich_editor.js') }}"></script>
+<script>
+    document.querySelectorAll('.site-tekst-quill').forEach(function (el) {
+        initAdminRichEditor(el);
+    });
+</script>
 {% endblock %}
