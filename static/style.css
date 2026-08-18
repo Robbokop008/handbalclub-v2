@@ -661,7 +661,7 @@ form textarea { min-height: 120px; resize: vertical; }
    wel uitgelijnd op de normale site-inhoudsbreedte via .home-hero-inner. */
 .home-hero {
   position: relative;
-  height: 520px;
+  height: 640px;
   margin-bottom: 96px;
 }
 
