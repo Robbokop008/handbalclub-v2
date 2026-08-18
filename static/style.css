@@ -964,7 +964,7 @@ form textarea { min-height: 120px; resize: vertical; }
    ========================================================= */
 /* Zelfde "overal navy" aanpak als de homepage (zie body.home-page) - ook
    voor de kalenderpagina, die dezelfde accordion-stijl hergebruikt. */
-body.club-page, body.kalender-page, body.dames-page, body.heren-page { background: var(--blue); }
+body.club-page, body.kalender-page, body.dames-page, body.heren-page, body.jeugd-page { background: var(--blue); }
 
 .club-hero {
   max-width: var(--max-width);
@@ -1227,6 +1227,84 @@ body.club-page, body.kalender-page, body.dames-page, body.heren-page { backgroun
   }
   .club-achievement-europees { grid-row: 2; }
   .club-achievement-lands { grid-row: 3; }
+}
+
+/* =========================================================
+   JEUGD-PAGINA (/jeugd/)
+   ========================================================= */
+/* Zelfde fotobanner-motief als .home-hero, maar met 3 zwevende kaarten
+   i.p.v. 2 (Beleidsplan, Interesse, De Ballenbaasjes - de laatste
+   hergebruikt de .promo-card-opmaak 1-op-1, zie templates/jeugd/overzicht.html). */
+.jeugd-hero {
+  position: relative;
+  height: 760px;
+  margin-bottom: 96px;
+}
+
+.jeugd-hero-photo-placeholder {
+  position: absolute;
+  inset: 0;
+  background-color: var(--blue-dark);
+  background-size: cover;
+  background-position: center 30%;
+  background-repeat: no-repeat;
+}
+
+.jeugd-hero-photo-placeholder::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(5, 49, 107, 0.55) 0%, rgba(3, 35, 73, 0.8) 100%);
+}
+
+.jeugd-hero-inner {
+  position: absolute;
+  inset: 0;
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+
+.jeugd-hero-card {
+  position: absolute;
+  width: 380px;
+  max-width: calc(100% - 80px);
+  background: var(--yellow);
+  color: var(--blue-dark);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-hover);
+  padding: 28px;
+}
+
+.jeugd-hero-card h2 { margin: 0 0 12px; font-size: 22px; }
+.jeugd-hero-card p { margin: 0 0 12px; line-height: 1.6; }
+.jeugd-hero-card p:last-child { margin-bottom: 0; }
+.jeugd-hero-card a { color: var(--blue-dark); font-weight: 700; }
+
+.jeugd-hero-beleidsplan { left: 40px; top: 48px; }
+.jeugd-hero-interesse { right: 40px; top: 260px; }
+
+/* Hergebruikt .promo-card(-has-social) voor de opmaak (tekst/afbeelding/
+   social-rij) - hier enkel absoluut gepositioneerd binnen de hero, net
+   onder de "Interesse?"-kaart, en hangt bewust over de onderrand van de
+   foto (net als .home-hero-kalender). */
+.jeugd-hero-ballenbaasjes {
+  position: absolute;
+  right: 40px;
+  top: 540px;
+  width: 380px;
+  max-width: calc(100% - 80px);
+}
+
+@media (max-width: 1100px) {
+  .jeugd-hero { height: auto; margin-bottom: 32px; }
+  .jeugd-hero-photo-placeholder { display: none; }
+  .jeugd-hero-inner { position: static; padding: 20px; }
+  .jeugd-hero-card, .jeugd-hero-ballenbaasjes {
+    position: static;
+    width: auto;
+    max-width: none;
+    margin-bottom: 20px;
+  }
 }
 
 /* =========================================================

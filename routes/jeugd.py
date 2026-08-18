@@ -10,7 +10,7 @@ from datetime import datetime
 from flask import Blueprint, render_template, redirect, request, current_app, url_for
 
 from extensions import db
-from models import Inschrijving, School
+from models import Inschrijving, School, Team
 from utils.mail import send_inschrijving_notification
 from utils.inschrijving import get_inschrijving_categorieen, get_hoe_gehoord_opties, get_inschrijving_veld_config
 
@@ -19,6 +19,16 @@ jeugd_bp = Blueprint("jeugd", __name__, url_prefix="/jeugd")
 # Nog aan te vullen met de echte, definitieve URL's
 BALLENBAASJES_URL = "https://www.ballenbaasjes.be"
 VHV_WELZIJN_URL = "https://www.handbal.be"
+
+
+@jeugd_bp.route("/")
+def overzicht():
+    teams = {t.slug: t for t in Team.query.filter(Team.slug.in_(["jeugd-jm08-jm10", "jeugd-jm12"])).all()}
+    return render_template(
+        "jeugd/overzicht.html",
+        team_jm08_jm10=teams.get("jeugd-jm08-jm10"),
+        team_jm12=teams.get("jeugd-jm12"),
+    )
 
 
 def _parse_datum(waarde):
@@ -113,22 +123,22 @@ def ballenbaasjes():
 
 @jeugd_bp.route("/jm08-jm10")
 def jm08_jm10():
-    return redirect(url_for("main.team_detail", slug="jeugd-jm08-jm10"), code=301)
+    return redirect(url_for("jeugd.overzicht"), code=301)
 
 
 @jeugd_bp.route("/jm12")
 def jm12():
-    return redirect(url_for("main.team_detail", slug="jeugd-jm12"), code=301)
+    return redirect(url_for("jeugd.overzicht"), code=301)
 
 
 @jeugd_bp.route("/j14")
 def j14():
-    return redirect(url_for("main.team_detail", slug="jeugd-j14"), code=301)
+    return redirect(url_for("jeugd.overzicht"), code=301)
 
 
 @jeugd_bp.route("/m14")
 def m14():
-    return redirect(url_for("main.team_detail", slug="jeugd-m14"), code=301)
+    return redirect(url_for("jeugd.overzicht"), code=301)
 
 
 @jeugd_bp.route("/aanspreekpunt-integriteit")

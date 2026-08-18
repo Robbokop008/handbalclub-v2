@@ -106,17 +106,13 @@ def run():
         _add(teams, 6, "FIT-Handbal", item_type="divider")
         _add(teams, 7, "FIT-Handbal", item_type="team", team_id=_team_id("fithandbal"))
 
+        # "Jeugd" is één samengevoegde overzichtspagina (Beleidsplan/
+        # Interesse/Ballenbaasjes als zwevende kaarten + JM08&JM10/JM12/
+        # JM14/Welzijn als accordions) i.p.v. een dropdown naar 9 aparte
+        # bestemmingen - zelfde aanpak als Club/Kalender/Dames/Heren, zie
+        # routes/jeugd.py:overzicht().
         pos += 1
-        jeugd = _add(None, pos, "Jeugd", item_type="category")
-        _add(jeugd, 1, "Inschrijving nieuwe speler", item_type="route", route_endpoint="jeugd.inschrijving")
-        _add(jeugd, 2, "Jeugdbeleidsplan", item_type="page", page_id=_page_id("jeugd-jeugdbeleidsplan"))
-        _add(jeugd, 3, "Kleuters: De Ballenbaasjes", item_type="route", route_endpoint="jeugd.ballenbaasjes", open_in_new_tab=True)
-        _add(jeugd, 4, "JM08 & JM10", item_type="team", team_id=_team_id("jeugd-jm08-jm10"))
-        _add(jeugd, 5, "JM12", item_type="team", team_id=_team_id("jeugd-jm12"))
-        _add(jeugd, 6, "J14", item_type="team", team_id=_team_id("jeugd-j14"))
-        _add(jeugd, 7, "M14", item_type="team", team_id=_team_id("jeugd-m14"))
-        _add(jeugd, 8, "Aanspreekpunt Integriteit", item_type="page", page_id=_page_id("jeugd-aanspreekpunt-integriteit"))
-        _add(jeugd, 9, "VHV - Welzijn van de speler", item_type="route", route_endpoint="jeugd.welzijn", open_in_new_tab=True)
+        _add(None, pos, "Jeugd", item_type="route", route_endpoint="jeugd.overzicht")
 
         pos += 1
         _add(None, pos, "FanShop", item_type="route", route_endpoint="shop.products")
