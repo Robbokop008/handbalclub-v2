@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Dames - Handbal Sint-Truiden{% endblock %}
+
+{% block content %}
+<section class="section club-accordion">
+    <details class="club-accordion-item">
+        <summary>Dames 1 &amp; Beloften</summary>
+        <div class="club-accordion-body">
+            {% if team_1_beloften and team_1_beloften.foto_url %}
+                <img class="club-team-photo" src="{{ url_for('static', filename='images/' + team_1_beloften.foto_url) }}" alt="Ploegfoto Dames 1 &amp; Beloften">
+            {% else %}
+                <div class="club-team-photo-placeholder">ploegfoto</div>
+            {% endif %}
+            <div class="club-achievements">
+                <div class="club-achievement club-achievement-beker">
+                    <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 4h8v4a4 4 0 0 1-8 0V4z"/><path d="M8 5H5a2 2 0 0 0 2 3.5"/><path d="M16 5h3a2 2 0 0 1-2 3.5"/><path d="M12 12v3"/><path d="M9 19h6"/><path d="M10 15h4l1 4H9l1-4z"/></svg>
+                    <span>X-voudig bekerkampioen</span>
+                </div>
+                <div class="club-achievement club-achievement-europees">
+                    <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="4.5" r="1" fill="currentColor" stroke="none"/><circle cx="17.5" cy="8" r="1" fill="currentColor" stroke="none"/><circle cx="17.5" cy="16" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="19.5" r="1" fill="currentColor" stroke="none"/><circle cx="6.5" cy="16" r="1" fill="currentColor" stroke="none"/><circle cx="6.5" cy="8" r="1" fill="currentColor" stroke="none"/></svg>
+                    <span>X Europese wedstrijden gespeeld</span>
+                </div>
+                <div class="club-achievement club-achievement-lands">
+                    <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3c-2.6 2.8-2.6 6.2 0 9"/><path d="M12 3c2.6 2.8 2.6 6.2 0 9"/><path d="M6.5 7c-1.8 2.6-1.3 6.1 1.2 8.3"/><path d="M17.5 7c1.8 2.6 1.3 6.1-1.2 8.3"/><path d="M12 12v8"/><path d="M9 21h6"/></svg>
+                    <span>X-voudig landskampioen</span>
+                </div>
+            </div>
+        </div>
+    </details>
+
+    <details class="club-accordion-item">
+        <summary>Dames Regio</summary>
+        <div class="club-accordion-body">
+            {% if team_regio and team_regio.foto_url %}
+                <img class="club-team-photo" src="{{ url_for('static', filename='images/' + team_regio.foto_url) }}" alt="Ploegfoto Dames Regio">
+            {% else %}
+                <div class="club-team-photo-placeholder">ploegfoto</div>
+            {% endif %}
+            <div class="club-achievements">
+                <div class="club-achievement club-achievement-beker">
+                    <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 4h8v4a4 4 0 0 1-8 0V4z"/><path d="M8 5H5a2 2 0 0 0 2 3.5"/><path d="M16 5h3a2 2 0 0 1-2 3.5"/><path d="M12 12v3"/><path d="M9 19h6"/><path d="M10 15h4l1 4H9l1-4z"/></svg>
+                    <span>X-voudig bekerkampioen</span>
+                </div>
+                <div class="club-achievement club-achievement-lands">
+                    <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3c-2.6 2.8-2.6 6.2 0 9"/><path d="M12 3c2.6 2.8 2.6 6.2 0 9"/><path d="M6.5 7c-1.8 2.6-1.3 6.1 1.2 8.3"/><path d="M17.5 7c1.8 2.6 1.3 6.1-1.2 8.3"/><path d="M12 12v8"/><path d="M9 21h6"/></svg>
+                    <span>X-voudig landskampioen</span>
+                </div>
+            </div>
+        </div>
+    </details>
+</section>
+{% endblock %}

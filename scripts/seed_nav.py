@@ -93,17 +93,18 @@ def run():
 
         pos += 1
         teams = _add(None, pos, "Teams", item_type="category")
-        _add(teams, 1, "Dames", item_type="divider")
-        _add(teams, 2, "Dames 1 & Beloften", item_type="team", team_id=_team_id("dames-1-beloften"))
-        _add(teams, 3, "Dames Regio", item_type="team", team_id=_team_id("dames-regio"))
-        _add(teams, 4, "Heren", item_type="divider")
-        _add(teams, 5, "Heren 1", item_type="team", team_id=_team_id("heren-1"))
-        _add(teams, 6, "Heren 2", item_type="team", team_id=_team_id("heren-2"))
-        _add(teams, 7, "G-Handbal", item_type="divider")
-        _add(teams, 8, "G-Handbal", item_type="team", team_id=_team_id("ghandbal"))
-        _add(teams, 9, "Inschrijving G-Handbal", item_type="route", route_endpoint="ghandbal.inschrijving")
-        _add(teams, 10, "FIT-Handbal", item_type="divider")
-        _add(teams, 11, "FIT-Handbal", item_type="team", team_id=_team_id("fithandbal"))
+        # "Dames 1 & Beloften" en "Dames Regio" staan samen op één
+        # overzichtspagina (accordions) i.p.v. als 2 aparte teamlinks -
+        # zie routes/dames.py:overzicht().
+        _add(teams, 1, "Dames", item_type="route", route_endpoint="dames.overzicht")
+        _add(teams, 2, "Heren", item_type="divider")
+        _add(teams, 3, "Heren 1", item_type="team", team_id=_team_id("heren-1"))
+        _add(teams, 4, "Heren 2", item_type="team", team_id=_team_id("heren-2"))
+        _add(teams, 5, "G-Handbal", item_type="divider")
+        _add(teams, 6, "G-Handbal", item_type="team", team_id=_team_id("ghandbal"))
+        _add(teams, 7, "Inschrijving G-Handbal", item_type="route", route_endpoint="ghandbal.inschrijving")
+        _add(teams, 8, "FIT-Handbal", item_type="divider")
+        _add(teams, 9, "FIT-Handbal", item_type="team", team_id=_team_id("fithandbal"))
 
         pos += 1
         jeugd = _add(None, pos, "Jeugd", item_type="category")
