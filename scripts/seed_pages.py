@@ -13,6 +13,12 @@ J14, M14) stonden hier vroeger ook in, maar zijn ondertussen team-content
 gebleken en verhuisd naar Team-rijen (zie scripts/seed_teams.py) - bewust
 niet meer hier, anders zou opnieuw draaien de oude pagina's terugzetten.
 
+"kalender-trainingen" en "kalender-evenementen" stonden hier ook, maar
+werden nooit door een route of navigatie-item aangesproken (dode data
+sinds Kalender een hardcoded accordion-pagina werd) en zijn dus
+verwijderd - zie scripts/migrate_site_text_cleanup.py voor de eenmalige
+opkuis van de reeds bestaande rijen.
+
 Idempotent: opnieuw draaien overschrijft bestaande rijen met dezelfde slug
 in plaats van duplicaten aan te maken.
 
@@ -106,25 +112,6 @@ PAGES = [
         "slug": "jeugd-jeugdbeleidsplan",
         "title": "Jeugdbeleidsplan",
         "body_html": "<p>[Placeholder] Het jeugdbeleidsplan van Handbal Sint-Truiden, jaarlijks bijgewerkt. Beschrijft de visie op jeugdopleiding, de leeftijdscategorieën en de begeleiding per leeftijdsgroep.</p>",
-    },
-    {
-        "slug": "kalender-trainingen",
-        "title": "Trainingen",
-        "body_html": """
-            <p>[Placeholder] Overzicht van de trainingsmomenten per team - dag, uur en locatie. Wordt jaarlijks bijgewerkt.</p>
-            <table>
-                <thead><tr><th>Team</th><th>Dag</th><th>Uur</th><th>Locatie</th></tr></thead>
-                <tbody>
-                    <tr><td>Heren 1</td><td>Dinsdag</td><td>20:00 - 22:00</td><td>Sporthal Speelhof</td></tr>
-                    <tr><td>Dames 1</td><td>Woensdag</td><td>19:00 - 21:00</td><td>Sporthal Speelhof</td></tr>
-                </tbody>
-            </table>
-        """,
-    },
-    {
-        "slug": "kalender-evenementen",
-        "title": "Evenementen",
-        "body_html": "<p>[Placeholder] Clubevenementen doorheen het seizoen: eetfestijnen, feesten, tornooien, ...</p>",
     },
     {
         "slug": "vacatures",

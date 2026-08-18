@@ -22,16 +22,14 @@ from models import SiteText
 # rechtstreeks te bezoeken is, bv. een bedankt-/bevestigingspagina), een
 # optionele opmerking daarover, en de tekstvelden (sleutel, omschrijving,
 # standaardwaarde) die op die pagina gebruikt worden.
+#
+# "home" en "kalender" stonden hier vroeger ook in, maar zijn tijdens de
+# restyling vervangen door volledig hardcoded pagina's (foto-hero +
+# zwevende kaarten, resp. de accordion-pagina) zonder site_teksten-hero -
+# bewust verwijderd i.p.v. dode velden te laten staan die een admin wel
+# kan invullen maar die nergens meer getoond worden (zie
+# scripts/migrate_site_text_cleanup.py voor de eenmalige opkuis).
 SITE_TEXT_PAGINAS = [
-    {
-        "slug": "home",
-        "label": "Homepage",
-        "endpoint": "main.home",
-        "velden": [
-            ("home_hero_titel", "Hero-titel", "Handbal Sint-Truiden"),
-            ("home_hero_subtitel", "Hero-subtekst", "Welkom bij de officiële website van Handbal Sint-Truiden!"),
-        ],
-    },
     {
         "slug": "contact",
         "label": "Contact",
@@ -122,15 +120,6 @@ SITE_TEXT_PAGINAS = [
         "velden": [
             ("checkout_success_hero_titel", "Hero-titel", "Bedankt!"),
             ("checkout_success_hero_subtitel", "Hero-subtekst", "Uw bestelling is succesvol geplaatst. Een bevestigingsmail is naar u verzonden met de bestelgegevens. Wij zullen uw artikelen zo spoedig mogelijk verwerken en verzenden."),
-        ],
-    },
-    {
-        "slug": "kalender",
-        "label": "Wedstrijdkalender",
-        "endpoint": "kalender.wedstrijden",
-        "velden": [
-            ("kalender_hero_titel", "Hero-titel", "Wedstrijden"),
-            ("kalender_hero_subtitel", "Hero-subtekst", "Onze wedstrijdkalender via Spond, rechtstreeks ingebed."),
         ],
     },
     {
