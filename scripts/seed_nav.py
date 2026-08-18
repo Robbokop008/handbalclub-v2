@@ -85,10 +85,11 @@ def run():
         _add(None, pos, "Contact", item_type="route", route_endpoint="main.contact")
 
         pos += 1
-        kalender = _add(None, pos, "Kalender", item_type="category")
-        _add(kalender, 1, "Wedstrijden", item_type="route", route_endpoint="kalender.wedstrijden")
-        _add(kalender, 2, "Trainingen", item_type="page", page_id=_page_id("kalender-trainingen"))
-        _add(kalender, 3, "Evenementen", item_type="page", page_id=_page_id("kalender-evenementen"))
+        # Zelfde aanpak als "Club": één samengevoegde overzichtspagina
+        # (Wedstrijden/Trainingen/Evenementen als accordions) i.p.v. een
+        # dropdown naar 3 aparte bestemmingen - zie
+        # routes/kalender.py:overzicht().
+        _add(None, pos, "Kalender", item_type="route", route_endpoint="kalender.overzicht")
 
         pos += 1
         teams = _add(None, pos, "Teams", item_type="category")

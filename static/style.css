@@ -962,8 +962,9 @@ form textarea { min-height: 120px; resize: vertical; }
 /* =========================================================
    CLUB-PAGINA (/club/)
    ========================================================= */
-/* Zelfde "overal navy" aanpak als de homepage (zie body.home-page). */
-body.club-page { background: var(--blue); }
+/* Zelfde "overal navy" aanpak als de homepage (zie body.home-page) - ook
+   voor de kalenderpagina, die dezelfde accordion-stijl hergebruikt. */
+body.club-page, body.kalender-page { background: var(--blue); }
 
 .club-hero {
   max-width: var(--max-width);
@@ -1007,7 +1008,7 @@ body.club-page { background: var(--blue); }
    stukje over de visie-kaart ernaast mag steken). */
 .club-intro-badge {
   position: absolute;
-  right: -115px;
+  right: -110px;
   bottom: -105px;
   width: 300px;
   /* Beide kaarten zijn position:relative; zonder dit zou de visie-kaart
@@ -1065,6 +1066,96 @@ body.club-page { background: var(--blue); }
 .club-accordion-body ul { margin: 0 0 14px; padding-left: 22px; }
 .club-accordion-body li { margin-bottom: 6px; line-height: 1.6; }
 .club-accordion-body a { color: var(--yellow); }
+
+/* Genest binnen een top-level accordion-item (bv. Trainingen > G-Handbal) -
+   zelfde openklap-mechaniek, kleinere/hoofdletterloze summary. */
+.club-subaccordion-item {
+  margin: 4px 0;
+  padding: 10px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.club-subaccordion-item summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--yellow);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.club-subaccordion-item summary::-webkit-details-marker { display: none; }
+
+.club-subaccordion-item summary::after {
+  content: "";
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  margin-left: 16px;
+  transition: transform 0.15s ease;
+}
+
+.club-subaccordion-item[open] > summary::after { transform: rotate(-135deg); }
+
+.club-schedule-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.club-schedule-list li {
+  margin-bottom: 8px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.club-schedule-note {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* Hoofdinhoud + een gele CTA-kaart ernaast (Trainingen/Evenementen) - op
+   smallere schermen valt de kaart gewoon onder de hoofdinhoud. */
+.club-accordion-body-split {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  align-items: start;
+  gap: 32px;
+}
+
+.club-cta-card h3 { margin: 0 0 12px; font-size: 18px; }
+.club-cta-card p { margin: 0 0 10px; line-height: 1.6; }
+.club-cta-card p:last-child { margin-bottom: 0; }
+.club-cta-card a { color: var(--blue-dark); font-weight: 700; }
+
+.club-cta-card-social {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.club-cta-card-social a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(3, 35, 73, 0.35);
+  color: var(--blue-dark);
+  text-decoration: none;
+}
+
+.club-cta-card-social a:hover { background: rgba(3, 35, 73, 0.1); }
+
+@media (max-width: 760px) {
+  .club-accordion-body-split { grid-template-columns: 1fr; }
+}
 
 .club-verzekering-infographic {
   display: block;
