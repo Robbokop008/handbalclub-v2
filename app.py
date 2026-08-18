@@ -125,6 +125,7 @@ def create_app(config_name="development"):
         "ghandbal.index": "ghandbal-page",
         "fithandbal.index": "fithandbal-page",
         "main.contact": "content-page",
+        "main.vergeet_mij": "content-page",
         "main.nieuws": "content-page",
         "main.nieuws_detail": "content-page",
         "pages.view": "content-page",

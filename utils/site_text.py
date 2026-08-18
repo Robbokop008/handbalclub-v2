@@ -233,6 +233,15 @@ SITE_TEXT_PAGINAS = [
         ],
     },
     {
+        "slug": "vergeet-mij",
+        "label": "Vergeet Mij (GDPR)",
+        "endpoint": "main.vergeet_mij",
+        "velden": [
+            _tekst("vergeet_mij_hero_titel", "Hero-titel", "Vergeet mij"),
+            _tekst("vergeet_mij_hero_intro", "Hero-intro", "Wil je dat we je persoonsgegevens verwijderen? Vul onderstaand formulier in en we verwerken je verzoek binnen de wettelijke termijn."),
+        ],
+    },
+    {
         "slug": "inschrijving",
         "label": "Inschrijving nieuwe speler",
         "endpoint": "jeugd.inschrijving",
