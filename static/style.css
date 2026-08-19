@@ -1615,6 +1615,58 @@ body.content-page, body.auth-page { background: var(--blue); }
 .admin-content .section { max-width: none; margin: 0; padding: 0; }
 .admin-content .section-title { text-align: left; }
 
+/* Dashboard: actiepunt-tegels (aantal + label, doorklikbaar) en een lijst
+   met health-check-waarschuwingen (zie routes/admin.py:_dashboard_acties/
+   _dashboard_waarschuwingen). Geen alarmerende kleuren voor de tegels -
+   dit zijn dingen die een admin routinematig bijhoudt, geen storingen. */
+.dashboard-acties-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.dashboard-actie-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--blue-light);
+  border-radius: var(--radius);
+  padding: 20px;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dashboard-actie-tile:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
+
+.dashboard-actie-tile-leeg { background: var(--white); border: 1px solid var(--border); }
+
+.dashboard-actie-aantal { font-size: 32px; font-weight: 800; color: var(--blue); }
+.dashboard-actie-tile-leeg .dashboard-actie-aantal { color: var(--muted); }
+
+.dashboard-actie-label { font-size: 14px; color: var(--ink); }
+
+.dashboard-waarschuwingen-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dashboard-waarschuwingen-list li { border-top: 1px solid var(--border); }
+.dashboard-waarschuwingen-list li:last-child { border-bottom: 1px solid var(--border); }
+
+.dashboard-waarschuwingen-list a {
+  display: block;
+  padding: 12px 4px;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.dashboard-waarschuwingen-list a:hover { color: var(--blue); }
+
 @media (max-width: 860px) {
   .admin-layout { flex-direction: column; }
   .admin-sidebar {

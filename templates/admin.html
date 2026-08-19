@@ -4,7 +4,30 @@
 
 {% block admin_content %}
 <div class="admin-page-header">
-    <h1>Adminpagina</h1>
-    <p>Op deze adminpagina kun je de website beheren en de database beheren.</p>
+    <h1>Dashboard</h1>
+    <p>Snel overzicht van wat aandacht nodig heeft.</p>
 </div>
+
+<section class="section">
+    <h2 class="section-title">Actiepunten</h2>
+    <div class="dashboard-acties-grid">
+        {% for actie in acties %}
+        <a href="{{ actie.url }}" class="dashboard-actie-tile{{ ' dashboard-actie-tile-leeg' if actie.aantal == 0 else '' }}">
+            <span class="dashboard-actie-aantal">{{ actie.aantal }}</span>
+            <span class="dashboard-actie-label">{{ actie.label }}</span>
+        </a>
+        {% endfor %}
+    </div>
+
+    <h2 class="section-title" style="margin-top:36px;">Waarschuwingen</h2>
+    {% if waarschuwingen %}
+    <ul class="dashboard-waarschuwingen-list">
+        {% for waarschuwing in waarschuwingen %}
+        <li><a href="{{ waarschuwing.url }}">{{ waarschuwing.tekst }}</a></li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">Geen waarschuwingen op dit moment.</p>
+    {% endif %}
+</section>
 {% endblock %}

@@ -18,7 +18,7 @@ from werkzeug.utils import secure_filename
 
 from werkzeug.routing import BuildError
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from extensions import db
 from models import (
@@ -31,6 +31,7 @@ from utils.auth import admin_required
 from utils.mail import send_admin_cancellation_mail
 from utils.sanitize import sanitize_html
 from utils.site_text import SITE_TEXT_PAGINAS, vind_pagina, get_site_teksten
+from utils.nav import _resolve_url as _resolve_nav_item_url
 from utils.inschrijving import get_inschrijving_categorieen, get_hoe_gehoord_opties, get_inschrijving_veld_config
 from utils.page_blocks import block_afbeeldingsbestanden, afbeeldingen_uit_data
 from utils.url_validation import is_safe_target_url, parse_video_embed
@@ -275,10 +276,79 @@ def _parse_block_form(block_type, existing_data):
     return data, error
 
 
+def _dashboard_acties():
+    """Telt de dingen die mogelijk actie van de admin vragen - elk met een
+    link naar de plek waar je dat oplost."""
+    zeven_dagen_geleden = datetime.utcnow() - timedelta(days=7)
+    return [
+        {
+            "label": "Onverwerkte GDPR-verzoeken",
+            "aantal": VergeetMijVerzoek.query.filter_by(verwerkt=False).count(),
+            "url": url_for("admin.gdpr_verzoeken"),
+        },
+        {
+            "label": "Nieuwe inschrijvingen (laatste 7 dagen)",
+            "aantal": Inschrijving.query.filter(Inschrijving.aangemaakt_op >= zeven_dagen_geleden).count(),
+            "url": url_for("admin.inschrijvingen"),
+        },
+        {
+            "label": "Bestellingen die actie nodig hebben",
+            "aantal": Order.query.filter(Order.order_status.notin_(["Verzonden", "Geannuleerd", "Terugbetaald"])).count(),
+            "url": url_for("admin.orders"),
+        },
+        {
+            "label": "Ongepubliceerde pagina's",
+            "aantal": Page.query.filter_by(is_published=False).count(),
+            "url": url_for("admin.pages"),
+        },
+    ]
+
+
+def _dashboard_waarschuwingen():
+    """Verzamelt korte, doorklikbare signalen dat iets aandacht nodig heeft
+    (geen harde fouten - de site blijft gewoon werken, maar iets staat er
+    onvolledig of kapot bij)."""
+    waarschuwingen = []
+
+    for team in Team.query.order_by(Team.sectie, Team.naam).all():
+        ontbreekt = []
+        if not team.foto_url:
+            ontbreekt.append("foto")
+        if not team.omschrijving or team.omschrijving.startswith("[Placeholder]"):
+            ontbreekt.append("omschrijving")
+        if ontbreekt:
+            waarschuwingen.append({
+                "tekst": f"Team '{team.naam}' heeft geen {' en '.join(ontbreekt)}",
+                "url": url_for("admin.edit_team", team_id=team.id),
+            })
+
+    for product in Product.query.filter_by(is_active=True).order_by(Product.product_name).all():
+        heeft_voorraad = any(v.is_active and v.stock > 0 for v in product.variants)
+        if not heeft_voorraad:
+            waarschuwingen.append({
+                "tekst": f"Product '{product.product_name}' is actief maar heeft geen koopbare variant (voorraad)",
+                "url": url_for("admin.edit_product", product_id=product.product_id),
+            })
+
+    for item in NavItem.query.order_by(NavItem.position).all():
+        if item.item_type in ("category", "divider"):
+            continue
+        if _resolve_nav_item_url(item) is None:
+            waarschuwingen.append({
+                "tekst": f"Navigatie-item '{item.label}' verwijst naar iets dat niet meer bestaat",
+                "url": url_for("admin.navigation") + f"#nav-item-{item.id}",
+            })
+
+    return waarschuwingen
+
+
 @admin_bp.route("/")
 @admin_required
 def dashboard():
-    return render_template("admin.html", user=g.user)
+    return render_template(
+        "admin.html", user=g.user,
+        acties=_dashboard_acties(), waarschuwingen=_dashboard_waarschuwingen(),
+    )
 
 
 @admin_bp.route("/products")
