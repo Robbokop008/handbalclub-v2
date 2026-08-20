@@ -14,4 +14,4 @@ from flask_limiter.util import get_remote_address
 
 db = SQLAlchemy()
 csrf = CSRFProtect()
-limiter = Limiter(get_remote_address, default_limits=["200 per day", "50 per hour"])
+limiter = Limiter(get_remote_address, default_limits=["500 per day", "50 per hour"])

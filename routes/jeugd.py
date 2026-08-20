@@ -18,7 +18,7 @@ jeugd_bp = Blueprint("jeugd", __name__, url_prefix="/jeugd")
 
 # Nog aan te vullen met de echte, definitieve URL's
 BALLENBAASJES_URL = "https://www.ballenbaasjes.be"
-VHV_WELZIJN_URL = "https://www.handbal.be"
+VHV_WELZIJN_URL = "https://www.handbal.be/nl/speel-handbal/het-welzijn-van-de-speler"
 
 
 @jeugd_bp.route("/")
