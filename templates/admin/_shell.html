@@ -24,6 +24,7 @@
             <a class="admin-sidebar-link{{ ' active' if ep == 'admin.dashboard' else '' }}" href="{{ url_for('admin.dashboard') }}">Dashboard</a>
             <a class="admin-sidebar-link{{ ' active' if 'page' in ep or 'site_tekst' in ep else '' }}" href="{{ url_for('admin.pages') }}">Pagina's</a>
             <a class="admin-sidebar-link{{ ' active' if 'nieuws' in ep else '' }}" href="{{ url_for('admin.nieuws') }}">Nieuws</a>
+            <a class="admin-sidebar-link{{ ' active' if 'evenement' in ep else '' }}" href="{{ url_for('admin.evenementen') }}">Evenementen</a>
             <a class="admin-sidebar-link{{ ' active' if 'sponsor' in ep else '' }}" href="{{ url_for('admin.sponsors') }}">Sponsors</a>
             <a class="admin-sidebar-link{{ ' active' if 'team' in ep else '' }}" href="{{ url_for('admin.teams') }}">Teams</a>
             <a class="admin-sidebar-link{{ ' active' if 'nav' in ep else '' }}" href="{{ url_for('admin.navigation') }}">Navigatie</a>

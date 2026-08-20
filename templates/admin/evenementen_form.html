@@ -1,0 +1,37 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - {{ 'Evenement bewerken' if evenement else 'Nieuw evenement' }}{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>{{ 'Evenement bewerken' if evenement else 'Nieuw evenement toevoegen' }}</h1>
+</div>
+
+<section class="section">
+    {% if error %}
+    <p class="alert alert-error" style="margin-bottom:20px;">{{ error }}</p>
+    {% endif %}
+
+    <form action="{{ url_for('admin.edit_evenement', evenement_id=evenement.id) if evenement else url_for('admin.add_evenement') }}" method="post" class="admin-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div>
+            <label for="titel">Titel</label>
+            <input type="text" id="titel" name="titel" value="{{ form_titel if form_titel is defined else (evenement.titel if evenement else '') }}" required>
+        </div>
+        <div>
+            <label for="datum">Datum</label>
+            <input type="date" id="datum" name="datum" value="{{ form_datum if form_datum is defined else (evenement.datum.strftime('%Y-%m-%d') if evenement else '') }}" required>
+        </div>
+        <div style="grid-column:1/-1;">
+            <label for="tekst">Tekst</label>
+            <textarea id="tekst" name="tekst" rows="4" required>{{ form_tekst if form_tekst is defined else (evenement.tekst if evenement else '') }}</textarea>
+        </div>
+
+        <div class="form-actions" style="grid-column:1/-1;">
+            <button type="submit" class="admin-button">Opslaan</button>
+            <a href="{{ url_for('admin.evenementen') }}" class="btn btn-secondary">Annuleren</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

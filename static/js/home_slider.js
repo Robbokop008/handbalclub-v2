@@ -18,7 +18,7 @@ document.querySelectorAll('[data-nieuws-slider]').forEach((slider) => {
     function restartAutoplay() {
         if (timer) clearInterval(timer);
         if (slides.length > 1) {
-            timer = setInterval(() => show(index + 1), 6000);
+            timer = setInterval(() => show(index + 1), 6000); //tijd per item in miliseconden: standaard 6000 (=6s)
         }
     }
 

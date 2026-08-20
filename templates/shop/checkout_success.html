@@ -3,17 +3,15 @@
 {% block title %}Bedankt voor je bestelling{% endblock %}
 
 {% block content %}
-<section class="hero hero-short">
-    <div class="hero-content">
-        <h1>{{ site_teksten.checkout_success_hero_titel }}</h1>
-        <p>{{ site_teksten.checkout_success_hero_subtitel }}</p>
-        <a class="cta-button" href="{{ url_for('main.home') }}">Verder winkelen</a>
-    </div>
+<section class="club-hero">
+    <h1>{{ site_teksten.checkout_success_hero_titel }}</h1>
+    <p>{{ site_teksten.checkout_success_hero_subtitel }}</p>
+    <p><a class="profile-action-button" href="{{ url_for('main.home') }}">Verder winkelen</a></p>
 </section>
 
 <section class="section">
-    <h2 class="section-title">Overzicht bestelling</h2>
     <div class="order-summary" style="max-width:700px;margin:0 auto;">
+        <h2 style="margin:0 0 12px;color:var(--blue);font-size:18px;">Overzicht bestelling</h2>
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <div>
                 <div class="product-name">Order #{{ order.order_id }}</div>

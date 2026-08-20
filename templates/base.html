@@ -13,7 +13,7 @@
 
             <a href="{{ url_for('main.home') }}" class="brand">
                 <span class="brand-text">
-                    <span class="brand-text-line1">Handbal</span>
+                    <span class="brand-text-line1">HandBal</span>
                     <span class="brand-text-line2">Sint-Truiden</span>
                 </span>
                 <img class="brand-badge" src="{{ url_for('static', filename='images/18919afe-6798-4a27-9306-3ecf4c779bb8.png') }}" alt="Handbal Sint-Truiden">
@@ -105,10 +105,29 @@
                 <ul>
                     <li><a href="https://www.instagram.com/hbsinttruiden/" target="_blank" rel="noopener">Instagram</a></li>
                     <li><a href="https://www.facebook.com/hbsinttruiden/" target="_blank" rel="noopener">Facebook</a></li>
+                    <li><a href="https://www.tiktok.com/@handbal.sinttruiden?_r=1&_t=ZG-990brt2tXkm" target="_blank" rel="noopener">TikTok</a></li>
                     <li><a href="https://linktr.ee/handbal.sinttruiden" target="_blank" rel="noopener">Linktree</a></li>
                 </ul>
             </div>
         </div>
+        {% if footer_sponsors|length > 2 %}
+        <div class="footer-sponsors">
+            <h3>Onze sponsors</h3>
+            <div class="footer-sponsors-grid">
+                {% for sponsor in footer_sponsors %}
+                    {% if sponsor.website_url %}
+                    <a href="{{ sponsor.website_url }}" target="_blank" rel="noopener" class="footer-sponsor-logo" title="{{ sponsor.naam }}">
+                        <img src="{{ url_for('static', filename='images/' + sponsor.logo) }}" alt="{{ sponsor.naam }}">
+                    </a>
+                    {% else %}
+                    <span class="footer-sponsor-logo" title="{{ sponsor.naam }}">
+                        <img src="{{ url_for('static', filename='images/' + sponsor.logo) }}" alt="{{ sponsor.naam }}">
+                    </span>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
         <div class="footer-bottom">
             <p>&copy; {{ huidig_jaar }} Robbe Boyen. Alle rechten voorbehouden.</p>
         </div>

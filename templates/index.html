@@ -21,32 +21,65 @@
         </div>
 
         <div class="home-hero-card home-hero-nieuws">
-            <h2 class="section-title">Laatste nieuws</h2>
-            {% if nieuwsberichten %}
-                <div class="nieuws-slider" data-nieuws-slider>
-                    <div class="nieuws-slider-viewport">
-                        <div class="nieuws-slider-track">
-                            {% for bericht in nieuwsberichten %}
-                                {% set preview_tekst = bericht.samenvatting or (bericht.inhoud | platte_tekst) %}
-                                <div class="nieuws-slide">
-                                    <h3>{{ bericht.titel }}</h3>
-                                    <p class="nieuws-tekst">{{ preview_tekst | truncate(600) }}</p>
-                                    <p class="nieuws-lees-meer"><a href="{{ url_for('main.nieuws_detail', bericht_id=bericht.id) }}">lees meer &rarr;</a></p>
+            <div class="home-hero-nieuws-split">
+                <div class="home-hero-nieuws-col">
+                    <h2 class="section-title">Laatste nieuws</h2>
+                    {% if nieuwsberichten %}
+                        <div class="nieuws-slider" data-nieuws-slider>
+                            <div class="nieuws-slider-viewport">
+                                <div class="nieuws-slider-track">
+                                    {% for bericht in nieuwsberichten %}
+                                        {% set preview_tekst = bericht.samenvatting or (bericht.inhoud | platte_tekst) %}
+                                        <div class="nieuws-slide">
+                                            <h3>{{ bericht.titel }}</h3>
+                                            <p class="nieuws-tekst">{{ preview_tekst | truncate(600) }}</p>
+                                            <p class="nieuws-lees-meer"><a href="{{ url_for('main.nieuws_detail', bericht_id=bericht.id) }}">lees meer &rarr;</a></p>
+                                        </div>
+                                    {% endfor %}
                                 </div>
-                            {% endfor %}
+                            </div>
+                            {% if nieuwsberichten|length > 1 %}
+                            <div class="nieuws-slider-dots">
+                                {% for bericht in nieuwsberichten %}
+                                    <button type="button" class="nieuws-slider-dot" data-index="{{ loop.index0 }}" aria-label="Nieuwsitem {{ loop.index }}"></button>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
                         </div>
-                    </div>
-                    {% if nieuwsberichten|length > 1 %}
-                    <div class="nieuws-slider-dots">
-                        {% for bericht in nieuwsberichten %}
-                            <button type="button" class="nieuws-slider-dot" data-index="{{ loop.index0 }}" aria-label="Nieuwsitem {{ loop.index }}"></button>
-                        {% endfor %}
-                    </div>
+                    {% else %}
+                        <p>Nog geen nieuwsberichten geplaatst.</p>
                     {% endif %}
                 </div>
-            {% else %}
-                <p>Nog geen nieuwsberichten geplaatst.</p>
-            {% endif %}
+
+                <div class="home-hero-nieuws-col home-hero-nieuws-col-divider">
+                    <h2 class="section-title">Volgende event</h2>
+                    {% if evenementen %}
+                        <div class="nieuws-slider" data-nieuws-slider>
+                            <div class="nieuws-slider-viewport">
+                                <div class="nieuws-slider-track">
+                                    {% for evenement in evenementen %}
+                                        <div class="nieuws-slide">
+                                            <h3>{{ evenement.titel }}</h3>
+                                            <p class="nieuws-slide-datum">{{ evenement.datum.strftime('%d/%m/%Y') }}</p>
+                                            <p class="nieuws-tekst">{{ evenement.tekst | truncate(600) }}</p>
+                                            <p class="nieuws-lees-meer"><a href="{{ url_for('kalender.overzicht') }}">bekijk onze evenementen &rarr;</a></p>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% if evenementen|length > 1 %}
+                            <div class="nieuws-slider-dots">
+                                {% for evenement in evenementen %}
+                                    <button type="button" class="nieuws-slider-dot" data-index="{{ loop.index0 }}" aria-label="Evenement {{ loop.index }}"></button>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <p>Nog geen aankomende evenementen gepland.</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
 </section>
@@ -86,15 +119,43 @@
                 </a>
             </div>
         </div>
+
+        <div class="promo-card promo-card-has-social">
+            <div class="promo-card-text">
+                <h2>{{ site_teksten.promo_jeugd_titel }}</h2>
+                <p class="promo-card-subtitle">{{ site_teksten.promo_jeugd_subtitel }}</p>
+                <p class="promo-card-lees-meer"><a href="{{ url_for('jeugd.overzicht') }}">lees meer &rarr;</a></p>
+            </div>
+            <img class="promo-card-jeugd-logo" src="{{ url_for('static', filename='images/18919afe-6798-4a27-9306-3ecf4c779bb8.png') }}" alt="Jeugdhandbal">
+            <div class="promo-card-social">
+                <a href="https://www.instagram.com/hbsinttruiden/" target="_blank" rel="noopener" aria-label="Instagram">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.5" cy="6.5" r="1"/></svg>
+                </a>
+                <a href="https://www.facebook.com/hbsinttruiden/" target="_blank" rel="noopener" aria-label="Facebook">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M13.5 21v-8h2.7l.4-3.1h-3.1V8c0-.9.25-1.5 1.55-1.5H16.7V3.7c-.27-.04-1.2-.12-2.28-.12-2.26 0-3.8 1.38-3.8 3.9v2.4H8v3.1h2.62V21h2.88z"/></svg>
+                </a>
+            </div>
+        </div>
     </div>
 
-    <div class="promo-card promo-card-stacked">
-        <div class="promo-card-text">
-            <h2>{{ site_teksten.promo_fit_titel }}</h2>
-            <p class="promo-card-subtitle">{{ site_teksten.promo_fit_subtitel }}</p>
-            <p class="promo-card-lees-meer"><a href="{{ url_for('fithandbal.index') }}">lees meer &rarr;</a></p>
+    <div class="promo-cards-stack">
+        <div class="promo-card promo-card-stacked">
+            <div class="promo-card-text">
+                <h2>{{ site_teksten.promo_fit_titel }}</h2>
+                <p class="promo-card-subtitle">{{ site_teksten.promo_fit_subtitel }}</p>
+                <p class="promo-card-lees-meer"><a href="{{ url_for('fithandbal.index') }}">lees meer &rarr;</a></p>
+            </div>
+            <img class="promo-card-full-logo" src="{{ url_for('static', filename='images/fit-handbal-logo.png') }}" alt="FIT Handbal">
         </div>
-        <img class="promo-card-fit-logo" src="{{ url_for('static', filename='images/fit-handbal-logo.png') }}" alt="FIT Handbal">
+
+        <div class="promo-card promo-card-stacked">
+            <div class="promo-card-text">
+                <h2>{{ site_teksten.promo_ghandbal_titel }}</h2>
+                <p class="promo-card-subtitle">{{ site_teksten.promo_ghandbal_subtitel }}</p>
+                <p class="promo-card-lees-meer"><a href="{{ url_for('ghandbal.index') }}">lees meer &rarr;</a></p>
+            </div>
+            <img class="promo-card-full-logo" src="{{ url_for('static', filename='images/logo-g-handbal.png') }}" alt="G-Handball">
+        </div>
     </div>
 </section>
 

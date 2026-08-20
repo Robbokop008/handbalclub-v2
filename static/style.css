@@ -224,25 +224,21 @@ nav#nav-menu a:hover { color: var(--white); }
   text-align: center;
 }
 
-.hero.hero-short,
-.cart-hero { padding: 48px 40px; }
+.hero.hero-short { padding: 48px 40px; }
 
-.hero-content,
-.cart-hero-content {
+.hero-content {
   max-width: 700px;
   margin: 0 auto;
 }
 
-.hero h1,
-.cart-hero h1 {
+.hero h1 {
   font-size: 40px;
   font-weight: 800;
   color: var(--blue);
   margin: 0 0 12px;
 }
 
-.hero p,
-.cart-hero p {
+.hero p {
   color: var(--muted);
   font-size: 17px;
   margin: 0 0 24px;
@@ -412,41 +408,10 @@ form textarea { min-height: 120px; resize: vertical; }
 .login-note a { color: var(--blue); font-weight: 600; text-decoration: none; }
 
 /* =========================================================
-   PRODUCT GRID
+   PRODUCT DETAIL
+   (naam/prijs-klassen ook hergebruikt in shop/checkout_success.html
+   voor de orderregels - vandaar niet product_detail-specifiek genoemd)
    ========================================================= */
-.products-grid {
-  display: grid;
-  gap: 24px;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-}
-
-.product-card {
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  box-shadow: var(--shadow);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.product-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-hover);
-}
-
-.product-image {
-  aspect-ratio: 1 / 1;
-  background: var(--blue-light);
-  overflow: hidden;
-}
-
-.product-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
-
-.product-info { padding: 18px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1; }
-
 .product-name { margin: 0; font-size: 17px; color: var(--ink); }
 
 .product-description {
@@ -460,11 +425,16 @@ form textarea { min-height: 120px; resize: vertical; }
 
 .add-to-cart { margin-top: 8px; align-self: flex-start; }
 
-/* Product detail */
+/* Zelfde "papieren kaart op navy" motief als .content-card, maar met de
+   eigen 2-koloms indeling (foto naast varianten/bedrukking/bestellen)
+   i.p.v. .content-card los eromheen te wikkelen. */
 .product-detail {
-  max-width: var(--max-width);
+  max-width: 900px;
   margin: 0 auto;
-  padding: 48px 40px;
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 40px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 40px;
@@ -620,12 +590,54 @@ form textarea { min-height: 120px; resize: vertical; }
 .home-hero-nieuws {
   right: 40px;
   top: 40px;
-  width: 640px;
+  width: 720px;
   background: var(--yellow);
   color: var(--blue-dark);
 }
 
 .home-hero-nieuws .section-title { color: var(--blue-dark); }
+
+/* "Laatste nieuws" en "Volgende event" naast elkaar in dezelfde kaart -
+   elke kolom heeft zijn eigen onafhankelijke .nieuws-slider-instantie
+   (zie static/js/home_slider.js, dat toch al elke [data-nieuws-slider]
+   apart aanstuurt). */
+.home-hero-nieuws-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.home-hero-nieuws-col-divider {
+  border-left: 1px solid rgba(3, 35, 73, 0.15);
+  padding-left: 24px;
+}
+
+/* Beide kolommen worden door de grid-standaard (align-items:stretch) al
+   even hoog gemaakt - deze kolom zelf moet dan ook een flex-kolom zijn
+   zodat .nieuws-slider die volledige hoogte kan doorgeven aan de puntjes
+   hieronder (zie .nieuws-slider-dots: margin-top:auto), ongeacht hoeveel
+   tekst een bericht/event heeft. */
+.home-hero-nieuws-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.nieuws-slide-datum {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+@media (max-width: 640px) {
+  .home-hero-nieuws-split { grid-template-columns: 1fr; }
+  .home-hero-nieuws-col-divider {
+    border-left: none;
+    border-top: 1px solid rgba(3, 35, 73, 0.15);
+    padding-left: 0;
+    padding-top: 20px;
+  }
+}
 
 /* De brede .home-hero-nieuws-kaart (640px) zou onder ~1100px in de weg
    zitten van .home-hero-kalender bij absolute positionering - daarom ligt
@@ -648,6 +660,12 @@ form textarea { min-height: 120px; resize: vertical; }
 /* =========================================================
    NIEUWS-SLIDER (homepage)
    ========================================================= */
+.nieuws-slider {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
 .nieuws-slider-viewport { overflow: hidden; border-radius: var(--radius-sm); }
 
 .nieuws-slider-track {
@@ -671,13 +689,14 @@ form textarea { min-height: 120px; resize: vertical; }
 }
 
 .nieuws-slide .nieuws-lees-meer { margin: 12px 0 0; }
-.nieuws-slide .nieuws-lees-meer a { color: var(--blue-dark); font-weight: 700; }
+.nieuws-slide .nieuws-lees-meer a { color: var(--blue-dark); font-weight: 700; text-decoration: none; }
 
 .nieuws-slider-dots {
   display: flex;
   justify-content: center;
   gap: 8px;
-  margin-top: 18px;
+  margin-top: auto;
+  padding-top: 18px;
 }
 
 .nieuws-slider-dot {
@@ -700,10 +719,10 @@ form textarea { min-height: 120px; resize: vertical; }
 /* =========================================================
    PROMO-KAARTEN (sporten op maat)
    ========================================================= */
-/* Links een gestapelde kolom (Ballenbaasjes + Flanders Trophy, zie
-   .promo-cards-stack), rechts de FIT-Handbal-kaart - align-items:stretch
-   (grid-standaard) laat die kaart de volledige hoogte van de linkerstapel
-   volgen, net als in de mockup. */
+/* Twee gestapelde kolommen (elk .promo-cards-stack): links Ballenbaasjes +
+   Flanders Trophy + Jeugdhandbal, rechts FIT-Handbal + G-Handbal -
+   align-items:stretch (grid-standaard) laat beide stapels de volledige
+   hoogte van de hoogste kolom volgen, net als in de mockup. */
 .promo-cards {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -715,6 +734,16 @@ form textarea { min-height: 120px; resize: vertical; }
   display: flex;
   flex-direction: column;
   gap: 24px;
+}
+
+/* De kortere stapel (2 kaarten) moet even hoog eindigen als de langere
+   (3 kaarten) - .promo-cards rekt beide stapels al even hoog uit
+   (align-items:stretch), maar zonder dit zouden de kaarten daarbinnen op
+   hun eigen inhoudshoogte blijven staan en onderaan gewoon lege
+   navy-ruimte overlaten. flex:1 verdeelt die overschot gelijk over de
+   kaarten van de kortste stapel. */
+.promo-cards-stack > .promo-card {
+  flex: 1;
 }
 
 .promo-card {
@@ -740,7 +769,7 @@ form textarea { min-height: 120px; resize: vertical; }
 .promo-card-stacked {
   flex-direction: column;
   align-items: flex-start;
-  justify-content: flex-start;
+  justify-content: space-between;
 }
 
 .promo-card h2 { margin: 0 0 8px; font-size: 22px; }
@@ -789,6 +818,18 @@ form textarea { min-height: 120px; resize: vertical; }
   box-shadow: var(--shadow);
 }
 
+/* Het clubembleem heeft een transparante achtergrond en een brede,
+   onregelmatige vorm - geen box-shadow/border-radius zoals de andere
+   kaartafbeeldingen (dat zou een storend rechthoekig schaduwvlak rond de
+   transparante ruimte geven). */
+.promo-card-jeugd-logo {
+  flex-shrink: 0;
+  width: auto;
+  height: 140px;
+  max-width: 220px;
+  object-fit: contain;
+}
+
 .promo-card-flanders-image {
   flex-shrink: 0;
   width: 120px;
@@ -799,8 +840,9 @@ form textarea { min-height: 120px; resize: vertical; }
 }
 
 /* Neemt ongeveer de volledige breedte van de kaart in (met de kaart-padding
-   als marge), i.p.v. ernaast op een vaste, kleinere breedte te staan. */
-.promo-card-fit-logo {
+   als marge), i.p.v. ernaast op een vaste, kleinere breedte te staan -
+   gebruikt door zowel de FIT-Handbal- als de G-Handbal-kaart. */
+.promo-card-full-logo {
   flex-shrink: 0;
   width: 100%;
   height: auto;
@@ -1074,6 +1116,18 @@ body.club-page, body.kalender-page, body.dames-page, body.heren-page, body.jeugd
   margin-bottom: 24px;
 }
 
+.club-team-omschrijving {
+  white-space: pre-line;
+  margin: 0 0 20px;
+  max-width: 640px;
+}
+
+.club-team-trainer {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+  margin: -12px 0 20px;
+}
+
 /* Vaste rooster (beker linksboven, Europees rechtsboven, landskampioen
    linksonder) i.p.v. gewoon volgorde-op-volgorde, zodat een ploeg zonder
    Europese wedstrijden gewoon die cel leeg laat i.p.v. alles op te
@@ -1221,6 +1275,8 @@ body.club-page, body.kalender-page, body.dames-page, body.heren-page, body.jeugd
 }
 
 .team-training > p { color: rgba(255, 255, 255, 0.9); line-height: 1.6; margin: 0 0 14px; }
+.team-training ul, .team-training ol { margin: 0 0 14px; padding-left: 22px; }
+.team-training li { color: rgba(255, 255, 255, 0.9); line-height: 1.6; margin-bottom: 6px; }
 
 .team-inschrijving-link a { color: var(--blue-dark); font-weight: 700; text-decoration: none; }
 
@@ -1304,7 +1360,7 @@ body.content-page, body.auth-page { background: var(--blue); }
 .content-preview-card.groot .content-preview-tekst { -webkit-line-clamp: 10; }
 
 .content-preview-lees-meer { margin-top: auto; padding-top: 14px; }
-.content-preview-lees-meer a { color: var(--blue-dark); font-weight: 700; text-decoration: none; }
+.content-preview-lees-meer a, .content-preview-lees-meer span { color: var(--blue-dark); font-weight: 700; text-decoration: none; }
 
 /* Auth-kaart (login/registreren) - zelfde motief als .club-card, maar
    smaller en gecentreerd. */
@@ -1880,8 +1936,46 @@ body.home-page .site-footer { margin-top: 0; }
   text-align: center;
 }
 
+.footer-sponsors {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 40px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding-top: 24px;
+}
+
+.footer-sponsors h3 {
+  color: var(--white);
+  font-size: 15px;
+  margin: 0 0 16px;
+}
+
+.footer-sponsors-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+}
+
+.footer-sponsor-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+}
+
+.footer-sponsor-logo img {
+  max-height: 38px;
+  max-width: 120px;
+  object-fit: contain;
+}
+
 @media (max-width: 860px) {
   .footer-content { padding: 36px 20px 20px; }
+  .footer-sponsors { padding: 24px 20px 24px; }
   .footer-bottom { padding: 16px 20px 20px; }
 }
 
@@ -2006,8 +2100,8 @@ nav#nav-menu > ul {
   .navbar { height: auto; padding: 16px 0; }
   nav#nav-menu { left: 0; right: 0; width: auto; }
 
-  .hero, .hero.hero-short, .cart-hero { padding: 40px 20px; }
-  .hero h1, .cart-hero h1 { font-size: 30px; }
+  .hero, .hero.hero-short { padding: 40px 20px; }
+  .hero h1 { font-size: 30px; }
   .section { padding: 36px 20px; }
 }
 

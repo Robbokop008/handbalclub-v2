@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 from extensions import db
 from models import (
     Product, ProductVariant, User, Order, ORDER_STATUSES, Inschrijving, VergeetMijVerzoek,
-    Page, PageBlock, PAGE_BLOCK_TYPES, NavItem, NAV_ITEM_TYPES, NieuwsBericht, NIEUWS_CATEGORIEEN, Sponsor, Team,
+    Page, PageBlock, PAGE_BLOCK_TYPES, NavItem, NAV_ITEM_TYPES, NieuwsBericht, NIEUWS_CATEGORIEEN, Evenement, Sponsor, Team,
     TEAM_SECTIES, TEAM_SECTIE_LABELS, School, SiteText,
     InschrijvingCategorie, HoeGehoordOptie, InschrijvingVeldConfig, INSCHRIJVING_VELD_DEFINITIES,
 )
@@ -104,6 +104,17 @@ def _parse_datetime_local(value):
         return None
     try:
         return datetime.strptime(value, "%Y-%m-%dT%H:%M")
+    except ValueError:
+        return None
+
+
+def _parse_date(value):
+    """Parseert de waarde van een <input type="date"> (bv. '2026-10-12'),
+    geeft None terug als de waarde leeg of ongeldig is."""
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
     except ValueError:
         return None
 
@@ -1286,6 +1297,83 @@ def move_nieuws(bericht_id):
             db.session.commit()
 
     return redirect(url_for("admin.nieuws"))
+
+
+@admin_bp.route("/evenementen")
+@admin_required
+def evenementen():
+    alle_evenementen = Evenement.query.order_by(Evenement.datum.asc()).all()
+    return render_template(
+        "admin/evenementen_list.html", user=g.user, evenementen=alle_evenementen,
+        huidige_datum=datetime.utcnow().date(),
+    )
+
+
+@admin_bp.route("/evenementen/add", methods=["GET", "POST"])
+@admin_required
+def add_evenement():
+    if request.method == "GET":
+        return render_template("admin/evenementen_form.html", user=g.user, evenement=None)
+
+    titel = (request.form.get("titel") or "").strip()
+    datum = _parse_date(request.form.get("datum"))
+    tekst = (request.form.get("tekst") or "").strip()
+
+    error = None
+    if not titel or not datum or not tekst:
+        error = "Titel, datum en tekst zijn verplicht."
+
+    if error:
+        return render_template(
+            "admin/evenementen_form.html", user=g.user, evenement=None, error=error,
+            form_titel=titel, form_datum=request.form.get("datum"), form_tekst=tekst,
+        )
+
+    evenement = Evenement(titel=titel, datum=datum, tekst=tekst)
+    db.session.add(evenement)
+    db.session.commit()
+    return redirect(url_for("admin.evenementen"))
+
+
+@admin_bp.route("/evenementen/<int:evenement_id>/edit", methods=["GET", "POST"])
+@admin_required
+def edit_evenement(evenement_id):
+    evenement = Evenement.query.get(evenement_id)
+    if evenement is None:
+        return redirect(url_for("admin.evenementen"))
+
+    if request.method == "GET":
+        return render_template("admin/evenementen_form.html", user=g.user, evenement=evenement)
+
+    titel = (request.form.get("titel") or "").strip()
+    datum = _parse_date(request.form.get("datum"))
+    tekst = (request.form.get("tekst") or "").strip()
+
+    error = None
+    if not titel or not datum or not tekst:
+        error = "Titel, datum en tekst zijn verplicht."
+
+    if error:
+        return render_template(
+            "admin/evenementen_form.html", user=g.user, evenement=evenement, error=error,
+            form_titel=titel, form_datum=request.form.get("datum"), form_tekst=tekst,
+        )
+
+    evenement.titel = titel
+    evenement.datum = datum
+    evenement.tekst = tekst
+    db.session.commit()
+    return redirect(url_for("admin.evenementen"))
+
+
+@admin_bp.route("/evenementen/<int:evenement_id>/delete", methods=["POST"])
+@admin_required
+def delete_evenement(evenement_id):
+    evenement = Evenement.query.get(evenement_id)
+    if evenement is not None:
+        db.session.delete(evenement)
+        db.session.commit()
+    return redirect(url_for("admin.evenementen"))
 
 
 @admin_bp.route("/sponsors")

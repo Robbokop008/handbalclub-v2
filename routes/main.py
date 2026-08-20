@@ -13,10 +13,12 @@ G-Handbal/FIT-Handbal), linkte niets meer naar deze generieke pagina's -
 zie de projectaudit die dit aan het licht bracht.
 """
 
+from datetime import date
+
 from flask import Blueprint, render_template, request, current_app, abort, redirect, url_for
 
 from extensions import db, limiter
-from models import NieuwsBericht, VergeetMijVerzoek
+from models import NieuwsBericht, Evenement, VergeetMijVerzoek
 from utils.mail import send_contact_mail, send_vergeet_mij_notification
 
 main_bp = Blueprint("main", __name__)
@@ -27,8 +29,12 @@ def home():
     laatste_nieuws = (
         NieuwsBericht.query.order_by(NieuwsBericht.position).limit(5).all()
     )
+    volgende_evenementen = (
+        Evenement.query.filter(Evenement.datum >= date.today())
+        .order_by(Evenement.datum.asc()).limit(5).all()
+    )
     return render_template(
-        "index.html", nieuwsberichten=laatste_nieuws,
+        "index.html", nieuwsberichten=laatste_nieuws, evenementen=volgende_evenementen,
         spond_embed_url=current_app.config["SPOND_EMBED_URL"],
         flanders_trophy_website_url=current_app.config["FLANDERS_TROPHY_WEBSITE_URL"],
         flanders_trophy_instagram_url=current_app.config["FLANDERS_TROPHY_INSTAGRAM_URL"],

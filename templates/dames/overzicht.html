@@ -8,7 +8,9 @@
     <details class="club-accordion-item">
         <summary>{{ team_1_beloften.naam if team_1_beloften else "Dames 1 & Beloften" }}</summary>
         <div class="club-accordion-body">
+            {{ team_macros.team_omschrijving(team_1_beloften) }}
             {{ team_macros.team_photo(team_1_beloften, "Ploegfoto Dames 1 & Beloften") }}
+            {{ team_macros.team_trainer(team_1_beloften) }}
             {{ team_macros.team_achievements(team_1_beloften, europees=true) }}
         </div>
     </details>
@@ -16,7 +18,9 @@
     <details class="club-accordion-item">
         <summary>{{ team_regio.naam if team_regio else "Dames Regio" }}</summary>
         <div class="club-accordion-body">
+            {{ team_macros.team_omschrijving(team_regio) }}
             {{ team_macros.team_photo(team_regio, "Ploegfoto Dames Regio") }}
+            {{ team_macros.team_trainer(team_regio) }}
             {{ team_macros.team_achievements(team_regio, europees=false) }}
         </div>
     </details>

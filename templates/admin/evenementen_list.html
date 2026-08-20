@@ -1,0 +1,47 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - Evenementen{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>Evenementen beheren</h1>
+    <p>Toekomstige evenementen (op datum) verschijnen op de homepage bij "Volgende event". Verlopen evenementen blijven hier zichtbaar, maar niet meer op de site.</p>
+</div>
+
+<section class="section">
+    <a href="{{ url_for('admin.add_evenement') }}" class="admin-button" style="display:inline-block;margin-bottom:24px;">Nieuw evenement toevoegen</a>
+
+    {% if evenementen %}
+    <div class="table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Titel</th>
+                    <th>Status</th>
+                    <th>Acties</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for evenement in evenementen %}
+                <tr>
+                    <td>{{ evenement.datum.strftime('%d/%m/%Y') }}</td>
+                    <td>{{ evenement.titel }}</td>
+                    <td><span class="order-status-badge">{{ 'Verlopen' if evenement.datum < huidige_datum else 'Toekomstig' }}</span></td>
+                    <td>
+                        <a href="{{ url_for('admin.edit_evenement', evenement_id=evenement.id) }}" class="admin-button btn-sm">Bewerken</a>
+                        <form action="{{ url_for('admin.delete_evenement', evenement_id=evenement.id) }}" method="post" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Dit evenement verwijderen?');">Verwijderen</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p>Er zijn nog geen evenementen toegevoegd.</p>
+    {% endif %}
+</section>
+{% endblock %}

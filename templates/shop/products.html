@@ -3,45 +3,32 @@
 {% block title %}Handbal Sint-Truiden | Producten{% endblock %}
 
 {% block content %}
-<section class="hero hero-short">
-    <div class="hero-content">
-        <h1>{{ site_teksten.shop_hero_titel }}</h1>
-        <a href="#products" class="cta-button">Bekijk onze producten</a>
-    </div>
+<section class="club-hero">
+    <h1>{{ site_teksten.shop_hero_titel }}</h1>
+    <p><a href="#products" class="profile-action-button">Bekijk onze producten</a></p>
 </section>
 
 {% if products %}
 <section class="section" id="products">
-    <h2 class="section-title">Onze producten</h2>
-    <div class="products-grid">
+    <div class="content-grid">
         {% for product in products %}
         <a href="{{ url_for('shop.product_detail', product_id=product.product_id) }}" style="text-decoration:none; color:inherit;">
-            <article class="product-card">
-                <div class="product-image">
-                    {% if product.image_url %}
-                        <img src="{{ url_for('static', filename='images/' + product.image_url) }}" alt="{{ product.product_name }}">
-                    {% endif %}
-                </div>
-                <div class="product-info">
-                    <h3 class="product-name">{{ product.product_name }}</h3>
-                    <p class="product-description">{{ product.description }}</p>
-                    <p class="product-printing-availability muted">
-                        {% if product.printing_available %}
-                            <strong>Printing beschikbaar</strong>
-                        {% else %}
-                            <strong>Printing niet beschikbaar</strong>
-                        {% endif %}
-                    </p>
-                    <button class="add-to-cart">Bekijk product</button>
-                </div>
-            </article>
+            <div class="content-preview-card">
+                {% if product.image_url %}
+                <img src="{{ url_for('static', filename='images/' + product.image_url) }}" alt="{{ product.product_name }}">
+                {% endif %}
+                <h3>{{ product.product_name }}</h3>
+                <p class="content-preview-tekst">{{ product.description }}</p>
+                <p class="content-preview-meta">{{ 'Printing beschikbaar' if product.printing_available else 'Printing niet beschikbaar' }}</p>
+                <p class="content-preview-lees-meer"><span>Bekijk product &rarr;</span></p>
+            </div>
         </a>
         {% endfor %}
     </div>
 </section>
 {% else %}
 <section class="section">
-    <p>Er zijn op dit moment geen producten beschikbaar. Probeer het later opnieuw.</p>
+    <p style="text-align:center;color:rgba(255,255,255,0.8);">Er zijn op dit moment geen producten beschikbaar. Probeer het later opnieuw.</p>
 </section>
 {% endif %}
 {% endblock %}

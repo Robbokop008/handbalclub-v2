@@ -4,11 +4,9 @@
 
 {% block content %}
 {% if items %}
-<section class="hero cart-hero">
-    <div class="cart-hero-content">
-        <h1>{{ site_teksten.cart_hero_titel }}</h1>
-        <p>{{ site_teksten.cart_hero_subtitel }}</p>
-    </div>
+<section class="club-hero">
+    <h1>{{ site_teksten.cart_hero_titel }}</h1>
+    <p>{{ site_teksten.cart_hero_subtitel }}</p>
 </section>
 
 <section class="section">
@@ -88,12 +86,10 @@
     </div>
 </section>
 {% else %}
-<section class="hero cart-hero">
-    <div class="cart-hero-content">
-        <h1>{{ site_teksten.cart_leeg_hero_titel }}</h1>
-        <p>{{ site_teksten.cart_leeg_hero_subtitel }}</p>
-        <a href="{{ url_for('shop.products') }}#products" class="cta-button">Bekijk producten</a>
-    </div>
+<section class="club-hero">
+    <h1>{{ site_teksten.cart_leeg_hero_titel }}</h1>
+    <p>{{ site_teksten.cart_leeg_hero_subtitel }}</p>
+    <p><a href="{{ url_for('shop.products') }}#products" class="profile-action-button">Bekijk producten</a></p>
 </section>
 {% endif %}
 {% endblock %}

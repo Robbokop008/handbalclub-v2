@@ -4,6 +4,7 @@
 
 {% block content %}
 {% if product %}
+<section class="section">
 <div class="product-detail">
     <div class="main-image">
         {% if product.image_url %}
@@ -106,7 +107,8 @@
         {% endif %}
     </aside>
 </div>
+</section>
 {% else %}
-<div class="section"><p>Product niet gevonden.</p></div>
+<section class="section"><p style="text-align:center;color:rgba(255,255,255,0.8);">Product niet gevonden.</p></section>
 {% endif %}
 {% endblock %}

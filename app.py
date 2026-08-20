@@ -91,15 +91,18 @@ def create_app(config_name="development"):
     def inject_site_teksten():
         return {"site_teksten": get_site_teksten()}
 
-    # Stelt de eerste 2 actieve sponsors beschikbaar in elke template, voor
-    # de "hoofdsponsor"-logo's naast het hamburgermenu in de header.
+    # Stelt de sponsors beschikbaar in elke template: de eerste 2 actieve
+    # sponsors als "hoofdsponsor"-logo's naast het hamburgermenu in de
+    # header, en alle actieve sponsors in de sponsorenlijst in de footer
+    # (anders zijn sponsors vanaf de 3e nergens op de site zichtbaar).
     from models import Sponsor
 
     @app.context_processor
-    def inject_header_sponsors():
+    def inject_sponsors():
+        alle_sponsors = Sponsor.query.filter_by(is_active=True).order_by(Sponsor.position).all()
         return {
-            "header_sponsors": Sponsor.query.filter_by(is_active=True)
-            .order_by(Sponsor.position).limit(2).all()
+            "header_sponsors": alle_sponsors[:2],
+            "footer_sponsors": alle_sponsors,
         }
 
     # Footer-copyrightjaar: automatisch het huidige jaar, niet iets wat een
@@ -129,6 +132,10 @@ def create_app(config_name="development"):
         "main.nieuws": "content-page",
         "main.nieuws_detail": "content-page",
         "pages.view": "content-page",
+        "shop.products": "content-page",
+        "shop.product_detail": "content-page",
+        "shop.cart": "content-page",
+        "shop.checkout_success": "content-page",
         "auth.login": "auth-page",
         "auth.register": "auth-page",
         "auth.profile": "auth-page",

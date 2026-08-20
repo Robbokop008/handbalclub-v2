@@ -10,6 +10,20 @@
 {% endif %}
 {% endmacro %}
 
+{# Enkel getoond als een admin effectief een trainer heeft ingevuld - anders
+   geen lege regel, in tegenstelling tot de X-placeholder bij de badges. #}
+{% macro team_trainer(team) %}
+{% if team and team.trainer %}
+    <p class="club-team-trainer">Trainer: {{ team.trainer }}</p>
+{% endif %}
+{% endmacro %}
+
+{% macro team_omschrijving(team) %}
+{% if team and team.omschrijving %}
+    <p class="club-team-omschrijving">{{ team.omschrijving }}</p>
+{% endif %}
+{% endmacro %}
+
 {# europees bepaalt of de badge structureel voor dit team getoond wordt
    (Dames Regio/Heren 2 hebben nooit Europees gespeeld - dat blijft een
    keuze per template-aanroep), los van het aantal zelf: dat komt nu uit

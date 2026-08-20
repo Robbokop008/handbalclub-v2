@@ -83,8 +83,24 @@ class NieuwsBericht(db.Model):
         return f"<NieuwsBericht {self.titel}>"
 
 
+class Evenement(db.Model):
+    """Los van de Spond-kalender-embed (die biedt geen koppelbare/openbare API) -
+    voor het 'Volgende event'-blokje naast 'Laatste nieuws' op de homepage.
+    Volgorde is altijd chronologisch (datum), geen handmatige position zoals
+    bij NieuwsBericht - zie main.home (enkel toekomstige events, op datum)."""
+    __tablename__ = "evenementen"
+
+    id = db.Column(db.Integer, primary_key=True)
+    titel = db.Column(db.String(200), nullable=False)
+    datum = db.Column(db.Date, nullable=False)
+    tekst = db.Column(db.Text, nullable=False)
+
+    def __repr__(self):
+        return f"<Evenement {self.titel} ({self.datum})>"
+
+
 class Sponsor(db.Model):
-    """Een sponsor, getoond in de sponsorbalk op de homepage."""
+    """Een sponsor: de eerste 2 (actief, op volgorde) in de header, alle actieve in de footer."""
     __tablename__ = "sponsors"
 
     id = db.Column(db.Integer, primary_key=True)
