@@ -175,21 +175,31 @@ def create_app(config_name="development"):
     def te_veel_aanvragen(_error):
         return render_template("errors/429.html"), 429
 
-    # Baseline HTTP-securityheaders op elke response. Geen Content-Security-
-    # Policy hier: de site gebruikt op verschillende plekken inline <style>/
-    # <script>, en een CSP zonder zorgvuldige nonce-aanpak zou die stukken
-    # zomaar kunnen blokkeren - dat is bewust buiten deze scope gehouden.
+    # Baseline HTTP-securityheaders op elke response. Geen volledige Content-
+    # Security-Policy hier: de site gebruikt op verschillende plekken inline
+    # <style>/<script>, en een CSP zonder zorgvuldige nonce-aanpak zou die
+    # stukken zomaar kunnen blokkeren - dat is bewust buiten deze scope
+    # gehouden. De frame-ancestors-directive hieronder is een uitzondering:
+    # die regelt enkel wie mag framen en raakt scripts/styles niet.
+    TOEGESTANE_FRAME_ANCESTOR = "https://handbalsint-truiden.be"
+
     @app.after_request
     def voeg_security_headers_toe(response):
         response.headers["X-Content-Type-Options"] = "nosniff"
         # De admin-preview van een pagina moet in een eigen <iframe> in het
         # bewerkscherm kunnen tonen (zie admin.preview_page) - enkel daar
-        # SAMEORIGIN i.p.v. DENY, zodat framen van buitenaf nog steeds
-        # geblokkeerd blijft.
+        # SAMEORIGIN i.p.v. framen van buitenaf.
         if request.endpoint == "admin.preview_page":
             response.headers["X-Frame-Options"] = "SAMEORIGIN"
         else:
-            response.headers["X-Frame-Options"] = "DENY"
+            # X-Frame-Options kent geen "sta enkel dit domein toe" (de
+            # ALLOW-FROM-waarde is verouderd en wordt niet meer ondersteund
+            # door moderne browsers), dus gebruiken we hiervoor de CSP
+            # frame-ancestors-directive. X-Frame-Options laten we hier weg
+            # zodat browsers niet toch terugvallen op de strengere DENY.
+            response.headers["Content-Security-Policy"] = (
+                f"frame-ancestors 'self' {TOEGESTANE_FRAME_ANCESTOR}"
+            )
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         return response
 
