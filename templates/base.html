@@ -96,6 +96,8 @@
                 <ul>
                     <li><a href="{{ url_for('main.contact') }}">Verzending</a></li>
                     <li><a href="{{ url_for('main.contact') }}">Veelgestelde Vragen</a></li>
+                    <li><a href="{{ url_for('pages.view', slug='algemene-voorwaarden') }}">Algemene voorwaarden</a></li>
+                    <li><a href="{{ url_for('pages.view', slug='privacybeleid-webshop') }}">Privacybeleid</a></li>
                     <li><a href="{{ url_for('main.vergeet_mij') }}">Vergeet Mij (GDPR)</a></li>
                 </ul>
             </div>
@@ -108,6 +110,17 @@
                     <li><a href="https://www.tiktok.com/@handbal.sinttruiden?_r=1&_t=ZG-990brt2tXkm" target="_blank" rel="noopener">TikTok</a></li>
                     <li><a href="https://linktr.ee/handbal.sinttruiden" target="_blank" rel="noopener">Linktree</a></li>
                 </ul>
+            </div>
+
+            <div class="footer-section">
+                <h3>Gegevens</h3>
+                <p>
+                    HB Sint-Truiden jm vzw<br>
+                    Kortenbosstraat 58<br>
+                    3800 Sint-Truiden<br>
+                    Ondernemingsnr./BTW: BE 0430.144.817<br>
+                    <a href="mailto:info@handbalsint-truiden.be">info@handbalsint-truiden.be</a>
+                </p>
             </div>
         </div>
         {% if footer_sponsors|length > 2 %}

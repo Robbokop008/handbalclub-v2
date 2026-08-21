@@ -2156,6 +2156,30 @@ nav#nav-menu > ul {
   margin: 12px 0;
 }
 
+/* Generieke pagina's (/pagina/<slug>) tonen hun blokken sinds kort
+   rechtstreeks op de navy achtergrond i.p.v. in een witte .content-card -
+   zelfde motief als .club-accordion-body. Enkel .page-body MET deze
+   extra klasse krijgt deze lichte tekstkleuren: nieuws_detail.html
+   gebruikt .page-body ook, maar zonder .page-body-navy, en blijft dus
+   gewoon donkere tekst tonen in zijn eigen witte .content-card. */
+.page-body-navy { color: rgba(255, 255, 255, 0.9); }
+
+.page-body-navy h2, .page-body-navy h3, .page-body-navy h4 { color: var(--yellow); }
+.page-body-navy h2 { font-size: 26px; margin: 0 0 16px; }
+.page-body-navy h3 { font-size: 20px; margin: 24px 0 12px; }
+.page-body-navy h4 { font-size: 17px; margin: 20px 0 10px; }
+.page-body-navy p { margin: 0 0 14px; line-height: 1.6; }
+.page-body-navy p:last-child { margin-bottom: 0; }
+.page-body-navy ul, .page-body-navy ol { margin: 0 0 14px; padding-left: 22px; }
+.page-body-navy li { margin-bottom: 6px; line-height: 1.6; }
+.page-body-navy a { color: var(--yellow); }
+
+/* De tabelrand (.page-body th/td) en -kop blijven anders leesbaar: de
+   kop-achtergrond (--blue-light) is zelf licht, dus die tekst moet donker
+   blijven i.p.v. de omgevingskleur van .page-body-navy te volgen. */
+.page-body.page-body-navy th { color: var(--ink); }
+.page-body.page-body-navy th, .page-body.page-body-navy td { border-color: rgba(255, 255, 255, 0.2); }
+
 /* =========================================================
    PAGINABLOKKEN (page-builder, zie templates/pages/_blocks/)
    ========================================================= */
@@ -2173,7 +2197,13 @@ nav#nav-menu > ul {
 .block-align-right { text-align: right; }
 
 .block-bg-licht, .block-bg-blauw, .block-bg-donker { border-radius: var(--radius); padding: 28px; }
-.block-bg-licht { background: var(--blue-light); }
+/* Eigen (donkere) tekstkleur nodig sinds .page-body-navy de omgeving
+   standaard licht kleurt - deze kaart heeft zelf een lichte achtergrond,
+   dus moet net als voorheen z'n eigen kleur vasthouden i.p.v. mee te
+   lichten. */
+.block-bg-licht { background: var(--blue-light); color: var(--ink); }
+.block-bg-licht h2, .block-bg-licht h3, .block-bg-licht h4 { color: var(--blue); }
+.block-bg-licht a { color: var(--blue-dark); }
 .block-bg-blauw { background: var(--blue); color: var(--white); }
 .block-bg-blauw h2, .block-bg-blauw h3, .block-bg-blauw h4, .block-bg-blauw a { color: var(--white); }
 .block-bg-donker { background: var(--blue-dark); color: var(--white); }
@@ -2271,14 +2301,16 @@ nav#nav-menu > ul {
 
 .block-stat { text-align: center; }
 
+/* Standaard geel (leesbaar op de navy paginabodem, zie .page-body-navy) -
+   enkel op de eigen lichte .block-bg-licht-kaart moet dit blauw blijven. */
 .block-stat-getal {
   display: block;
   font-size: 40px;
   font-weight: 800;
-  color: var(--blue);
+  color: var(--yellow);
 }
 
-.block-bg-blauw .block-stat-getal, .block-bg-donker .block-stat-getal { color: var(--yellow); }
+.block-bg-licht .block-stat-getal { color: var(--blue); }
 
 .block-stat-label {
   display: block;

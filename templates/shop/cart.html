@@ -77,11 +77,20 @@
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button class="btn btn-secondary">Leegmaken</button>
                 </form>
-                <form action="{{ url_for('shop.checkout') }}" method="POST">
+                <form id="checkout-form" action="{{ url_for('shop.checkout') }}" method="POST">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button class="cta-button">Bestellen</button>
                 </form>
             </div>
+            <p class="muted" style="margin-top:10px;">
+                <label class="checkbox-inline">
+                    <input type="checkbox" name="akkoord_voorwaarden" value="1" form="checkout-form" required{{ ' checked' if akkoord_voorwaarden else '' }}>
+                    Ik ga akkoord met de
+                    <a href="{{ url_for('pages.view', slug='algemene-voorwaarden') }}" target="_blank" rel="noopener">algemene voorwaarden</a>
+                    (retourbeleid &amp; herroepingsrecht) en het
+                    <a href="{{ url_for('pages.view', slug='privacybeleid-webshop') }}" target="_blank" rel="noopener">privacybeleid</a>.
+                </label>
+            </p>
         </div>
     </div>
 </section>

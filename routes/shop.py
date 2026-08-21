@@ -210,7 +210,11 @@ def checkout():
     if not items:
         return redirect(url_for("shop.cart"))
 
+    akkoord_voorwaarden = request.form.get("akkoord_voorwaarden") == "1"
+
     errors = []
+    if not akkoord_voorwaarden:
+        errors.append("Je moet akkoord gaan met de algemene voorwaarden en het privacybeleid om te bestellen.")
     for item in items:
         variant = item["variant"]
         if not variant.is_active:
@@ -226,6 +230,7 @@ def checkout():
         return render_template(
             "shop/cart.html", items=items, total_price=subtotal, errors=errors,
             remaining_for_free_shipping=remaining_for_free_shipping,
+            akkoord_voorwaarden=akkoord_voorwaarden,
         )
 
     # Gratis verzending vanaf de drempel: onder de drempel de shipping rate
