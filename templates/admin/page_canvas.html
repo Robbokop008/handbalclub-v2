@@ -68,6 +68,10 @@
                     <input type="file" id="hero_image" name="hero_image" accept="image/*">
                     {% if page.hero_image %}<p class="muted">Huidige afbeelding: {{ page.hero_image }}</p>{% endif %}
                 </div>
+                <div style="grid-column:1/-1;">
+                    <label for="meta_description">Omschrijving voor Google (meta-description, optioneel)</label>
+                    <textarea id="meta_description" name="meta_description" rows="2" maxlength="300" placeholder="Korte omschrijving (max. ~155 tekens) die Google onder de titel toont in zoekresultaten. Leeg = algemene sitetekst.">{{ form_meta_description if form_meta_description is defined else (page.meta_description or '') }}</textarea>
+                </div>
                 <div class="checkbox-field">
                     {% set published = form_is_published if form_is_published is defined else page.is_published %}
                     <label for="is_published"><input type="checkbox" id="is_published" name="is_published" {{ 'checked' if published else '' }}> Gepubliceerd (zichtbaar voor bezoekers)</label>

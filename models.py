@@ -308,6 +308,10 @@ class Page(db.Model):
     title = db.Column(db.String(200), nullable=False)
     body_html = db.Column(db.Text, nullable=False, default="")
     hero_image = db.Column(db.String(255))   # bestandsnaam in static/images/
+    # Korte omschrijving (~155 tekens) voor de meta-description/og:description
+    # van deze pagina - zie templates/pages/view.html. Leeg = generieke
+    # sitebrede fallback (zie base.html).
+    meta_description = db.Column(db.String(300))
     is_published = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

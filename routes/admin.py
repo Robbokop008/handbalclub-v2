@@ -754,6 +754,7 @@ def add_page():
     title = (request.form.get("title") or "").strip()
     slug = _slugify(request.form.get("slug") or title)
     is_published = bool(request.form.get("is_published"))
+    meta_description = (request.form.get("meta_description") or "").strip() or None
     hero_image = _save_uploaded_image(request.files.get("hero_image"))
 
     error = None
@@ -772,9 +773,13 @@ def add_page():
         return render_template(
             "admin/page_form.html", user=g.user, error=error,
             form_title=title, form_slug=slug, form_is_published=is_published,
+            form_meta_description=meta_description,
         )
 
-    page = Page(title=title, slug=slug, hero_image=hero_image, is_published=is_published)
+    page = Page(
+        title=title, slug=slug, hero_image=hero_image, is_published=is_published,
+        meta_description=meta_description,
+    )
     db.session.add(page)
     db.session.commit()
     # Meteen doorrollen naar het bewerkscherm: een pagina zonder inhoud
@@ -803,6 +808,7 @@ def edit_page(page_id):
     title = (request.form.get("title") or "").strip()
     slug = _slugify(request.form.get("slug") or title)
     is_published = bool(request.form.get("is_published"))
+    meta_description = (request.form.get("meta_description") or "").strip() or None
 
     error = None
     if not title:
@@ -813,11 +819,15 @@ def edit_page(page_id):
         error = f"Er bestaat al een andere pagina met slug '{slug}'. Kies een andere titel of slug."
 
     if error:
-        return _render_page_edit(page, error=error, form_title=title, form_slug=slug, form_is_published=is_published)
+        return _render_page_edit(
+            page, error=error, form_title=title, form_slug=slug, form_is_published=is_published,
+            form_meta_description=meta_description,
+        )
 
     page.title = title
     page.slug = slug
     page.is_published = is_published
+    page.meta_description = meta_description
 
     new_image = _save_uploaded_image(request.files.get("hero_image"))
     if new_image:

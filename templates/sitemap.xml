@@ -1,0 +1,14 @@
+{%- macro url_entry(entry) -%}
+    <url>
+        <loc>{{ entry.loc }}</loc>
+        {% if entry.lastmod %}<lastmod>{{ entry.lastmod }}</lastmod>{% endif %}
+        <changefreq>{{ entry.changefreq }}</changefreq>
+        <priority>{{ "%.1f"|format(entry.priority) }}</priority>
+    </url>
+{%- endmacro -%}
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{% for entry in entries -%}
+{{ url_entry(entry) }}
+{% endfor -%}
+</urlset>

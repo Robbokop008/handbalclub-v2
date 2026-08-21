@@ -1,6 +1,30 @@
 {% extends "base.html" %}
 
 {% block title %}{{ bericht.titel }} - Handbal Sint-Truiden{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+{% block og_image %}{{ url_for('static', filename='images/' + bericht.afbeelding, _external=True) if bericht.afbeelding else super() }}{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": {{ bericht.titel | tojson }},
+    "description": {{ meta_description | tojson }},
+    "url": "{{ self.canonical_url() }}",
+    {% if bericht.afbeelding %}"image": "{{ url_for('static', filename='images/' + bericht.afbeelding, _external=True) }}",{% endif %}
+    "datePublished": {{ (bericht.gepubliceerd_op.isoformat() if bericht.gepubliceerd_op else '') | tojson }},
+    "publisher": {
+        "@type": "Organization",
+        "name": "Handbal Sint-Truiden",
+        "logo": {
+            "@type": "ImageObject",
+            "url": "{{ url_for('static', filename='images/18919afe-6798-4a27-9306-3ecf4c779bb8.png', _external=True) }}"
+        }
+    }
+}
+</script>
+{% endblock %}
 
 {% block content %}
 <section class="club-hero">

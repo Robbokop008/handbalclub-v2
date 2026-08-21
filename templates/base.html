@@ -4,6 +4,74 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Handbal Sint-Truiden{% endblock %}</title>
+
+    {# Standaard meta-description: elke pagina kan dit overschrijven met
+       {% block meta_description %}...{% endblock %} (zie bv.
+       templates/pages/view.html en templates/nieuws_detail.html). Google
+       toont dit als omschrijving onder de titel in zoekresultaten. #}
+    <meta name="description" content="{% block meta_description %}Handbal Sint-Truiden (HB Sint-Truiden jm vzw) is de handbalclub van Sint-Truiden, met jeugd-, dames-, heren-, G- en FIT-handbalwerking. Kom langs of word lid!{% endblock %}">
+
+    {# Canonical URL: de "officiële" versie van deze pagina, los van eventuele
+       query-parameters. Voorkomt dat Google dezelfde inhoud op meerdere
+       URL's als duplicate content behandelt. Een pagina kan dit overschrijven
+       met {% block canonical_url %}...{% endblock %} (bv. na een redirect-
+       waardige alias). #}
+    <link rel="canonical" href="{% block canonical_url %}{{ request.url_root.rstrip('/') }}{{ request.path }}{% endblock %}">
+
+    {# robots.txt sluit /admin, login, winkelmandje e.d. al uit, maar sommige
+       pagina's (bv. het account-gedeelte) hebben ook geen waarde in
+       zoekresultaten als ze via een interne link toch gecrawld worden.
+       Individuele templates kunnen dit overschrijven met
+       {% block robots_meta %}noindex, nofollow{% endblock %}. #}
+    <meta name="robots" content="{% block robots_meta %}index, follow{% endblock %}">
+
+    {# Open Graph / Twitter Cards: hoe een link naar deze pagina eruitziet
+       wanneer die gedeeld wordt (Facebook, Instagram, WhatsApp, Twitter/X).
+       self.title()/self.meta_description() hergebruiken de blocks hierboven
+       zodat dit niet dubbel ingevuld moet worden per pagina. #}
+    <meta property="og:site_name" content="Handbal Sint-Truiden">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="nl_BE">
+    <meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}">
+    <meta property="og:description" content="{{ self.meta_description() }}">
+    <meta property="og:url" content="{{ self.canonical_url() }}">
+    <meta property="og:image" content="{% block og_image %}{{ url_for('static', filename='images/18919afe-6798-4a27-9306-3ecf4c779bb8.png', _external=True) }}{% endblock %}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ self.og_title() }}">
+    <meta name="twitter:description" content="{{ self.meta_description() }}">
+    <meta name="twitter:image" content="{{ self.og_image() }}">
+
+    {# Sitebrede structured data (JSON-LD): vertelt zoekmachines/Google Maps
+       wat voor organisatie dit is, waar en hoe te bereiken - basis voor een
+       Google Knowledge Panel. Paginaspecifieke schema's (bv. een
+       nieuwsbericht als Article) komen via {% block structured_data %}. #}
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SportsClub",
+        "name": "Handbal Sint-Truiden",
+        "alternateName": "HB Sint-Truiden jm vzw",
+        "url": "{{ url_for('main.home', _external=True) }}",
+        "logo": "{{ url_for('static', filename='images/18919afe-6798-4a27-9306-3ecf4c779bb8.png', _external=True) }}",
+        "email": "info@handbalsint-truiden.be",
+        "sport": "Handball",
+        "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "Kortenbosstraat 58",
+            "postalCode": "3800",
+            "addressLocality": "Sint-Truiden",
+            "addressCountry": "BE"
+        },
+        "sameAs": [
+            "https://www.instagram.com/hbsinttruiden/",
+            "https://www.facebook.com/hbsinttruiden/",
+            "https://www.tiktok.com/@handbal.sinttruiden",
+            "https://linktr.ee/handbal.sinttruiden"
+        ]
+    }
+    </script>
+    {% block structured_data %}{% endblock %}
+
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
 </head>

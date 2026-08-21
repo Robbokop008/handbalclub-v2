@@ -1,6 +1,31 @@
 {% extends "base.html" %}
 
-{% block title %}{{ product.product_name }} - Product{% endblock %}
+{% block title %}{{ product.product_name }} - Webshop - Handbal Sint-Truiden{% endblock %}
+{% block meta_description %}{{ (product.description or (product.product_name + " - koop het in de webshop van Handbal Sint-Truiden.")) | truncate(160) }}{% endblock %}
+{% block og_image %}{{ url_for('static', filename='images/' + product.image_url, _external=True) if product and product.image_url else super() }}{% endblock %}
+
+{% block structured_data %}
+{% if product and variants %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": {{ product.product_name | tojson }},
+    "description": {{ (product.description or "") | tojson }},
+    {% if product.image_url %}"image": "{{ url_for('static', filename='images/' + product.image_url, _external=True) }}",{% endif %}
+    "offers": {
+        "@type": "AggregateOffer",
+        "priceCurrency": "EUR",
+        "lowPrice": {{ "%.2f"|format(variants | map(attribute='price') | min) }},
+        "highPrice": {{ "%.2f"|format(variants | map(attribute='price') | max) }},
+        "offerCount": {{ variants | length }},
+        "availability": "{{ 'https://schema.org/InStock' if (variants | selectattr('stock', 'gt', 0) | list) else 'https://schema.org/OutOfStock' }}",
+        "url": "{{ self.canonical_url() }}"
+    }
+}
+</script>
+{% endif %}
+{% endblock %}
 
 {% block content %}
 {% if product %}

@@ -63,3 +63,13 @@ def html_naar_platte_tekst(html):
     met_spaties = _BLOK_SLUIT_TAGS.sub(" ", html)
     zonder_tags = bleach.clean(met_spaties, tags=[], attributes={}, strip=True)
     return _WHITESPACE.sub(" ", zonder_tags).strip()
+
+
+def korte_omschrijving(tekst_of_html, max_len=160):
+    """Kapt platte tekst (of rich-text HTML) af tot max_len tekens op een
+    woordgrens, voor gebruik als meta-description/og:description - zie
+    routes/main.py:nieuws_detail."""
+    platte_tekst = html_naar_platte_tekst(tekst_of_html)
+    if len(platte_tekst) <= max_len:
+        return platte_tekst
+    return platte_tekst[:max_len].rsplit(" ", 1)[0].rstrip(",.;:") + "…"
