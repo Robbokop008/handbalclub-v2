@@ -94,6 +94,11 @@ class Evenement(db.Model):
     titel = db.Column(db.String(200), nullable=False)
     datum = db.Column(db.Date, nullable=False)
     tekst = db.Column(db.Text, nullable=False)
+    # Optioneel: enkel ingevuld als een admin het meegeeft. Wordt gebruikt
+    # voor de Event-structured data (zie templates/index.html) - zonder
+    # locatie laten we die er bewust uit, in plaats van een adres te
+    # verzinnen dat voor een extern tornooi toch niet klopt.
+    locatie = db.Column(db.String(255))
 
     def __repr__(self):
         return f"<Evenement {self.titel} ({self.datum})>"

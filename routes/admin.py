@@ -1328,6 +1328,7 @@ def add_evenement():
     titel = (request.form.get("titel") or "").strip()
     datum = _parse_date(request.form.get("datum"))
     tekst = (request.form.get("tekst") or "").strip()
+    locatie = (request.form.get("locatie") or "").strip() or None
 
     error = None
     if not titel or not datum or not tekst:
@@ -1337,9 +1338,10 @@ def add_evenement():
         return render_template(
             "admin/evenementen_form.html", user=g.user, evenement=None, error=error,
             form_titel=titel, form_datum=request.form.get("datum"), form_tekst=tekst,
+            form_locatie=locatie or "",
         )
 
-    evenement = Evenement(titel=titel, datum=datum, tekst=tekst)
+    evenement = Evenement(titel=titel, datum=datum, tekst=tekst, locatie=locatie)
     db.session.add(evenement)
     db.session.commit()
     return redirect(url_for("admin.evenementen"))
@@ -1358,6 +1360,7 @@ def edit_evenement(evenement_id):
     titel = (request.form.get("titel") or "").strip()
     datum = _parse_date(request.form.get("datum"))
     tekst = (request.form.get("tekst") or "").strip()
+    locatie = (request.form.get("locatie") or "").strip() or None
 
     error = None
     if not titel or not datum or not tekst:
@@ -1367,11 +1370,13 @@ def edit_evenement(evenement_id):
         return render_template(
             "admin/evenementen_form.html", user=g.user, evenement=evenement, error=error,
             form_titel=titel, form_datum=request.form.get("datum"), form_tekst=tekst,
+            form_locatie=locatie or "",
         )
 
     evenement.titel = titel
     evenement.datum = datum
     evenement.tekst = tekst
+    evenement.locatie = locatie
     db.session.commit()
     return redirect(url_for("admin.evenementen"))
 

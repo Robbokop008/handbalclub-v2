@@ -25,8 +25,10 @@ handbalclub/
 │   ├── sanitize.py                   # Saniteert rich-text HTML (bleach) vóór opslag
 │   └── nav.py                          # Bouwt de navbar-boom op uit NavItem's
 ├── scripts/
-│   ├── seed_pages.py                     # Eenmalige migratie: placeholder-pagina's -> Page
-│   └── seed_nav.py                         # Eenmalige migratie: hardcoded navbar -> NavItem
+│   ├── update_site.py                    # Draai dit na een update op de hostingdienst - bundelt
+│   │                                        alle veilig-herhaalbare migrate_*/reorganize_*-scripts
+│   ├── seed_pages.py                     # Eenmalige bootstrap: placeholder-pagina's -> Page
+│   └── seed_nav.py                         # Eenmalige bootstrap: hardcoded navbar -> NavItem
 ├── templates/                       # Jinja2-templates, publieke kant via base.html
 │   ├── base.html                     # Gedeelde publieke layout (header/nav/footer),
 │   │                                    navbar wordt gerenderd uit nav_tree (zie utils/nav.py)
@@ -108,11 +110,27 @@ Het Profiel/Inloggen-blok en het winkelmandje-icoon in de navbar blijven
 bewust hardcoded in `base.html` (hun doel hangt af van de actieve sessie/
 blueprint, niet van beheerde content).
 
-`scripts/seed_pages.py` en `scripts/seed_nav.py` zijn de eenmalige
-migratiescripts die de oorspronkelijke hardcoded pagina's/navbar naar
-`Page`/`NavItem`-rijen omgezet hebben; ze zijn idempotent (opnieuw draaien
-overschrijft bestaande rijen met dezelfde slug/structuur) maar normaal
-gezien niet meer nodig na de eerste keer.
+`scripts/seed_pages.py`, `scripts/seed_teams.py`, `scripts/seed_nav.py` en
+`scripts/seed_legal_pages.py` zijn eenmalige bootstrap-scripts die enkel bij
+het allereerst opzetten van een nieuwe/lege databank gedraaid moeten
+worden: ze overschrijven content op basis van slug/label zonder te checken
+of die nadien via de admin aangepast is, dus NIET geschikt om zomaar
+opnieuw te draaien op een al-live site.
+
+Alle overige `scripts/migrate_*.py`- en `scripts/reorganize_*.py`-bestanden
+zijn wél altijd veilig herhaalbaar (ze controleren zelf of hun wijziging al
+is doorgevoerd). `scripts/update_site.py` bundelt die allemaal in de juiste
+volgorde tot één commando - dit is het script dat je na een update draait
+op de hostingdienst:
+
+```bash
+python scripts/update_site.py
+```
+
+Zet de omgevingsvariabele `FLASK_CONFIG=production` op de hostingdienst
+zodat scripts (via `scripts/_common.py`) dezelfde databankconfiguratie
+gebruiken als de live site zelf (zie `wsgi.py`) - zonder die variabele
+gebruiken scripts, net als lokaal, de development-config.
 
 Nog te bouwen in een volgende fase:
 - Het GDPR "vergeet mij"-formulier - momenteel een aankondigingspagina

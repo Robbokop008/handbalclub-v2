@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Er ging iets mis - Handbal Sint-Truiden{% endblock %}
+
+{% block content %}
+<section class="hero hero-short">
+    <div class="hero-content">
+        <h1>Er ging iets mis</h1>
+        <p>Er is een onverwachte fout opgetreden. Probeer het later opnieuw, of ga terug naar de homepage.</p>
+        <a href="{{ url_for('main.home') }}" class="cta-button">Terug naar de homepage</a>
+    </div>
+</section>
+{% endblock %}

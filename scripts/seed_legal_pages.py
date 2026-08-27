@@ -25,9 +25,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app import create_app
 from extensions import db
 from models import Page, PageBlock
+from scripts._common import get_app
 from utils.sanitize import sanitize_html
 
 
@@ -116,7 +116,7 @@ PAGES = [
 
 
 def run():
-    app = create_app("development")
+    app = get_app()
     with app.app_context():
         for entry in PAGES:
             page = Page.query.filter_by(slug=entry["slug"]).first()

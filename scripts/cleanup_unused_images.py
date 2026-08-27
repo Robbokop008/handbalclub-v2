@@ -16,8 +16,11 @@ Houdt rekening met:
       (scripts/migrate_pages_to_blocks.py leest ze enkel uit, wist niets)
   - afbeeldingen gebruikt in PageBlock's (image_gallery-/columns-blokken,
     zie utils/page_blocks.py)
-  - vaste bestanden die rechtstreeks in templates gebruikt worden, niet via
-    de databank (favicon.ico)
+  - afbeeldingen die rechtstreeks (hardcoded) in een .html-template staan
+    via url_for('static', filename='images/...'), bv. logo's/hero-foto's in
+    base.html of jeugd/overzicht.html - deze staan nergens in de databank,
+    dus zonder deze scan zou het script ze onterecht als "ongebruikt"
+    aanmerken (en met --delete effectief van de live site verwijderen)
 
 Standaard een "dry run": toont enkel wat verwijderd zou worden. Voeg
 --delete toe om ook effectief te verwijderen.
@@ -33,8 +36,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app import create_app
 from models import Page, NieuwsBericht, Team, Sponsor, Product
+from scripts._common import get_app
 from utils.page_blocks import block_afbeeldingsbestanden
 
 # Bestanden die nooit als 'ongebruikt' beschouwd mogen worden, ook al staan
@@ -43,6 +46,12 @@ VASTE_BESTANDEN = {"favicon.ico"}
 
 IMG_SRC_RE = re.compile(r"/static/images/([^\"'\s>]+)")
 
+TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
+# Vangt filename='images/naam.png' / filename="images/naam.png" - niet de
+# dynamische vorm filename='images/' + iets.image_url, want daar volgt de
+# sluitende quote meteen na 'images/' (geen tekens ertussen), dus geen match.
+TEMPLATE_IMG_RE = re.compile(r"""filename=['"]images/([^'"]+)['"]""")
+
 
 def _inline_afbeeldingen(html):
     if not html:
@@ -50,10 +59,20 @@ def _inline_afbeeldingen(html):
     return set(IMG_SRC_RE.findall(html))
 
 
+def _hardcoded_template_afbeeldingen():
+    """Afbeeldingen die rechtstreeks in een template-bestand staan i.p.v. via
+    de databank - zie de moduledocstring hierboven."""
+    gevonden = set()
+    for pad in TEMPLATES_DIR.rglob("*.html"):
+        gevonden |= set(TEMPLATE_IMG_RE.findall(pad.read_text(encoding="utf-8")))
+    return gevonden
+
+
 def run(effectief_verwijderen):
-    app = create_app("development")
+    app = get_app()
     with app.app_context():
         gebruikt = set(VASTE_BESTANDEN)
+        gebruikt |= _hardcoded_template_afbeeldingen()
 
         for page in Page.query.all():
             if page.hero_image:

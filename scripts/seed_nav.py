@@ -28,9 +28,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app import create_app
 from extensions import db
 from models import NavItem, Page
+from scripts._common import get_app
 
 
 def _page_id(slug):
@@ -53,7 +53,7 @@ def _add(parent, position, label, **kwargs):
 
 
 def run():
-    app = create_app("development")
+    app = get_app()
     with app.app_context():
         NavItem.query.delete()
         db.session.commit()

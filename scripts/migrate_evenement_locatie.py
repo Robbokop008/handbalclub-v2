@@ -1,15 +1,15 @@
 """
-scripts/migrate_page_meta_description.py
-------------------------------------------
-Eenmalig migratiescript: voegt de kolom meta_description toe aan de
-bestaande pages-tabel (zie models.Page). db.create_all() maakt enkel
+scripts/migrate_evenement_locatie.py
+--------------------------------------
+Eenmalig migratiescript: voegt de kolom locatie toe aan de bestaande
+evenementen-tabel (zie models.Evenement). db.create_all() maakt enkel
 NIEUWE tabellen aan en wijzigt geen bestaande - vandaar een directe
 ALTER TABLE, zelfde aanpak als scripts/migrate_team_achievements.py.
 
 Idempotent: slaat de kolom over als ze al bestaat.
 
 Gebruik:
-    python scripts/migrate_page_meta_description.py
+    python scripts/migrate_evenement_locatie.py
 """
 
 import sys
@@ -23,7 +23,7 @@ from scripts._common import add_column_if_missing, get_app
 def run():
     app = get_app()
     with app.app_context():
-        add_column_if_missing("pages", "meta_description", "VARCHAR(300)")
+        add_column_if_missing("evenementen", "locatie", "VARCHAR(255)")
         print("klaar")
 
 

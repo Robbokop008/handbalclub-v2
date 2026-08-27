@@ -36,9 +36,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app import create_app
 from extensions import db
 from models import Page, SiteText
+from scripts._common import get_app
 
 DODE_PAGE_SLUGS = [
     "kalender-trainingen", "kalender-evenementen",
@@ -53,7 +53,7 @@ DODE_SITE_TEXT_SLEUTELS = [
 
 
 def run():
-    app = create_app("development")
+    app = get_app()
     with app.app_context():
         for slug in DODE_PAGE_SLUGS:
             page = Page.query.filter_by(slug=slug).first()

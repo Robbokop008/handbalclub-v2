@@ -18,13 +18,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app import create_app
 from extensions import db
 from models import Page, PageBlock
+from scripts._common import get_app
 
 
 def run():
-    app = create_app("development")
+    app = get_app()
     with app.app_context():
         for page in Page.query.order_by(Page.slug).all():
             if PageBlock.query.filter_by(page_id=page.id).count() > 0:

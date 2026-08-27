@@ -23,6 +23,10 @@
             <label for="datum">Datum</label>
             <input type="date" id="datum" name="datum" value="{{ form_datum if form_datum is defined else (evenement.datum.strftime('%Y-%m-%d') if evenement else '') }}" required>
         </div>
+        <div>
+            <label for="locatie">Locatie (optioneel)</label>
+            <input type="text" id="locatie" name="locatie" placeholder="bv. Sporthal Kortenbos, Kortenbosstraat 58, Sint-Truiden" value="{{ form_locatie if form_locatie is defined else (evenement.locatie if evenement and evenement.locatie else '') }}">
+        </div>
         <div style="grid-column:1/-1;">
             <label for="tekst">Tekst</label>
             <textarea id="tekst" name="tekst" rows="4" required>{{ form_tekst if form_tekst is defined else (evenement.tekst if evenement else '') }}</textarea>

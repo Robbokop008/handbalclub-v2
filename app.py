@@ -175,6 +175,22 @@ def create_app(config_name="development"):
     def te_veel_aanvragen(_error):
         return render_template("errors/429.html"), 429
 
+    @app.errorhandler(500)
+    def interne_fout(_error):
+        # errors/500.html extend base.html, en base.html haalt via de
+        # context processors hierboven (nav, site_teksten, sponsors) dingen
+        # uit de database op. Als de 500 zelf door een databaseprobleem
+        # kwam, zou die render dus ook mislukken - vandaar deze fallback
+        # naar kale HTML in plaats van een tweede crash.
+        try:
+            return render_template("errors/500.html"), 500
+        except Exception:
+            return (
+                "<h1>Er ging iets mis</h1>"
+                "<p>Er is een onverwachte fout opgetreden. Probeer het later opnieuw.</p>"
+                '<p><a href="/">Terug naar de homepage</a></p>'
+            ), 500
+
     # Baseline HTTP-securityheaders op elke response. Geen volledige Content-
     # Security-Policy hier: de site gebruikt op verschillende plekken inline
     # <style>/<script>, en een CSP zonder zorgvuldige nonce-aanpak zou die
@@ -201,6 +217,15 @@ def create_app(config_name="development"):
                 f"frame-ancestors 'self' {TOEGESTANE_FRAME_ANCESTOR}"
             )
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        # HSTS: dwingt de browser om deze site voortaan altijd via https te
+        # benaderen, ook als iemand per ongeluk http:// intypt. Enkel in
+        # productie - anders zou een browser die lokaal ooit via https
+        # test (bv. via een tunnel) dit voor het dev-domein blijven
+        # onthouden en lokaal http-gebruik blokkeren.
+        if not app.debug:
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains"
+            )
         return response
 
     return app

@@ -21,13 +21,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app import create_app
 from extensions import db
 from models import NavItem, Page
+from scripts._common import get_app
 
 
 def run():
-    app = create_app("development")
+    app = get_app()
     with app.app_context():
         bestaand = NavItem.query.filter_by(parent_id=None, label="Over ons").first()
         if bestaand is not None:

@@ -74,6 +74,14 @@
 
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+
+    {# PWA-basis: hiermee kan een bezoeker de site "toevoegen aan
+       beginscherm" met een correct icoon en naam i.p.v. een kale
+       bladwijzer met het favicon. Bewust zonder service worker/offline-
+       ondersteuning - daar is momenteel geen concrete behoefte aan. #}
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/icons/apple-touch-icon.png') }}">
+    <meta name="theme-color" content="#05316b">
 </head>
 <body{% if body_page_class %} class="{{ body_page_class }}"{% endif %}>
     <header class="site-header">

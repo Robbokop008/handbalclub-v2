@@ -4,6 +4,21 @@
    aan om het thema (kleuren, afronding, ...) overal te wijzigen.
    ========================================================= */
 
+/* Visueel verborgen, maar wel voorleesbaar door screenreaders. Voor content
+   (zoals een pagina-h1) die de heading-structuur klopt maakt zonder het
+   ontworpen uiterlijk te veranderen. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 :root {
   /* Club colors - officiële HBST-kleurcodes */
   --blue: #05316b;

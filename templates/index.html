@@ -2,7 +2,35 @@
 
 {% block title %}Handbal Sint-Truiden{% endblock %}
 
+{% block structured_data %}
+{% for evenement in evenementen %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "Event",
+    "name": {{ evenement.titel | tojson }},
+    "description": {{ (evenement.tekst | platte_tekst) | tojson }},
+    "startDate": {{ evenement.datum.isoformat() | tojson }},
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "url": "{{ url_for('kalender.overzicht', _external=True) }}",
+    {% if evenement.locatie %}"location": {
+        "@type": "Place",
+        "name": {{ evenement.locatie | tojson }},
+        "address": {{ evenement.locatie | tojson }}
+    },{% endif %}
+    "organizer": {
+        "@type": "Organization",
+        "name": "Handbal Sint-Truiden",
+        "url": "{{ url_for('main.home', _external=True) }}"
+    }
+}
+</script>
+{% endfor %}
+{% endblock %}
+
 {% block content %}
+<h1 class="sr-only">Handbal Sint-Truiden</h1>
 <section class="home-hero">
     <div class="home-hero-photo-placeholder" style="background-image:url('{{ url_for('static', filename='images/home-hero-team-photo.jpg') }}');"></div>
 
