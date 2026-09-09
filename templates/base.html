@@ -173,8 +173,11 @@
                     <li><a href="{{ url_for('main.contact') }}">Verzending</a></li>
                     <li><a href="{{ url_for('main.contact') }}">Veelgestelde Vragen</a></li>
                     <li><a href="{{ url_for('pages.view', slug='algemene-voorwaarden') }}">Algemene voorwaarden</a></li>
-                    <li><a href="{{ url_for('pages.view', slug='privacybeleid-webshop') }}">Privacybeleid</a></li>
+                    <li><a href="{{ url_for('pages.view', slug='privacybeleid') }}">Privacybeleid</a></li>
                     <li><a href="{{ url_for('main.vergeet_mij') }}">Vergeet Mij (GDPR)</a></li>
+                    {% if ga_measurement_id %}
+                    <li><button type="button" id="cookie-instellingen-link" class="footer-link-button">Cookie-instellingen</button></li>
+                    {% endif %}
                 </ul>
             </div>
 
@@ -218,9 +221,91 @@
         </div>
         {% endif %}
         <div class="footer-bottom">
-            <p>&copy; {{ huidig_jaar }} Robbe Boyen. Alle rechten voorbehouden.</p>
+            <p>&copy; {{ huidig_jaar }} Handbal Sint-Truiden. Alle rechten voorbehouden.</p>
         </div>
     </footer>
+
+    {% if ga_measurement_id %}
+    {# Cookiebanner: Google Analytics laadt pas na expliciete toestemming
+       (AVG/GDPR - geen niet-noodzakelijke cookies vóór consent), zie het
+       script hieronder. "Weigeren" laadt nooit iets van Google; de keuze
+       wordt onthouden in localStorage zodat de banner niet elk bezoek
+       terugkomt. Enkel aanwezig als GA_MEASUREMENT_ID ingesteld is - zie
+       config.py. #}
+    <div id="cookiebanner" class="cookiebanner" hidden data-ga-id="{{ ga_measurement_id }}">
+        <p>
+            We gebruiken Google Analytics om anonieme bezoekersstatistieken bij te houden. Dat doen we enkel met jouw toestemming - lees meer in ons <a href="{{ url_for('pages.view', slug='privacybeleid') }}">privacybeleid</a>.
+        </p>
+        <div class="cookiebanner-acties">
+            <button type="button" id="cookiebanner-weigeren" class="btn btn-secondary btn-sm">Weigeren</button>
+            <button type="button" id="cookiebanner-accepteren" class="cta-button btn-sm">Accepteren</button>
+        </div>
+    </div>
+    <script>
+        (function () {
+            const banner = document.getElementById('cookiebanner');
+            const GA_ID = banner.dataset.gaId;
+            const OPSLAGSLEUTEL = 'hbst_cookie_keuze';
+
+            function opgeslagenKeuze() {
+                try {
+                    return localStorage.getItem(OPSLAGSLEUTEL);
+                } catch (e) {
+                    return null;   // bv. privénavigatie zonder opslagtoegang
+                }
+            }
+
+            function bewaarKeuze(keuze) {
+                try {
+                    localStorage.setItem(OPSLAGSLEUTEL, keuze);
+                } catch (e) {
+                    // Kan niet onthouden worden - banner komt dan gewoon opnieuw
+                    // terug bij een volgend bezoek, geen harde fout nodig.
+                }
+            }
+
+            function laadGoogleAnalytics() {
+                if (window.dataLayer) return;   // al geladen
+                window.dataLayer = window.dataLayer || [];
+                window.gtag = function () { dataLayer.push(arguments); };
+                gtag('js', new Date());
+                gtag('config', GA_ID, { anonymize_ip: true });
+
+                const script = document.createElement('script');
+                script.async = true;
+                script.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
+                document.head.appendChild(script);
+            }
+
+            function toonBanner() { banner.hidden = false; }
+            function verbergBanner() { banner.hidden = true; }
+
+            const keuze = opgeslagenKeuze();
+            if (keuze === 'geaccepteerd') {
+                laadGoogleAnalytics();
+            } else if (keuze !== 'geweigerd') {
+                toonBanner();
+            }
+
+            document.getElementById('cookiebanner-accepteren').addEventListener('click', () => {
+                bewaarKeuze('geaccepteerd');
+                laadGoogleAnalytics();
+                verbergBanner();
+            });
+            document.getElementById('cookiebanner-weigeren').addEventListener('click', () => {
+                bewaarKeuze('geweigerd');
+                verbergBanner();
+            });
+
+            // Footer-link "Cookie-instellingen": laat de banner opnieuw zien
+            // zodat een bezoeker zijn keuze later nog kan wijzigen.
+            const instellingenLink = document.getElementById('cookie-instellingen-link');
+            if (instellingenLink) {
+                instellingenLink.addEventListener('click', toonBanner);
+            }
+        })();
+    </script>
+    {% endif %}
 
     <script>
         const menuToggle = document.getElementById('menu-toggle');

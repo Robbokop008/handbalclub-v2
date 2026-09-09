@@ -31,6 +31,7 @@ from utils.auth import admin_required
 from utils.mail import send_admin_cancellation_mail
 from utils.sanitize import sanitize_html
 from utils.site_text import SITE_TEXT_PAGINAS, vind_pagina, get_site_teksten
+from utils.site_settings import is_onderhoudsmodus_actief, zet_onderhoudsmodus
 from utils.nav import _resolve_url as _resolve_nav_item_url
 from utils.inschrijving import get_inschrijving_categorieen, get_hoe_gehoord_opties, get_inschrijving_veld_config
 from utils.page_blocks import block_afbeeldingsbestanden, afbeeldingen_uit_data
@@ -359,7 +360,15 @@ def dashboard():
     return render_template(
         "admin.html", user=g.user,
         acties=_dashboard_acties(), waarschuwingen=_dashboard_waarschuwingen(),
+        onderhoudsmodus_actief=is_onderhoudsmodus_actief(),
     )
+
+
+@admin_bp.route("/onderhoudsmodus/toggle", methods=["POST"])
+@admin_required
+def toggle_onderhoudsmodus():
+    zet_onderhoudsmodus(not is_onderhoudsmodus_actief())
+    return redirect(url_for("admin.dashboard"))
 
 
 @admin_bp.route("/products")

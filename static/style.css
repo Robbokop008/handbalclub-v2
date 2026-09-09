@@ -1680,6 +1680,36 @@ body.content-page, body.auth-page { background: var(--blue); }
 .admin-page-header h1 { color: var(--blue); font-size: 26px; margin: 0 0 6px; }
 .admin-page-header p { color: var(--muted); font-size: 15px; margin: 0; }
 
+/* Dashboard: onderhoudsmodus-banner (zie routes/admin.py:dashboard). Groene
+   rand/achtergrond in rust (site staat online), rode zodra actief (site
+   staat offline voor bezoekers) - zelfde --success/--danger-variabelen als
+   de rest van de admin (bv. de actief/inactief-knoppen bij sponsors).
+   Selector met 3 klassen (i.p.v. de gebruikelijke 2, zoals ".admin-content
+   .section") is bewust: de generieke ".admin-content .section"-reset
+   hieronder (padding/margin op 0) staat verderop in dit bestand en zou door
+   de gelijke specificiteit anders alsnog winnen - vandaar de banner zonder
+   eigen padding/marge oogde. */
+.admin-content .section.onderhoudsmodus-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 20px;
+  margin: 0 0 28px;
+  border-radius: 10px;
+  border: 1px solid var(--success);
+  background: var(--success-bg);
+}
+.admin-content .section.onderhoudsmodus-banner-actief {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+}
+.onderhoudsmodus-banner form { flex-shrink: 0; }
+
+@media (max-width: 600px) {
+  .admin-content .section.onderhoudsmodus-banner { flex-direction: column; align-items: stretch; }
+}
+
 /* De bestaande .section-wrapper binnen .admin-content hergebruikt zonder
    de publieke centrerings-/padding-regels (de sidebar begrenst de breedte
    al) en linksuitgelijnd i.p.v. gecentreerd zoals op de publieke site. */
@@ -1936,6 +1966,60 @@ body.home-page .site-footer { margin-top: 0; }
 }
 
 .footer-section a:hover { color: var(--white); }
+
+/* "Cookie-instellingen" in de footer is een <button>, geen <a> (opent enkel
+   de cookiebanner opnieuw via JS, geen echte pagina) - zelfde ogende link
+   als de rest van .footer-section, zonder standaard knop-chrome. */
+.footer-link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  text-align: left;
+}
+.footer-link-button:hover { color: var(--white); }
+
+/* Cookiebanner (zie base.html): losstaand kaartje onderaan het scherm,
+   werkt op elke pagina (ook navy) dus met eigen witte achtergrond i.p.v.
+   de omgevingskleuren te volgen. [hidden] heeft hier bewust een eigen
+   regel met hogere specificiteit dan .cookiebanner zelf, want een
+   "display"-declaratie in een gewone auteursregel wint anders van de
+   browser-standaard [hidden]-regel bij gelijke specificiteit (die telt als
+   user-agent-stijl, dus lager in de cascade dan om het even welke van
+   onze eigen regels) - zonder dit blijft de banner zichtbaar. */
+.cookiebanner {
+  position: fixed;
+  left: 20px;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1000;
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  border-radius: 12px;
+  background: var(--white);
+  color: var(--ink);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+}
+.cookiebanner[hidden] { display: none; }
+.cookiebanner p { margin: 0; font-size: 14px; line-height: 1.5; flex: 1 1 320px; }
+.cookiebanner a { color: var(--blue); }
+.cookiebanner-acties { display: flex; gap: 10px; flex-shrink: 0; }
+
+@media (max-width: 600px) {
+  .cookiebanner { left: 12px; right: 12px; bottom: 12px; padding: 16px; }
+  .cookiebanner-acties { width: 100%; }
+  .cookiebanner-acties .btn, .cookiebanner-acties .cta-button { flex: 1; text-align: center; }
+}
 
 .footer-bottom {
   max-width: var(--max-width);

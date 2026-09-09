@@ -10,6 +10,7 @@ Starten voor development doe je via run.py, niet via dit bestand direct.
 """
 
 from flask import Flask, render_template, request
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from config import config_by_name, ONVEILIGE_STANDAARD_SECRET_KEY
 from extensions import db, csrf, limiter
@@ -20,6 +21,16 @@ def create_app(config_name="development"):
 
     app = Flask(__name__)
     app.config.from_object(config_by_name[config_name])
+
+    # Op productie (Hetzner) draait gunicorn achter één reverse proxy (nginx).
+    # Zonder ProxyFix ziet Flask elk request als afkomstig van nginx zelf
+    # (127.0.0.1) i.p.v. het echte client-IP - dat breekt Flask-Limiter
+    # (@limiter.limit op login/contact/etc. zou dan alle bezoekers samen
+    # limiteren) en request.is_secure (nginx praat intern http met gunicorn).
+    # x_for/x_proto/x_host=1: vertrouw exact één hop aan X-Forwarded-*
+    # headers, precies zoveel als de nginx-laag ervoor toevoegt.
+    if config_name == "production":
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     # Geen stille onveilige standaardwaarde in productie: als SECRET_KEY niet
     # via de omgevingsvariabelen ingesteld is, valt Config terug op een
@@ -113,6 +124,14 @@ def create_app(config_name="development"):
     def inject_huidig_jaar():
         return {"huidig_jaar": _datetime.utcnow().year}
 
+    # Stelt het Google Analytics Measurement ID beschikbaar in elke template
+    # (base.html laadt het gtag-script + cookiebanner enkel als dit gezet
+    # is - zie config.py). Via app.config i.p.v. een aparte SiteText-sleutel:
+    # dit is een technisch ID, geen door een admin te bewerken tekst.
+    @app.context_processor
+    def inject_ga_measurement_id():
+        return {"ga_measurement_id": app.config.get("GA_MEASUREMENT_ID")}
+
     # Welke body-class (navy achtergrond + restyled kaarten/hero, zie
     # static/style.css) een pagina krijgt, per route-endpoint. Dit was een
     # groeiende if/elif-keten in templates/base.html - bij elke nieuwe
@@ -190,6 +209,41 @@ def create_app(config_name="development"):
                 "<p>Er is een onverwachte fout opgetreden. Probeer het later opnieuw.</p>"
                 '<p><a href="/">Terug naar de homepage</a></p>'
             ), 500
+
+    # Onderhoudsmodus: als een admin dit via /admin aanzet, krijgt IEDEREEN
+    # (ook een ingelogde admin, buiten het adminpaneel zelf) onderhoud.html
+    # te zien i.p.v. de opgevraagde pagina - zie utils/site_settings.py.
+    # Uitgezonderd: het admin-paneel zelf (anders kan niemand de modus nog
+    # uitzetten), /login en /logout (zodat een admin nog kan in-/uitloggen),
+    # de Stripe-webhook (machine-naar-machine, geen bezoeker die de melding
+    # moet zien - anders stapelen mislukte afleverpogingen zich op bij
+    # Stripe), en statische bestanden (nodig om onderhoud.html zelf correct
+    # te tonen).
+    ONDERHOUDSMODUS_TOEGESTANE_ENDPOINTS = {
+        "static", "auth.login", "auth.logout", "shop.stripe_webhook",
+    }
+
+    @app.before_request
+    def check_onderhoudsmodus():
+        if request.blueprint == "admin" or request.endpoint in ONDERHOUDSMODUS_TOEGESTANE_ENDPOINTS:
+            return None
+
+        from utils.site_settings import is_onderhoudsmodus_actief
+        if not is_onderhoudsmodus_actief():
+            return None
+
+        # Retry-After: vertelt browsers/zoekmachines dat dit tijdelijk is
+        # (kom over een uur terug) i.p.v. de pagina als permanent verdwenen
+        # te behandelen.
+        #
+        # body_page_class expliciet op None: de context-processor hierboven
+        # (inject_body_page_class) leidt die anders af uit de oorspronkelijk
+        # opgevraagde pagina (bv. "home-page"/"club-page" -> navy
+        # achtergrond, zie static/style.css). onderhoud.html's tekst gebruikt
+        # de kleuren voor de standaard lichte achtergrond, dus zonder deze
+        # override kan de tekst - afhankelijk van welke URL bezocht werd -
+        # onleesbaar donker-op-donker uitvallen.
+        return render_template("onderhoud.html", body_page_class=None), 503, {"Retry-After": "3600"}
 
     # Baseline HTTP-securityheaders op elke response. Geen volledige Content-
     # Security-Policy hier: de site gebruikt op verschillende plekken inline

@@ -3,7 +3,7 @@ scripts/seed_legal_pages.py
 -----------------------------
 Eenmalig seed-script: zet de wettelijk verplichte webshop-informatie
 (bedrijfsgegevens, herroepingsrecht/retourbeleid, privacyverklaring) om in
-twee Page-rijen ("algemene-voorwaarden" en "privacybeleid-webshop"), zodat
+twee Page-rijen ("algemene-voorwaarden" en "privacybeleid"), zodat
 ze via /pagina/<slug> getoond worden en nadien via de admin bewerkbaar
 zijn. De inhoud is 1-op-1 overgenomen uit het document met de wettelijke
 verplichtingen dat de club heeft aangeleverd.
@@ -62,38 +62,43 @@ PAGES = [
         """,
     },
     {
-        "slug": "privacybeleid-webshop",
-        "title": "Privacyverklaring webshop",
+        "slug": "privacybeleid",
+        "title": "Privacyverklaring",
         "html": """
-            <p>HB Sint-Truiden hecht belang aan de bescherming van uw persoonsgegevens. Persoonsgegevens die via onze webshop worden verzameld, worden verwerkt in overeenstemming met de toepasselijke privacywetgeving, waaronder de Algemene Verordening Gegevensbescherming (AVG/GDPR).</p>
+            <p>HB Sint-Truiden hecht belang aan de bescherming van uw persoonsgegevens. Deze verklaring geldt voor de volledige website handbalsint-truiden.be (niet enkel de webshop) en legt uit welke gegevens we verzamelen, waarom, en welke rechten u heeft. Persoonsgegevens worden verwerkt in overeenstemming met de toepasselijke privacywetgeving, waaronder de Algemene Verordening Gegevensbescherming (AVG/GDPR).</p>
 
-            <h2>Welke gegevens verwerken wij?</h2>
-            <p>Bij het plaatsen en verwerken van een bestelling kunnen wij onder andere volgende gegevens verwerken:</p>
-            <ul>
-                <li>naam en voornaam;</li>
-                <li>adresgegevens;</li>
-                <li>e-mailadres en eventueel telefoonnummer;</li>
-                <li>bestel- en leveringsgegevens;</li>
-                <li>gegevens die nodig zijn voor personalisatie van artikelen;</li>
-                <li>betaal- en facturatiegegevens.</li>
-            </ul>
+            <h2>Wie is verantwoordelijk voor de verwerking?</h2>
+            <p>
+                HB Sint-Truiden jm vzw<br>
+                Kortenbosstraat 58<br>
+                3800 Sint-Truiden<br>
+                <a href="mailto:info@handbalsint-truiden.be">info@handbalsint-truiden.be</a><br>
+                Ondernemingsnummer en BTW-nummer (vzw): BE 0430.144.817
+            </p>
 
-            <h2>Waarvoor gebruiken wij deze gegevens?</h2>
-            <p>Uw persoonsgegevens worden uitsluitend verwerkt voor doeleinden die verband houden met onze webshop, waaronder:</p>
-            <ul>
-                <li>het registreren en uitvoeren van uw bestelling;</li>
-                <li>betaling en facturatie;</li>
-                <li>levering of afhaling van bestelde artikelen;</li>
-                <li>personalisatie van bestelde artikelen;</li>
-                <li>communicatie over uw bestelling;</li>
-                <li>retourzendingen, klachten en klantenservice;</li>
-                <li>het naleven van wettelijke en boekhoudkundige verplichtingen.</li>
-            </ul>
-            <p>Uw gegevens worden niet voor commerciële doeleinden aan derden verkocht.</p>
+            <h2>Welke gegevens verwerken wij, en waarom?</h2>
+
+            <h3>Contactformulier</h3>
+            <p>Wanneer u het contactformulier invult, verwerken wij uw naam, e-mailadres en bericht om uw vraag te kunnen beantwoorden.</p>
+
+            <h3>Inschrijving Jeugd, G-Handbal of FIT-Handbal</h3>
+            <p>Bij een inschrijving verwerken wij gegevens van de speler (naam, geboortedatum, geboorteplaats, adres) en contactgegevens (e-mailadres, telefoonnummer), en eventueel school en een vrije opmerking. Deze gegevens zijn nodig om de inschrijving te verwerken en de speler bij de juiste ploeg/categorie in te delen.</p>
+
+            <h3>Gebruikersaccount en webshopbestellingen</h3>
+            <p>Bij het aanmaken van een account en het plaatsen van een bestelling in onze webshop verwerken wij onder andere: naam, adresgegevens, e-mailadres en eventueel telefoonnummer, bestel- en leveringsgegevens, gegevens die nodig zijn voor personalisatie van artikelen, en betaal- en facturatiegegevens.</p>
+
+            <h3>GDPR "vergeet mij"-verzoeken</h3>
+            <p>Wanneer u een verzoek indient om uw gegevens te laten verwijderen, verwerken wij de gegevens die u daarbij zelf opgeeft (naam, e-mailadres, eventueel lidnummer en opmerking), enkel om dat verzoek te kunnen behandelen.</p>
+
+            <p>Uw gegevens worden nooit voor commerciële doeleinden aan derden verkocht.</p>
+
+            <h2>Cookies en Google Analytics</h2>
+            <p>Onze website gebruikt zelf enkel strikt noodzakelijke cookies (bijvoorbeeld om u ingelogd te houden). Deze vereisen geen toestemming.</p>
+            <p>Daarnaast gebruiken we, enkel met uw toestemming, Google Analytics om anonieme, geaggregeerde bezoekersstatistieken bij te houden (bv. welke pagina's bezocht worden, hoelang, en met welk type toestel) - dit helpt ons de website te verbeteren. IP-adressen worden hierbij geanonimiseerd. Deze gegevens worden verwerkt door Google Ireland Limited/Google LLC, die daarbij als verwerker optreedt; gegevens kunnen worden doorgegeven naar de Verenigde Staten in overeenstemming met de daarvoor geldende Europese waarborgen.</p>
+            <p>Bij uw eerste bezoek vraagt een banner onderaan de pagina om uw toestemming. Zolang u niet expliciet akkoord gaat, wordt er geen Analytics-script geladen en worden er geen trackingcookies geplaatst. U kan uw keuze op elk moment wijzigen via de link "Cookie-instellingen" onderaan elke pagina.</p>
 
             <h2>Delen met derden</h2>
-            <p>Wanneer dit noodzakelijk is voor de uitvoering van uw bestelling, kunnen bepaalde persoonsgegevens worden gedeeld met dienstverleners die voor ons optreden, zoals onze betalingsprovider, leverancier of drukker, webshop-/hostingprovider en eventuele bezorgdiensten.</p>
-            <p>Wij delen daarbij uitsluitend de gegevens die noodzakelijk zijn voor de betreffende dienstverlening.</p>
+            <p>Wanneer dit noodzakelijk is voor de uitvoering van een bestelling of inschrijving, kunnen bepaalde persoonsgegevens worden gedeeld met dienstverleners die voor ons optreden, zoals onze betalingsprovider, leverancier of drukker, hostingprovider, en (enkel na toestemming) Google Analytics. Wij delen daarbij uitsluitend de gegevens die noodzakelijk zijn voor de betreffende dienstverlening.</p>
 
             <h2>Bewaartermijn</h2>
             <p>Persoonsgegevens worden niet langer bewaard dan noodzakelijk voor het doel waarvoor ze werden verzameld, tenzij een langere bewaartermijn wettelijk verplicht is, bijvoorbeeld in het kader van boekhoudkundige verplichtingen.</p>
@@ -103,13 +108,14 @@ PAGES = [
             <ul>
                 <li>uw persoonsgegevens in te kijken;</li>
                 <li>onjuiste gegevens te laten verbeteren;</li>
-                <li>uw gegevens te laten verwijderen;</li>
+                <li>uw gegevens te laten verwijderen (zie ons <a href="/privacy/vergeet-mij">"vergeet mij"-formulier</a>);</li>
                 <li>de verwerking van uw gegevens te laten beperken;</li>
                 <li>bezwaar te maken tegen bepaalde verwerkingen;</li>
-                <li>uw persoonsgegevens over te dragen wanneer dit van toepassing is.</li>
+                <li>uw persoonsgegevens over te dragen wanneer dit van toepassing is;</li>
+                <li>uw toestemming voor Google Analytics op elk moment in te trekken via "Cookie-instellingen" onderaan de pagina.</li>
             </ul>
-            <p>Voor vragen over uw persoonsgegevens of om een van deze rechten uit te oefenen, kunt u contact opnemen via <a href="mailto:webshop@handbalsint-truiden.be">webshop@handbalsint-truiden.be</a>.</p>
-            <p>Indien u van mening bent dat uw persoonsgegevens niet correct worden verwerkt, heeft u tevens het recht om een klacht in te dienen bij de bevoegde toezichthoudende autoriteit.</p>
+            <p>Voor vragen over uw persoonsgegevens of om een van deze rechten uit te oefenen, kunt u contact opnemen via <a href="mailto:info@handbalsint-truiden.be">info@handbalsint-truiden.be</a>.</p>
+            <p>Indien u van mening bent dat uw persoonsgegevens niet correct worden verwerkt, heeft u tevens het recht om een klacht in te dienen bij de Gegevensbeschermingsautoriteit (<a href="https://www.gegevensbeschermingsautoriteit.be" target="_blank" rel="noopener">gegevensbeschermingsautoriteit.be</a>).</p>
         """,
     },
 ]

@@ -371,6 +371,21 @@ class SiteText(db.Model):
         return f"<SiteText {self.sleutel}>"
 
 
+class SiteInstelling(db.Model):
+    """
+    Site-brede aan/uit-instellingen, momenteel enkel de onderhoudsmodus
+    (zie utils/site_settings.py). Eén rij (singleton), lazy aangemaakt bij
+    de eerste aanvraag - zelfde aanpak als SiteText hierboven.
+    """
+    __tablename__ = "site_instellingen"
+
+    id = db.Column(db.Integer, primary_key=True)
+    onderhoudsmodus_actief = db.Column(db.Boolean, default=False, nullable=False)
+
+    def __repr__(self):
+        return f"<SiteInstelling onderhoudsmodus_actief={self.onderhoudsmodus_actief}>"
+
+
 # ---------------------------------------------------------------------------
 # Gebruikers
 # ---------------------------------------------------------------------------

@@ -69,6 +69,11 @@ class Config:
     GMAIL_USER = os.environ.get("GMAIL_USER")
     GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD")
 
+    # Google Analytics (Measurement ID, bv. "G-XXXXXXXXXX"). Leeg = geen
+    # Analytics-script en geen cookiebanner op de site (zie base.html) -
+    # zo blijft een lokale/test-omgeving zonder ID gewoon trackingvrij.
+    GA_MEASUREMENT_ID = os.environ.get("GA_MEASUREMENT_ID")
+
     # Upload-map voor geüploade afbeeldingen: productfoto's, pagina-
     # hero-afbeeldingen en inline afbeeldingen in de pagina-editor
     # (relatief aan static/)

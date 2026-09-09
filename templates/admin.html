@@ -8,6 +8,25 @@
     <p>Snel overzicht van wat aandacht nodig heeft.</p>
 </div>
 
+<section class="section onderhoudsmodus-banner{{ ' onderhoudsmodus-banner-actief' if onderhoudsmodus_actief else '' }}">
+    <div>
+        <h2 class="section-title" style="margin:0 0 4px;">Onderhoudsmodus</h2>
+        {% if onderhoudsmodus_actief %}
+        <p class="muted">De site staat momenteel in onderhoud: bezoekers zien enkel een "even geduld"-pagina. Enkel het adminpaneel blijft bereikbaar.</p>
+        {% else %}
+        <p class="muted">Zet de volledige publieke site tijdelijk offline (bv. tijdens een grote update). Bezoekers zien dan een "even geduld"-pagina i.p.v. de site zelf.</p>
+        {% endif %}
+    </div>
+    <form action="{{ url_for('admin.toggle_onderhoudsmodus') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if onderhoudsmodus_actief %}
+        <button type="submit" class="admin-button btn-sm">Site weer online zetten</button>
+        {% else %}
+        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('De volledige site offline zetten voor bezoekers?');">Site in onderhoud zetten</button>
+        {% endif %}
+    </form>
+</section>
+
 <section class="section">
     <h2 class="section-title">Actiepunten</h2>
     <div class="dashboard-acties-grid">
