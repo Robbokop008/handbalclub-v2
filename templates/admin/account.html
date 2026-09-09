@@ -1,0 +1,45 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - Mijn account{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>Mijn account</h1>
+    <p>Ingelogd als {{ user.first_name }} {{ user.last_name }} ({{ user.username }}).</p>
+</div>
+
+<section class="section">
+    <h2 class="section-title">Wachtwoord wijzigen</h2>
+
+    {% if error %}
+    <p class="alert alert-error" style="margin-bottom:20px;">{{ error }}</p>
+    {% endif %}
+    {% if success %}
+    <p class="alert alert-success" style="margin-bottom:20px;">{{ success }}</p>
+    {% endif %}
+
+    <form action="{{ url_for('admin.update_own_password') }}" method="post" class="admin-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div>
+            <label for="huidig_wachtwoord">Huidig wachtwoord</label>
+            <input type="password" id="huidig_wachtwoord" name="huidig_wachtwoord" required>
+        </div>
+        <div></div>
+
+        <div>
+            <label for="nieuw_wachtwoord">Nieuw wachtwoord</label>
+            <input type="password" id="nieuw_wachtwoord" name="nieuw_wachtwoord" required>
+        </div>
+        <div>
+            <label for="bevestig_wachtwoord">Bevestig nieuw wachtwoord</label>
+            <input type="password" id="bevestig_wachtwoord" name="bevestig_wachtwoord" required>
+        </div>
+        <p class="muted" style="grid-column:1/-1;margin:0;">Minimaal 8 tekens, met minstens 1 cijfer en 1 speciaal teken.</p>
+
+        <div class="form-actions" style="grid-column:1/-1;">
+            <button type="submit" class="admin-button">Wachtwoord opslaan</button>
+        </div>
+    </form>
+</section>
+{% endblock %}

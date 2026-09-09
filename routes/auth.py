@@ -5,30 +5,13 @@ Login, registratie, uitloggen, en profielbeheer. Gemigreerd vanuit de
 sqlite3-versie (app.py + validators.py uit hello_flask) naar SQLAlchemy.
 """
 
-import re
 from flask import Blueprint, render_template, request, redirect, url_for, session, g
 from extensions import db, limiter
 from models import User
 from utils.auth import login_required
+from utils.validators import is_valid_email, is_valid_password
 
 auth_bp = Blueprint("auth", __name__)
-
-EMAIL_PATTERN = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
-
-
-def is_valid_email(email):
-    return bool(EMAIL_PATTERN.match(email or ""))
-
-
-def is_valid_password(password):
-    """Minimaal 8 tekens, met minstens 1 cijfer en 1 speciaal teken."""
-    if len(password) < 8:
-        return False
-    if not any(char.isdigit() for char in password):
-        return False
-    if not any(char in "!@#$%^&*()-_=+[]{}|;:'\",.<>?/" for char in password):
-        return False
-    return True
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])

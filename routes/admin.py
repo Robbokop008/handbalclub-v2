@@ -36,6 +36,7 @@ from utils.nav import _resolve_url as _resolve_nav_item_url
 from utils.inschrijving import get_inschrijving_categorieen, get_hoe_gehoord_opties, get_inschrijving_veld_config
 from utils.page_blocks import block_afbeeldingsbestanden, afbeeldingen_uit_data
 from utils.url_validation import is_safe_target_url, parse_video_embed
+from utils.validators import is_valid_email, is_valid_password
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -371,6 +372,35 @@ def toggle_onderhoudsmodus():
     return redirect(url_for("admin.dashboard"))
 
 
+@admin_bp.route("/account")
+@admin_required
+def account():
+    return render_template("admin/account.html", user=g.user)
+
+
+@admin_bp.route("/account/password", methods=["POST"])
+@admin_required
+def update_own_password():
+    huidig_wachtwoord = (request.form.get("huidig_wachtwoord") or "").strip()
+    nieuw_wachtwoord = (request.form.get("nieuw_wachtwoord") or "").strip()
+    bevestig_wachtwoord = (request.form.get("bevestig_wachtwoord") or "").strip()
+
+    error = None
+    if not g.user.check_password(huidig_wachtwoord):
+        error = "Huidig wachtwoord is onjuist."
+    elif not is_valid_password(nieuw_wachtwoord):
+        error = "Nieuw wachtwoord moet minimaal 8 tekens, 1 cijfer en 1 speciaal teken bevatten."
+    elif nieuw_wachtwoord != bevestig_wachtwoord:
+        error = "De nieuwe wachtwoorden komen niet overeen."
+
+    if error:
+        return render_template("admin/account.html", user=g.user, error=error)
+
+    g.user.set_password(nieuw_wachtwoord)
+    db.session.commit()
+    return render_template("admin/account.html", user=g.user, success="Wachtwoord gewijzigd.")
+
+
 @admin_bp.route("/products")
 @admin_required
 def products():
@@ -482,8 +512,64 @@ def toggle_variant_active(variant_id):
 @admin_bp.route("/users")
 @admin_required
 def users():
-    all_users = User.query.all()
+    all_users = User.query.order_by(User.user_id).all()
     return render_template("admin_users.html", user=g.user, users=all_users)
+
+
+@admin_bp.route("/users/add_admin", methods=["POST"])
+@admin_required
+def add_admin():
+    firstname = (request.form.get("firstname") or "").strip()
+    lastname = (request.form.get("lastname") or "").strip()
+    username = (request.form.get("username") or "").strip()
+    email = (request.form.get("email") or "").strip()
+    password = (request.form.get("password") or "").strip()
+
+    error = None
+    if not all([firstname, lastname, username, email, password]):
+        error = "Alle velden zijn verplicht."
+    elif not is_valid_email(email):
+        error = "Ongeldig email formaat."
+    elif not is_valid_password(password):
+        error = "Wachtwoord moet minimaal 8 tekens, 1 cijfer en 1 speciaal teken bevatten."
+    elif User.query.filter_by(username=username).first() is not None:
+        error = "Gebruikersnaam bestaat al."
+    elif User.query.filter_by(email=email).first() is not None:
+        error = "Emailadres is al geregistreerd."
+
+    if error:
+        all_users = User.query.order_by(User.user_id).all()
+        return render_template(
+            "admin_users.html", user=g.user, users=all_users, error=error,
+            nieuwe_admin={"firstname": firstname, "lastname": lastname, "username": username, "email": email},
+        )
+
+    nieuwe_admin = User(
+        first_name=firstname, last_name=lastname, username=username, email=email, is_admin=True,
+    )
+    nieuwe_admin.set_password(password)
+    db.session.add(nieuwe_admin)
+    db.session.commit()
+    return redirect(url_for("admin.users"))
+
+
+@admin_bp.route("/users/<int:user_id>/toggle_admin", methods=["POST"])
+@admin_required
+def toggle_admin(user_id):
+    target = User.query.get(user_id)
+    if target is None:
+        return redirect(url_for("admin.users"))
+
+    # Jezelf degraderen zou je meteen buiten elke @admin_required-pagina
+    # sluiten, inclusief deze - en dus ook de enige plek om het weer recht
+    # te zetten. Simpelweg niet toestaan i.p.v. daarna een reddingsscript
+    # nodig te hebben.
+    if target.user_id == g.user.user_id:
+        return redirect(url_for("admin.users"))
+
+    target.is_admin = not target.is_admin
+    db.session.commit()
+    return redirect(url_for("admin.users"))
 
 
 @admin_bp.route("/orders")
