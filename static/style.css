@@ -1519,11 +1519,20 @@ body.content-page, body.auth-page { background: var(--blue); }
 .profile-actions { display: flex; flex-direction: column; gap: 10px; }
 
 /* De standaard gele .profile-action-button valt weg op de nu ook gele
-   .profile-card - donkere variant, zelfde motief als .btn-dark. */
+   .profile-card - wit blok met navy tekst en een zachte schaduw: duidelijk
+   klikbaar zonder de zware, felle indruk van een volledig donkerblauw
+   (of, geprobeerd, outline-navy) blok. */
 .profile-actions .profile-action-button {
-  background: var(--blue-dark);
-  color: var(--white);
+  background: var(--white);
+  color: var(--blue-dark);
+  border: none;
+  box-shadow: 0 2px 6px rgba(3, 35, 73, 0.18);
   text-align: center;
+}
+
+.profile-actions .profile-action-button:hover {
+  filter: none;
+  box-shadow: 0 4px 10px rgba(3, 35, 73, 0.24);
 }
 
 .order-list { display: flex; flex-direction: column; gap: 12px; }

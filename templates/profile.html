@@ -13,7 +13,7 @@
     <div class="profile-grid">
         <div class="profile-card">
             <h2>Accountoverzicht</h2>
-            <p>Welkom terug! Hier vind je een snel overzicht van je profielgegevens, opgeslagen voorkeuren en je lidmaatschapsstatus.</p>
+            <p>Welkom terug! Hier vind je een snel overzicht van je profielgegevens en opgeslagen voorkeuren.</p>
             <div class="profile-item">
                 <span>Volledige naam</span>
                 <p>{{ user.first_name }} {{ user.last_name }}</p>
@@ -25,10 +25,6 @@
             <div class="profile-item">
                 <span>Lid sinds</span>
                 <p>{{ user.created_at.strftime('%m/%Y') }}</p>
-            </div>
-            <div class="profile-item">
-                <span>Lidmaatschapstatus</span>
-                <p>{{ user.membership_status }}</p>
             </div>
         </div>
 

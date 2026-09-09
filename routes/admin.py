@@ -553,25 +553,6 @@ def add_admin():
     return redirect(url_for("admin.users"))
 
 
-@admin_bp.route("/users/<int:user_id>/toggle_admin", methods=["POST"])
-@admin_required
-def toggle_admin(user_id):
-    target = User.query.get(user_id)
-    if target is None:
-        return redirect(url_for("admin.users"))
-
-    # Jezelf degraderen zou je meteen buiten elke @admin_required-pagina
-    # sluiten, inclusief deze - en dus ook de enige plek om het weer recht
-    # te zetten. Simpelweg niet toestaan i.p.v. daarna een reddingsscript
-    # nodig te hebben.
-    if target.user_id == g.user.user_id:
-        return redirect(url_for("admin.users"))
-
-    target.is_admin = not target.is_admin
-    db.session.commit()
-    return redirect(url_for("admin.users"))
-
-
 @admin_bp.route("/orders")
 @admin_required
 def orders():
