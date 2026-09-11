@@ -1,15 +1,48 @@
-{% extends "base.html" %}
-
-{% block title %}Even geduld - Handbal Sint-Truiden{% endblock %}
-{% block meta_description %}Onze website is tijdelijk in onderhoud. We zijn zo snel mogelijk terug.{% endblock %}
-{% block robots_meta %}noindex{% endblock %}
-
-{% block content %}
-<section class="hero hero-short">
-    <div class="hero-content">
+<!doctype html>
+<html lang="nl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Even geduld - Handbal Sint-Truiden</title>
+    <meta name="description" content="Onze website is tijdelijk in onderhoud. We zijn zo snel mogelijk terug.">
+    {# Bewust geen indexering: dit is een tijdelijke pagina, geen echte inhoud. #}
+    <meta name="robots" content="noindex">
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 18vh;
+            background: #ffffff;
+            color: #222222;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            text-align: center;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+        .onderhoud-inhoud {
+            max-width: 32rem;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin: 0 0 1rem;
+        }
+        p {
+            margin: 0.5rem 0;
+            line-height: 1.5;
+        }
+        a {
+            color: inherit;
+        }
+    </style>
+</head>
+<body>
+    <div class="onderhoud-inhoud">
         <h1>Even geduld...</h1>
         <p>We zijn heel even bezig met een update aan de website. Kom binnenkort terug!</p>
         <p>Dringend iets nodig? Contacteer ons via <a href="mailto:info@handbalsint-truiden.be">info@handbalsint-truiden.be</a>.</p>
     </div>
-</section>
-{% endblock %}
+</body>
+</html>

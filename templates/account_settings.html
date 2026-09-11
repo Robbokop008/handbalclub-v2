@@ -24,7 +24,12 @@
                 <input id="email" name="email" type="email" placeholder="{{ user.email }}">
 
                 <label for="password">Wachtwoord</label>
-                <input id="password" name="password" type="password">
+                <div class="password-field">
+                    <input id="password" name="password" type="password" autocomplete="new-password">
+                    <button type="button" class="password-toggle" data-toggle-for="password" aria-label="Wachtwoord tonen" aria-pressed="false">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                </div>
 
                 <div class="form-actions">
                     <button class="btn btn-dark" type="submit">Wijzigingen opslaan</button>
@@ -47,4 +52,8 @@
         </aside>
     </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/password_toggle.js') }}" defer></script>
 {% endblock %}

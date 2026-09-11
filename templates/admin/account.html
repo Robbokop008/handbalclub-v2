@@ -21,19 +21,33 @@
     <form action="{{ url_for('admin.update_own_password') }}" method="post" class="admin-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        <div>
+        <div style="grid-column:1/-1;">
             <label for="huidig_wachtwoord">Huidig wachtwoord</label>
-            <input type="password" id="huidig_wachtwoord" name="huidig_wachtwoord" required>
+            <div class="password-field">
+                <input type="password" id="huidig_wachtwoord" name="huidig_wachtwoord" required autocomplete="current-password">
+                <button type="button" class="password-toggle" data-toggle-for="huidig_wachtwoord" aria-label="Wachtwoord tonen" aria-pressed="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+            </div>
         </div>
-        <div></div>
 
         <div>
             <label for="nieuw_wachtwoord">Nieuw wachtwoord</label>
-            <input type="password" id="nieuw_wachtwoord" name="nieuw_wachtwoord" required>
+            <div class="password-field">
+                <input type="password" id="nieuw_wachtwoord" name="nieuw_wachtwoord" required autocomplete="new-password">
+                <button type="button" class="password-toggle" data-toggle-for="nieuw_wachtwoord" aria-label="Wachtwoord tonen" aria-pressed="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+            </div>
         </div>
         <div>
             <label for="bevestig_wachtwoord">Bevestig nieuw wachtwoord</label>
-            <input type="password" id="bevestig_wachtwoord" name="bevestig_wachtwoord" required>
+            <div class="password-field">
+                <input type="password" id="bevestig_wachtwoord" name="bevestig_wachtwoord" required autocomplete="new-password">
+                <button type="button" class="password-toggle" data-toggle-for="bevestig_wachtwoord" aria-label="Wachtwoord tonen" aria-pressed="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+            </div>
         </div>
         <p class="muted" style="grid-column:1/-1;margin:0;">Minimaal 8 tekens, met minstens 1 cijfer en 1 speciaal teken.</p>
 
@@ -42,4 +56,8 @@
         </div>
     </form>
 </section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/password_toggle.js') }}" defer></script>
 {% endblock %}
