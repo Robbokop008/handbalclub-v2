@@ -14,16 +14,20 @@
             display: flex;
             align-items: flex-start;
             justify-content: center;
-            padding-top: 18vh;
             background: #ffffff;
             color: #222222;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
             text-align: center;
-            padding: 2rem;
+            padding: 6vh 2rem 2rem;
             box-sizing: border-box;
         }
         .onderhoud-inhoud {
             max-width: 32rem;
+        }
+        .kickoff-poster {
+            max-width: 100%;
+            height: auto;
+            margin-top: 1.5rem;
         }
         h1 {
             font-size: 1.5rem;
@@ -42,7 +46,8 @@
     <div class="onderhoud-inhoud">
         <h1>Even geduld...</h1>
         <p>We zijn heel even bezig met een update aan de website. Kom binnenkort terug!</p>
-        <p>Dringend iets nodig? Contacteer ons via <a href="mailto:info@handbalsint-truiden.be">info@handbalsint-truiden.be</a>.</p>
+        <p>Heb je interesse om te komen handballen, of dringend iets nodig? Mail ons via <a href="mailto:club@handbalsint-truiden.be">club@handbalsint-truiden.be</a>.</p>
+        <img class="kickoff-poster" src="{{ url_for('static', filename='images/flyer-kick-off.png') }}" alt="Affiche kick-off Handbal Sint-Truiden">
     </div>
 </body>
 </html>

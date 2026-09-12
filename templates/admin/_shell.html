@@ -22,19 +22,49 @@
 
     <div class="admin-layout">
         <nav class="admin-sidebar">
+            {% set content_active = 'page' in ep or 'site_tekst' in ep or 'nieuws' in ep or 'evenement' in ep or 'sponsor' in ep or 'team' in ep or 'nav' in ep %}
+            {% set leden_active = ep == 'admin.users' or ep == 'admin.inschrijvingen' or 'inschrijvingsformulier' in ep or 'school' in ep %}
+            {% set webshop_active = 'product' in ep or 'variant' in ep or 'order' in ep %}
+            {% set beheer_active = 'gdpr' in ep or ep == 'admin.account' %}
+
             <a class="admin-sidebar-link{{ ' active' if ep == 'admin.dashboard' else '' }}" href="{{ url_for('admin.dashboard') }}">Dashboard</a>
-            <a class="admin-sidebar-link{{ ' active' if 'page' in ep or 'site_tekst' in ep else '' }}" href="{{ url_for('admin.pages') }}">Pagina's</a>
-            <a class="admin-sidebar-link{{ ' active' if 'nieuws' in ep else '' }}" href="{{ url_for('admin.nieuws') }}">Nieuws</a>
-            <a class="admin-sidebar-link{{ ' active' if 'evenement' in ep else '' }}" href="{{ url_for('admin.evenementen') }}">Evenementen</a>
-            <a class="admin-sidebar-link{{ ' active' if 'sponsor' in ep else '' }}" href="{{ url_for('admin.sponsors') }}">Sponsors</a>
-            <a class="admin-sidebar-link{{ ' active' if 'team' in ep else '' }}" href="{{ url_for('admin.teams') }}">Teams</a>
-            <a class="admin-sidebar-link{{ ' active' if 'nav' in ep else '' }}" href="{{ url_for('admin.navigation') }}">Navigatie</a>
-            <a class="admin-sidebar-link{{ ' active' if 'product' in ep or 'variant' in ep else '' }}" href="{{ url_for('admin.products') }}">Producten</a>
-            <a class="admin-sidebar-link{{ ' active' if ep == 'admin.users' else '' }}" href="{{ url_for('admin.users') }}">Gebruikers</a>
-            <a class="admin-sidebar-link{{ ' active' if 'order' in ep else '' }}" href="{{ url_for('admin.orders') }}">Bestellingen</a>
-            <a class="admin-sidebar-link{{ ' active' if ep == 'admin.inschrijvingen' else '' }}" href="{{ url_for('admin.inschrijvingen') }}">Inschrijvingen</a>
-            <a class="admin-sidebar-link{{ ' active' if 'inschrijvingsformulier' in ep or 'school' in ep else '' }}" href="{{ url_for('admin.inschrijvingsformulier') }}">Inschrijvingsformulier</a>
-            <a class="admin-sidebar-link{{ ' active' if 'gdpr' in ep else '' }}" href="{{ url_for('admin.gdpr_verzoeken') }}">GDPR-verzoeken</a>
+
+            <details class="admin-sidebar-group"{{ ' open' if content_active else '' }}>
+                <summary>Content</summary>
+                <div class="admin-sidebar-group-links">
+                    <a class="admin-sidebar-link{{ ' active' if 'page' in ep or 'site_tekst' in ep else '' }}" href="{{ url_for('admin.pages') }}">Pagina's</a>
+                    <a class="admin-sidebar-link{{ ' active' if 'nieuws' in ep else '' }}" href="{{ url_for('admin.nieuws') }}">Nieuws</a>
+                    <a class="admin-sidebar-link{{ ' active' if 'evenement' in ep else '' }}" href="{{ url_for('admin.evenementen') }}">Evenementen</a>
+                    <a class="admin-sidebar-link{{ ' active' if 'sponsor' in ep else '' }}" href="{{ url_for('admin.sponsors') }}">Sponsors</a>
+                    <a class="admin-sidebar-link{{ ' active' if 'team' in ep else '' }}" href="{{ url_for('admin.teams') }}">Teams</a>
+                    <a class="admin-sidebar-link{{ ' active' if 'nav' in ep else '' }}" href="{{ url_for('admin.navigation') }}">Navigatie</a>
+                </div>
+            </details>
+
+            <details class="admin-sidebar-group"{{ ' open' if leden_active else '' }}>
+                <summary>Leden &amp; inschrijvingen</summary>
+                <div class="admin-sidebar-group-links">
+                    <a class="admin-sidebar-link{{ ' active' if ep == 'admin.users' else '' }}" href="{{ url_for('admin.users') }}">Gebruikers</a>
+                    <a class="admin-sidebar-link{{ ' active' if ep == 'admin.inschrijvingen' else '' }}" href="{{ url_for('admin.inschrijvingen') }}">Inschrijvingen</a>
+                    <a class="admin-sidebar-link{{ ' active' if 'inschrijvingsformulier' in ep or 'school' in ep else '' }}" href="{{ url_for('admin.inschrijvingsformulier') }}">Inschrijvingsformulier</a>
+                </div>
+            </details>
+
+            <details class="admin-sidebar-group"{{ ' open' if webshop_active else '' }}>
+                <summary>Webshop</summary>
+                <div class="admin-sidebar-group-links">
+                    <a class="admin-sidebar-link{{ ' active' if 'product' in ep or 'variant' in ep else '' }}" href="{{ url_for('admin.products') }}">Producten</a>
+                    <a class="admin-sidebar-link{{ ' active' if 'order' in ep else '' }}" href="{{ url_for('admin.orders') }}">Bestellingen</a>
+                </div>
+            </details>
+
+            <details class="admin-sidebar-group"{{ ' open' if beheer_active else '' }}>
+                <summary>Beheer</summary>
+                <div class="admin-sidebar-group-links">
+                    <a class="admin-sidebar-link{{ ' active' if 'gdpr' in ep else '' }}" href="{{ url_for('admin.gdpr_verzoeken') }}">GDPR-verzoeken</a>
+                    <a class="admin-sidebar-link{{ ' active' if ep == 'admin.account' else '' }}" href="{{ url_for('admin.account') }}">Mijn account</a>
+                </div>
+            </details>
         </nav>
 
         <main class="admin-content">

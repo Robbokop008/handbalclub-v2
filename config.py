@@ -102,6 +102,10 @@ class ProductionConfig(Config):
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = _normalize_database_url(os.environ.get("DATABASE_URL"))
     SESSION_COOKIE_SECURE = True
+    # Standaard volgt dit DEBUG (dus False in productie): Jinja zou dan
+    # gewijzigde templates pas oppikken na een herstart van het FastCGI-
+    # proces (zie deploy/hetzner/app.fcgi), niet meteen na een upload.
+    TEMPLATES_AUTO_RELOAD = True
 
 
 # Maak het eenvoudig om per omgeving de juiste config te kiezen

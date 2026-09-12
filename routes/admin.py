@@ -621,9 +621,9 @@ def add_school():
     naam = (request.form.get("naam") or "").strip()
 
     if not naam:
-        return render_template("admin/inschrijvingsformulier.html", **_inschrijvingsformulier_context(error="Naam is verplicht."))
+        return render_template("admin/inschrijvingsformulier.html", **_inschrijvingsformulier_context(error="Naam is verplicht.", actieve_tab="scholen"))
     if School.query.filter_by(naam=naam).first() is not None:
-        return render_template("admin/inschrijvingsformulier.html", **_inschrijvingsformulier_context(error=f"'{naam}' staat al in de lijst."))
+        return render_template("admin/inschrijvingsformulier.html", **_inschrijvingsformulier_context(error=f"'{naam}' staat al in de lijst.", actieve_tab="scholen"))
 
     db.session.add(School(naam=naam))
     db.session.commit()
@@ -640,7 +640,7 @@ def delete_school(school_id):
     return redirect(url_for("admin.inschrijvingsformulier"))
 
 
-def _inschrijvingsformulier_context(error=None):
+def _inschrijvingsformulier_context(error=None, actieve_tab="velden"):
     veld_config = get_inschrijving_veld_config()
     velden = [(sleutel, veld_config[sleutel]) for sleutel, _label, _verplicht in INSCHRIJVING_VELD_DEFINITIES]
     return dict(
@@ -649,6 +649,7 @@ def _inschrijvingsformulier_context(error=None):
         hoe_gehoord_opties=HoeGehoordOptie.query.order_by(HoeGehoordOptie.id).all(),
         scholen=School.query.order_by(School.naam).all(),
         error=error,
+        actieve_tab=actieve_tab,
     )
 
 
@@ -678,9 +679,9 @@ def save_inschrijving_velden():
 def add_inschrijving_categorie():
     naam = (request.form.get("naam") or "").strip()
     if not naam:
-        return render_template("admin/inschrijvingsformulier.html", **_inschrijvingsformulier_context(error="Naam is verplicht."))
+        return render_template("admin/inschrijvingsformulier.html", **_inschrijvingsformulier_context(error="Naam is verplicht.", actieve_tab="categorieen"))
     if InschrijvingCategorie.query.filter_by(naam=naam).first() is not None:
-        return render_template("admin/inschrijvingsformulier.html", **_inschrijvingsformulier_context(error=f"'{naam}' staat al in de lijst."))
+        return render_template("admin/inschrijvingsformulier.html", **_inschrijvingsformulier_context(error=f"'{naam}' staat al in de lijst.", actieve_tab="categorieen"))
     db.session.add(InschrijvingCategorie(naam=naam))
     db.session.commit()
     return redirect(url_for("admin.inschrijvingsformulier"))
@@ -701,9 +702,9 @@ def delete_inschrijving_categorie(categorie_id):
 def add_hoe_gehoord_optie():
     naam = (request.form.get("naam") or "").strip()
     if not naam:
-        return render_template("admin/inschrijvingsformulier.html", **_inschrijvingsformulier_context(error="Naam is verplicht."))
+        return render_template("admin/inschrijvingsformulier.html", **_inschrijvingsformulier_context(error="Naam is verplicht.", actieve_tab="hoe-gehoord"))
     if HoeGehoordOptie.query.filter_by(naam=naam).first() is not None:
-        return render_template("admin/inschrijvingsformulier.html", **_inschrijvingsformulier_context(error=f"'{naam}' staat al in de lijst."))
+        return render_template("admin/inschrijvingsformulier.html", **_inschrijvingsformulier_context(error=f"'{naam}' staat al in de lijst.", actieve_tab="hoe-gehoord"))
     db.session.add(HoeGehoordOptie(naam=naam))
     db.session.commit()
     return redirect(url_for("admin.inschrijvingsformulier"))

@@ -8,11 +8,11 @@
     <p>Hieronder zie je een overzicht van alle geregistreerde gebruikers.</p>
 </div>
 
-<section class="section">
-    <h2 class="section-title">Nieuwe admin aanmaken</h2>
+<details class="admin-details" style="margin-bottom:28px;"{{ ' open' if error else '' }}>
+    <summary class="admin-button btn-sm">Nieuwe admin aanmaken</summary>
 
     {% if error %}
-    <p class="alert alert-error" style="margin-bottom:20px;">{{ error }}</p>
+    <p class="alert alert-error" style="margin:16px 0;">{{ error }}</p>
     {% endif %}
 
     <form action="{{ url_for('admin.add_admin') }}" method="post" class="admin-form">
@@ -49,9 +49,9 @@
             <button type="submit" class="admin-button">Admin aanmaken</button>
         </div>
     </form>
-</section>
+</details>
 
-<section class="section" style="margin-top:36px;">
+<section class="section">
     <h2 class="section-title">Alle gebruikers</h2>
 
     {% if users %}

@@ -15,6 +15,27 @@
 </style>
 {% endblock %}
 
+{% macro simple_list(items, add_url, delete_url_endpoint, id_attr, naam_attr, placeholder, leeg_tekst, confirm_tekst) %}
+<form action="{{ add_url }}" method="post" class="simple-list-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="text" name="naam" placeholder="{{ placeholder }}" required>
+    <button type="submit" class="admin-button">Toevoegen</button>
+</form>
+{% if items %}
+{% for item in items %}
+<div class="simple-list-item">
+    <span>{{ item[naam_attr] }}</span>
+    <form action="{{ url_for(delete_url_endpoint, **{id_attr: item.id}) }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('{{ confirm_tekst }}');">Verwijderen</button>
+    </form>
+</div>
+{% endfor %}
+{% else %}
+<p>{{ leeg_tekst }}</p>
+{% endif %}
+{% endmacro %}
+
 {% block admin_content %}
 <div class="admin-page-header">
     <h1>Inschrijvingsformulier beheren</h1>
@@ -25,87 +46,45 @@
 <p class="alert alert-error" style="margin-bottom:20px;">{{ error }}</p>
 {% endif %}
 
-<section class="section" style="margin-bottom:28px;">
-    <h2 class="section-title" style="margin-bottom:12px;">Velden</h2>
-    <form action="{{ url_for('admin.save_inschrijving_velden') }}" method="post">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        {% for sleutel, config in velden %}
-        <div class="veld-config-row">
-            <label class="veld-sleutel" for="label_{{ sleutel }}">{{ sleutel }}</label>
-            <input type="text" id="label_{{ sleutel }}" name="label_{{ sleutel }}" value="{{ config.label }}">
-            <label class="checkbox-inline"><input type="checkbox" id="verplicht_{{ sleutel }}" name="verplicht_{{ sleutel }}" {{ 'checked' if config.verplicht else '' }}> Verplicht</label>
-        </div>
-        {% endfor %}
-        <div class="form-actions" style="margin-top:16px;">
-            <button type="submit" class="admin-button">Velden opslaan</button>
-        </div>
-    </form>
-</section>
-
-<section class="section" style="margin-bottom:28px;">
-    <h2 class="section-title" style="margin-bottom:12px;">Categorieën</h2>
-    <form action="{{ url_for('admin.add_inschrijving_categorie') }}" method="post" class="simple-list-form">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="text" name="naam" placeholder="Nieuwe categorie" required>
-        <button type="submit" class="admin-button">Toevoegen</button>
-    </form>
-    {% if categorieen %}
-    {% for c in categorieen %}
-    <div class="simple-list-item">
-        <span>{{ c.naam }}</span>
-        <form action="{{ url_for('admin.delete_inschrijving_categorie', categorie_id=c.id) }}" method="post">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Deze categorie verwijderen?');">Verwijderen</button>
-        </form>
+<div class="admin-tabs" data-admin-tabs data-active-tab="{{ actieve_tab }}">
+    <div class="admin-tabs-nav" role="tablist">
+        <button type="button" class="admin-tab-btn" data-tab="velden">Velden</button>
+        <button type="button" class="admin-tab-btn" data-tab="categorieen">Categorieën</button>
+        <button type="button" class="admin-tab-btn" data-tab="hoe-gehoord">Hoe-gehoord-opties</button>
+        <button type="button" class="admin-tab-btn" data-tab="scholen">Scholen</button>
     </div>
-    {% endfor %}
-    {% else %}
-    <p>Er zijn nog geen categorieën toegevoegd.</p>
-    {% endif %}
-</section>
 
-<section class="section">
-    <h2 class="section-title" style="margin-bottom:12px;">Hoe-gehoord-opties</h2>
-    <form action="{{ url_for('admin.add_hoe_gehoord_optie') }}" method="post" class="simple-list-form">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="text" name="naam" placeholder="Nieuwe optie" required>
-        <button type="submit" class="admin-button">Toevoegen</button>
-    </form>
-    {% if hoe_gehoord_opties %}
-    {% for o in hoe_gehoord_opties %}
-    <div class="simple-list-item">
-        <span>{{ o.naam }}</span>
-        <form action="{{ url_for('admin.delete_hoe_gehoord_optie', optie_id=o.id) }}" method="post">
+    <section class="admin-tab-panel section" data-tab-panel="velden">
+        <form action="{{ url_for('admin.save_inschrijving_velden') }}" method="post">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Deze optie verwijderen?');">Verwijderen</button>
+            {% for sleutel, config in velden %}
+            <div class="veld-config-row">
+                <label class="veld-sleutel" for="label_{{ sleutel }}">{{ sleutel }}</label>
+                <input type="text" id="label_{{ sleutel }}" name="label_{{ sleutel }}" value="{{ config.label }}">
+                <label class="checkbox-inline"><input type="checkbox" id="verplicht_{{ sleutel }}" name="verplicht_{{ sleutel }}" {{ 'checked' if config.verplicht else '' }}> Verplicht</label>
+            </div>
+            {% endfor %}
+            <div class="form-actions" style="margin-top:16px;">
+                <button type="submit" class="admin-button">Velden opslaan</button>
+            </div>
         </form>
-    </div>
-    {% endfor %}
-    {% else %}
-    <p>Er zijn nog geen opties toegevoegd.</p>
-    {% endif %}
-</section>
+    </section>
 
-<section class="section" style="margin-top:28px;">
-    <h2 class="section-title" style="margin-bottom:12px;">Scholen</h2>
-    <p class="muted" style="margin-bottom:12px;">Deze lijst vult de schoolkeuze in het inschrijvingsformulier.</p>
-    <form action="{{ url_for('admin.add_school') }}" method="post" class="simple-list-form">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="text" name="naam" placeholder="Nieuwe school" required>
-        <button type="submit" class="admin-button">Toevoegen</button>
-    </form>
-    {% if scholen %}
-    {% for s in scholen %}
-    <div class="simple-list-item">
-        <span>{{ s.naam }}</span>
-        <form action="{{ url_for('admin.delete_school', school_id=s.id) }}" method="post">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Deze school verwijderen?');">Verwijderen</button>
-        </form>
-    </div>
-    {% endfor %}
-    {% else %}
-    <p>Er zijn nog geen scholen toegevoegd.</p>
-    {% endif %}
-</section>
+    <section class="admin-tab-panel section" data-tab-panel="categorieen">
+        {{ simple_list(categorieen, url_for('admin.add_inschrijving_categorie'), 'admin.delete_inschrijving_categorie', 'categorie_id', 'naam', 'Nieuwe categorie', 'Er zijn nog geen categorieën toegevoegd.', 'Deze categorie verwijderen?') }}
+    </section>
+
+    <section class="admin-tab-panel section" data-tab-panel="hoe-gehoord">
+        {{ simple_list(hoe_gehoord_opties, url_for('admin.add_hoe_gehoord_optie'), 'admin.delete_hoe_gehoord_optie', 'optie_id', 'naam', 'Nieuwe optie', 'Er zijn nog geen opties toegevoegd.', 'Deze optie verwijderen?') }}
+    </section>
+
+    <section class="admin-tab-panel section" data-tab-panel="scholen">
+        <p class="muted" style="margin-bottom:12px;">Deze lijst vult de schoolkeuze in het inschrijvingsformulier.</p>
+        {{ simple_list(scholen, url_for('admin.add_school'), 'admin.delete_school', 'school_id', 'naam', 'Nieuwe school', 'Er zijn nog geen scholen toegevoegd.', 'Deze school verwijderen?') }}
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/admin_tabs.js') }}" defer></script>
 {% endblock %}

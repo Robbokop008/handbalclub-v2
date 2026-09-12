@@ -9,7 +9,7 @@ en de app in kleinere, overzichtelijke stukken (blueprints) kan opdelen.
 Starten voor development doe je via run.py, niet via dit bestand direct.
 """
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from config import config_by_name, ONVEILIGE_STANDAARD_SECRET_KEY
@@ -210,15 +210,16 @@ def create_app(config_name="development"):
                 '<p><a href="/">Terug naar de homepage</a></p>'
             ), 500
 
-    # Onderhoudsmodus: als een admin dit via /admin aanzet, krijgt IEDEREEN
-    # (ook een ingelogde admin, buiten het adminpaneel zelf) onderhoud.html
-    # te zien i.p.v. de opgevraagde pagina - zie utils/site_settings.py.
-    # Uitgezonderd: het admin-paneel zelf (anders kan niemand de modus nog
-    # uitzetten), /login en /logout (zodat een admin nog kan in-/uitloggen),
-    # de Stripe-webhook (machine-naar-machine, geen bezoeker die de melding
-    # moet zien - anders stapelen mislukte afleverpogingen zich op bij
-    # Stripe), en statische bestanden (nodig om onderhoud.html zelf correct
-    # te tonen).
+    # Onderhoudsmodus: als een admin dit via /admin aanzet, krijgen gewone
+    # bezoekers overal onderhoud.html te zien i.p.v. de opgevraagde pagina -
+    # zie utils/site_settings.py. Uitgezonderd: het admin-paneel zelf
+    # (anders kan niemand de modus nog uitzetten), /login en /logout (zodat
+    # een admin nog kan in-/uitloggen), de Stripe-webhook (machine-naar-
+    # machine, geen bezoeker die de melding moet zien - anders stapelen
+    # mislukte afleverpogingen zich op bij Stripe), statische bestanden
+    # (nodig om onderhoud.html zelf correct te tonen), en een ingelogde
+    # admin (die moet de site kunnen blijven bekijken, bv. om iets na te
+    # kijken tijdens een grote update - zie check hieronder).
     ONDERHOUDSMODUS_TOEGESTANE_ENDPOINTS = {
         "static", "auth.login", "auth.logout", "shop.stripe_webhook",
     }
@@ -231,6 +232,13 @@ def create_app(config_name="development"):
         from utils.site_settings import is_onderhoudsmodus_actief
         if not is_onderhoudsmodus_actief():
             return None
+
+        user_id = session.get("user_id")
+        if user_id is not None:
+            from models import User
+            user = User.query.get(user_id)
+            if user is not None and user.is_admin:
+                return None
 
         # Retry-After: vertelt browsers/zoekmachines dat dit tijdelijk is
         # (kom over een uur terug) i.p.v. de pagina als permanent verdwenen
