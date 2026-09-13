@@ -203,10 +203,14 @@ nav#nav-menu a {
 nav#nav-menu a:hover { color: var(--white); }
 
 .cart-icon {
-  font-size: 22px;
+  display: flex;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.85);
   text-decoration: none;
-  line-height: 1;
+  transition: color 0.15s ease;
 }
+
+.cart-icon:hover { color: var(--white); }
 
 .menu-toggle {
   display: flex;
@@ -1052,6 +1056,19 @@ body.club-page, body.kalender-page, body.dames-page, body.heren-page, body.jeugd
 .club-accordion-body ul { margin: 0 0 14px; padding-left: 22px; }
 .club-accordion-body li { margin-bottom: 6px; line-height: 1.6; }
 .club-accordion-body a { color: var(--yellow); }
+
+/* Door een admin ingevoerde evenementen (zelfde model als het "Volgende
+   event"-kaartje op de homepage) - los van de vaste-afspraken-tekst
+   eronder, die intro-tekst is expliciet niet doorklikbaar. */
+.kalender-evenementen-lijst {
+  margin: 0 0 24px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+.kalender-evenement-item { margin-bottom: 18px; }
+.kalender-evenement-item:last-child { margin-bottom: 0; }
+.kalender-evenement-item h3 { margin: 2px 0 6px; color: var(--yellow); }
+.kalender-evenement-datum { margin: 0; color: rgba(255, 255, 255, 0.65); font-size: 13px; }
 
 /* Genest binnen een top-level accordion-item (bv. Trainingen > G-Handbal) -
    zelfde openklap-mechaniek, kleinere/hoofdletterloze summary. */

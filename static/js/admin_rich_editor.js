@@ -177,7 +177,14 @@
             menuBtn.classList.add('ql-table-menu-btn');
         }
 
-        quill.root.innerHTML = textarea.value;
+        // quill.root.innerHTML = ... zou de opgeslagen HTML rechtstreeks in de
+        // DOM zetten, zonder door Quill's HTML->Delta-parser te gaan. Voor de
+        // meeste opmaak (vet, links, ...) valt dat niet op, maar Quill 2 rendert
+        // lijsten via een data-list-attribuut + eigen .ql-ui-bullet-span i.p.v.
+        // gewone <ul>/<li>-CSS - zonder die parser-stap verdwijnen de bullets/
+        // nummering dus visueel (de <li>'s staan er wel, maar zonder marker).
+        // dangerouslyPasteHTML stuurt de HTML wel door die parser.
+        quill.clipboard.dangerouslyPasteHTML(textarea.value);
 
         textarea.closest('form').addEventListener('submit', function () {
             textarea.value = quill.root.innerHTML;

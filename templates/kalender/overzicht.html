@@ -50,6 +50,17 @@
         <summary>Evenementen</summary>
         <div class="club-accordion-body club-accordion-body-split">
             <div class="club-accordion-main">
+                {% if aankomende_evenementen %}
+                <div class="kalender-evenementen-lijst">
+                    {% for evenement in aankomende_evenementen %}
+                    <div class="kalender-evenement-item">
+                        <p class="kalender-evenement-datum">{{ evenement.datum.strftime('%d/%m/%Y') }}{% if evenement.locatie %} &middot; {{ evenement.locatie }}{% endif %}</p>
+                        <h3>{{ evenement.titel }}</h3>
+                        <p>{{ evenement.tekst }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
                 {{ site_teksten.kalender_evenementen_tekst | safe }}
             </div>
             <div class="club-card club-cta-card">
