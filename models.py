@@ -232,6 +232,11 @@ class Inschrijving(db.Model):
     school = db.Column(db.String(150))
     opmerkingen = db.Column(db.Text)
 
+    # Of een admin deze inschrijving al heeft afgehandeld (bv. speler
+    # ingeschreven bij de bond, ouders gecontacteerd, ...) - zelfde patroon
+    # als VergeetMijVerzoek.verwerkt hieronder.
+    verwerkt = db.Column(db.Boolean, nullable=False, default=False)
+
     aangemaakt_op = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
@@ -373,7 +378,7 @@ class SiteText(db.Model):
 
 class SiteInstelling(db.Model):
     """
-    Site-brede aan/uit-instellingen, momenteel enkel de onderhoudsmodus
+    Site-brede aan/uit-instellingen: de onderhoudsmodus en de webshop
     (zie utils/site_settings.py). Eén rij (singleton), lazy aangemaakt bij
     de eerste aanvraag - zelfde aanpak als SiteText hierboven.
     """
@@ -381,9 +386,15 @@ class SiteInstelling(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     onderhoudsmodus_actief = db.Column(db.Boolean, default=False, nullable=False)
+    # Standaard True: de webshop is normaal gewoon open, dit is enkel om ze
+    # bewust dicht te zetten (bv. tijdens de zomerstop).
+    webshop_actief = db.Column(db.Boolean, default=True, nullable=False)
 
     def __repr__(self):
-        return f"<SiteInstelling onderhoudsmodus_actief={self.onderhoudsmodus_actief}>"
+        return (
+            f"<SiteInstelling onderhoudsmodus_actief={self.onderhoudsmodus_actief} "
+            f"webshop_actief={self.webshop_actief}>"
+        )
 
 
 # ---------------------------------------------------------------------------

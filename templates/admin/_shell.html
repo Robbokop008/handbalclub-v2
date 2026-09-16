@@ -24,7 +24,7 @@
         <nav class="admin-sidebar">
             {% set content_active = 'page' in ep or 'site_tekst' in ep or 'nieuws' in ep or 'evenement' in ep or 'sponsor' in ep or 'team' in ep or 'nav' in ep %}
             {% set leden_active = ep == 'admin.users' or ep == 'admin.inschrijvingen' or 'inschrijvingsformulier' in ep or 'school' in ep %}
-            {% set webshop_active = 'product' in ep or 'variant' in ep or 'order' in ep %}
+            {% set webshop_active = 'product' in ep or 'variant' in ep or 'order' in ep or 'webshop' in ep %}
             {% set beheer_active = 'gdpr' in ep or ep == 'admin.account' %}
 
             <a class="admin-sidebar-link{{ ' active' if ep == 'admin.dashboard' else '' }}" href="{{ url_for('admin.dashboard') }}">Dashboard</a>
@@ -55,6 +55,7 @@
                 <div class="admin-sidebar-group-links">
                     <a class="admin-sidebar-link{{ ' active' if 'product' in ep or 'variant' in ep else '' }}" href="{{ url_for('admin.products') }}">Producten</a>
                     <a class="admin-sidebar-link{{ ' active' if 'order' in ep else '' }}" href="{{ url_for('admin.orders') }}">Bestellingen</a>
+                    <a class="admin-sidebar-link{{ ' active' if 'webshop' in ep else '' }}" href="{{ url_for('admin.webshop_instellingen') }}">Instellingen</a>
                 </div>
             </details>
 

@@ -10,6 +10,7 @@ from flask import url_for
 from werkzeug.routing import BuildError
 
 from models import NavItem
+from utils.site_settings import is_webshop_zichtbaar_voor_huidige_gebruiker
 
 
 def _resolve_url(item):
@@ -31,6 +32,18 @@ def _resolve_url(item):
         return None
 
     if item.item_type == "route":
+        # Webshop-routes verdwijnen volledig uit de navigatie zolang de
+        # webshop dichtstaat (zie utils/site_settings.py) - anders blijft er
+        # via bv. de "FanShop"-link toch een weg naar de "gesloten"-pagina
+        # zichtbaar, wat voor bezoekers niet als een echte sluiting oogt.
+        # "shop.gesloten" zelf uitgezonderd: die mag wel altijd oplosbaar
+        # blijven (al wordt hij normaal niet als navitem gebruikt).
+        if (
+            item.route_endpoint.startswith("shop.")
+            and item.route_endpoint != "shop.gesloten"
+            and not is_webshop_zichtbaar_voor_huidige_gebruiker()
+        ):
+            return None
         try:
             return url_for(item.route_endpoint)
         except BuildError:

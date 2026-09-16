@@ -9,6 +9,14 @@
 </div>
 
 <section class="section">
+    <p style="margin-bottom:16px;">
+        {{ aantal_onverwerkt }} onverwerkt &middot;
+        {% if toon_verwerkte %}
+        <a href="{{ url_for('admin.inschrijvingen') }}">Toon enkel onverwerkte inschrijvingen</a>
+        {% else %}
+        <a href="{{ url_for('admin.inschrijvingen', toon_verwerkte=1) }}">Toon ook verwerkte inschrijvingen</a>
+        {% endif %}
+    </p>
 
     {% if inschrijvingen %}
     <div class="table-wrap">
@@ -26,6 +34,8 @@
                     <th>Hoe leren kennen</th>
                     <th>School</th>
                     <th>Opmerkingen</th>
+                    <th>Status</th>
+                    <th>Acties</th>
                 </tr>
             </thead>
             <tbody>
@@ -42,13 +52,22 @@
                     <td>{{ i.hoe_gehoord or '—' }}</td>
                     <td>{{ i.school or '—' }}</td>
                     <td>{{ i.opmerkingen or '—' }}</td>
+                    <td><span class="order-status-badge{{ ' order-status-badge-verwerkt' if i.verwerkt else '' }}">{{ 'Verwerkt' if i.verwerkt else 'Nog te verwerken' }}</span></td>
+                    <td>
+                        <form action="{{ url_for('admin.toggle_inschrijving_verwerkt', inschrijving_id=i.id, toon_verwerkte=1 if toon_verwerkte else 0) }}" method="post">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="admin-button btn-sm">
+                                {{ 'Markeer als niet verwerkt' if i.verwerkt else 'Markeer als verwerkt' }}
+                            </button>
+                        </form>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
     {% else %}
-        <p>Er zijn nog geen inschrijvingen binnengekomen.</p>
+        <p>{{ 'Er zijn nog geen inschrijvingen binnengekomen.' if toon_verwerkte else 'Geen onverwerkte inschrijvingen.' }}</p>
     {% endif %}
 </section>
 {% endblock %}

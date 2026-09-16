@@ -92,6 +92,13 @@ def _get_cart_items():
     return items
 
 
+@shop_bp.route("/webshop-gesloten")
+def gesloten():
+    """Bereikbaar voor iedereen, ook als de webshop dicht staat - zie
+    app.py: check_webshop_actief stuurt bezoekers hier naartoe."""
+    return render_template("shop/gesloten.html")
+
+
 @shop_bp.route("/producten")
 def products():
     all_products = Product.query.filter_by(is_active=True).all()

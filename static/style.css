@@ -1609,6 +1609,15 @@ body.content-page, body.auth-page { background: var(--blue); }
   border-radius: 999px;
 }
 
+/* "Verwerkt" (GDPR-verzoeken, inschrijvingen, ...) krijgt de groene
+   succes-kleur i.p.v. de neutrale standaard - net als de onderhoudsmodus-
+   banner is "nog te verwerken" geen storing, dus geen alarmkleur daar. */
+.order-status-badge-verwerkt {
+  background: var(--success-bg);
+  border-color: rgba(22, 163, 74, 0.25);
+  color: var(--success);
+}
+
 .order-status-form {
   display: flex;
   align-items: center;

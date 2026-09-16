@@ -150,7 +150,7 @@
                 </ul>
             </nav>
 
-            {% if request.blueprint == 'shop' %}
+            {% if request.blueprint == 'shop' and webshop_actief %}
                 <a href="{{ url_for('shop.cart') }}" class="cart-icon" aria-label="Winkelmandje">
                     <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7L6 7z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/></svg>
                 </a>

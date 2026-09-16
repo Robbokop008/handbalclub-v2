@@ -1,0 +1,29 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - Webshop-instellingen{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>Webshop-instellingen</h1>
+    <p>Site-brede instellingen voor de webshop, los van de producten en bestellingen zelf.</p>
+</div>
+
+<section class="section onderhoudsmodus-banner{{ ' onderhoudsmodus-banner-actief' if not webshop_actief else '' }}">
+    <div>
+        <h2 class="section-title" style="margin:0 0 4px;">Webshop open</h2>
+        {% if webshop_actief %}
+        <p class="muted">De webshop is open: bezoekers kunnen producten bekijken en bestellen.</p>
+        {% else %}
+        <p class="muted">De webshop staat dicht: de FanShop-link en het winkelmandje-icoon zijn nergens meer te zien, en alle webshop-pagina's tonen een "tijdelijk gesloten"-melding. Enkel ingelogde admins zien de webshop nog. De rest van de site blijft gewoon bereikbaar.</p>
+        {% endif %}
+    </div>
+    <form action="{{ url_for('admin.toggle_webshop') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if webshop_actief %}
+        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('De webshop sluiten voor bezoekers?');">Webshop sluiten</button>
+        {% else %}
+        <button type="submit" class="admin-button btn-sm">Webshop weer openen</button>
+        {% endif %}
+    </form>
+</section>
+{% endblock %}

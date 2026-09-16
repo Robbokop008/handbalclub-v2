@@ -18,7 +18,7 @@ from werkzeug.utils import secure_filename
 
 from werkzeug.routing import BuildError
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from extensions import db
 from models import (
@@ -31,7 +31,7 @@ from utils.auth import admin_required
 from utils.mail import send_admin_cancellation_mail
 from utils.sanitize import sanitize_html
 from utils.site_text import SITE_TEXT_PAGINAS, vind_pagina, get_site_teksten
-from utils.site_settings import is_onderhoudsmodus_actief, zet_onderhoudsmodus
+from utils.site_settings import is_onderhoudsmodus_actief, zet_onderhoudsmodus, is_webshop_actief, zet_webshop_actief
 from utils.nav import _resolve_url as _resolve_nav_item_url
 from utils.inschrijving import get_inschrijving_categorieen, get_hoe_gehoord_opties, get_inschrijving_veld_config
 from utils.page_blocks import block_afbeeldingsbestanden, afbeeldingen_uit_data
@@ -292,7 +292,6 @@ def _parse_block_form(block_type, existing_data):
 def _dashboard_acties():
     """Telt de dingen die mogelijk actie van de admin vragen - elk met een
     link naar de plek waar je dat oplost."""
-    zeven_dagen_geleden = datetime.utcnow() - timedelta(days=7)
     return [
         {
             "label": "Onverwerkte GDPR-verzoeken",
@@ -300,8 +299,8 @@ def _dashboard_acties():
             "url": url_for("admin.gdpr_verzoeken"),
         },
         {
-            "label": "Nieuwe inschrijvingen (laatste 7 dagen)",
-            "aantal": Inschrijving.query.filter(Inschrijving.aangemaakt_op >= zeven_dagen_geleden).count(),
+            "label": "Onverwerkte inschrijvingen",
+            "aantal": Inschrijving.query.filter_by(verwerkt=False).count(),
             "url": url_for("admin.inschrijvingen"),
         },
         {
@@ -406,6 +405,19 @@ def update_own_password():
 def products():
     all_products = Product.query.all()
     return render_template("admin_products.html", user=g.user, products=all_products)
+
+
+@admin_bp.route("/webshop/instellingen")
+@admin_required
+def webshop_instellingen():
+    return render_template("admin_webshop_instellingen.html", user=g.user, webshop_actief=is_webshop_actief())
+
+
+@admin_bp.route("/webshop/toggle", methods=["POST"])
+@admin_required
+def toggle_webshop():
+    zet_webshop_actief(not is_webshop_actief())
+    return redirect(url_for("admin.webshop_instellingen"))
 
 
 @admin_bp.route("/products/add", methods=["POST"])
@@ -603,8 +615,25 @@ def update_order_status(order_id):
 @admin_bp.route("/inschrijvingen")
 @admin_required
 def inschrijvingen():
-    alle = Inschrijving.query.order_by(Inschrijving.aangemaakt_op.desc()).all()
-    return render_template("admin_inschrijvingen.html", user=g.user, inschrijvingen=alle)
+    toon_verwerkte = request.args.get("toon_verwerkte") == "1"
+    query = Inschrijving.query.order_by(Inschrijving.aangemaakt_op.desc())
+    if not toon_verwerkte:
+        query = query.filter_by(verwerkt=False)
+    return render_template(
+        "admin_inschrijvingen.html", user=g.user,
+        inschrijvingen=query.all(), toon_verwerkte=toon_verwerkte,
+        aantal_onverwerkt=Inschrijving.query.filter_by(verwerkt=False).count(),
+    )
+
+
+@admin_bp.route("/inschrijvingen/<int:inschrijving_id>/verwerkt", methods=["POST"])
+@admin_required
+def toggle_inschrijving_verwerkt(inschrijving_id):
+    inschrijving = Inschrijving.query.get(inschrijving_id)
+    if inschrijving is not None:
+        inschrijving.verwerkt = not inschrijving.verwerkt
+        db.session.commit()
+    return redirect(url_for("admin.inschrijvingen", toon_verwerkte=request.args.get("toon_verwerkte")))
 
 
 @admin_bp.route("/scholen")
@@ -759,8 +788,15 @@ def edit_site_tekst(slug):
 @admin_bp.route("/gdpr-verzoeken")
 @admin_required
 def gdpr_verzoeken():
-    alle = VergeetMijVerzoek.query.order_by(VergeetMijVerzoek.aangemaakt_op.desc()).all()
-    return render_template("admin_gdpr.html", user=g.user, verzoeken=alle)
+    toon_verwerkte = request.args.get("toon_verwerkte") == "1"
+    query = VergeetMijVerzoek.query.order_by(VergeetMijVerzoek.aangemaakt_op.desc())
+    if not toon_verwerkte:
+        query = query.filter_by(verwerkt=False)
+    return render_template(
+        "admin_gdpr.html", user=g.user,
+        verzoeken=query.all(), toon_verwerkte=toon_verwerkte,
+        aantal_onverwerkt=VergeetMijVerzoek.query.filter_by(verwerkt=False).count(),
+    )
 
 
 @admin_bp.route("/gdpr-verzoeken/<int:verzoek_id>/verwerkt", methods=["POST"])
@@ -770,7 +806,7 @@ def toggle_gdpr_verwerkt(verzoek_id):
     if verzoek is not None:
         verzoek.verwerkt = not verzoek.verwerkt
         db.session.commit()
-    return redirect(url_for("admin.gdpr_verzoeken"))
+    return redirect(url_for("admin.gdpr_verzoeken", toon_verwerkte=request.args.get("toon_verwerkte")))
 
 
 def _vaste_pagina_rijen():

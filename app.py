@@ -9,7 +9,7 @@ en de app in kleinere, overzichtelijke stukken (blueprints) kan opdelen.
 Starten voor development doe je via run.py, niet via dit bestand direct.
 """
 
-from flask import Flask, render_template, request, session
+from flask import Flask, render_template, request, session, redirect, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from config import config_by_name, ONVEILIGE_STANDAARD_SECRET_KEY
@@ -132,6 +132,18 @@ def create_app(config_name="development"):
     def inject_ga_measurement_id():
         return {"ga_measurement_id": app.config.get("GA_MEASUREMENT_ID")}
 
+    # Stelt beschikbaar of de webshop voor de huidige bezoeker bereikbaar is
+    # in elke template, zodat base.html het winkelmandje-icoon kan verbergen
+    # zolang ze dicht staat (zie utils/site_settings.py en utils/nav.py, dat
+    # om dezelfde reden de FanShop-link uit de navigatie haalt). Admins
+    # blijven "actief" zien, zelfde uitzondering als de before_request-gate
+    # hieronder.
+    from utils.site_settings import is_webshop_zichtbaar_voor_huidige_gebruiker
+
+    @app.context_processor
+    def inject_webshop_actief():
+        return {"webshop_actief": is_webshop_zichtbaar_voor_huidige_gebruiker()}
+
     # Welke body-class (navy achtergrond + restyled kaarten/hero, zie
     # static/style.css) een pagina krijgt, per route-endpoint. Dit was een
     # groeiende if/elif-keten in templates/base.html - bij elke nieuwe
@@ -155,6 +167,7 @@ def create_app(config_name="development"):
         "shop.product_detail": "content-page",
         "shop.cart": "content-page",
         "shop.checkout_success": "content-page",
+        "shop.gesloten": "content-page",
         "auth.login": "auth-page",
         "auth.register": "auth-page",
         "auth.profile": "auth-page",
@@ -252,6 +265,27 @@ def create_app(config_name="development"):
         # override kan de tekst - afhankelijk van welke URL bezocht werd -
         # onleesbaar donker-op-donker uitvallen.
         return render_template("onderhoud.html", body_page_class=None), 503, {"Retry-After": "3600"}
+
+    # Webshop aan/uit: los van de onderhoudsmodus hierboven kan een admin ook
+    # enkel de webshop dichtzetten (bv. tijdens de zomerstop), terwijl de rest
+    # van de site (nieuws, teams, ...) gewoon bereikbaar blijft - zie
+    # utils/site_settings.py. Uitgezonderd: de Stripe-webhook (machine-naar-
+    # machine) en de "gesloten"-pagina zelf (anders een redirect-lus).
+    # Ingelogde admins blijven de webshop wel zien, zelfde reden als bij de
+    # onderhoudsmodus (bv. om nog iets te bestellen/na te kijken terwijl ze
+    # ze net dichtgezet hebben).
+    WEBSHOP_TOEGESTANE_ENDPOINTS = {"shop.gesloten", "shop.stripe_webhook"}
+
+    @app.before_request
+    def check_webshop_actief():
+        if request.blueprint != "shop" or request.endpoint in WEBSHOP_TOEGESTANE_ENDPOINTS:
+            return None
+
+        from utils.site_settings import is_webshop_zichtbaar_voor_huidige_gebruiker
+        if is_webshop_zichtbaar_voor_huidige_gebruiker():
+            return None
+
+        return redirect(url_for("shop.gesloten"))
 
     # Baseline HTTP-securityheaders op elke response. Geen volledige Content-
     # Security-Policy hier: de site gebruikt op verschillende plekken inline

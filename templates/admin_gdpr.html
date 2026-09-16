@@ -9,6 +9,14 @@
 </div>
 
 <section class="section">
+    <p style="margin-bottom:16px;">
+        {{ aantal_onverwerkt }} onverwerkt &middot;
+        {% if toon_verwerkte %}
+        <a href="{{ url_for('admin.gdpr_verzoeken') }}">Toon enkel onverwerkte verzoeken</a>
+        {% else %}
+        <a href="{{ url_for('admin.gdpr_verzoeken', toon_verwerkte=1) }}">Toon ook verwerkte verzoeken</a>
+        {% endif %}
+    </p>
 
     {% if verzoeken %}
     <div class="table-wrap">
@@ -32,9 +40,9 @@
                     <td>{{ v.email }}</td>
                     <td>{{ v.lidnummer or '—' }}</td>
                     <td>{{ v.opmerking or '—' }}</td>
-                    <td><span class="order-status-badge">{{ 'Verwerkt' if v.verwerkt else 'Nog te verwerken' }}</span></td>
+                    <td><span class="order-status-badge{{ ' order-status-badge-verwerkt' if v.verwerkt else '' }}">{{ 'Verwerkt' if v.verwerkt else 'Nog te verwerken' }}</span></td>
                     <td>
-                        <form action="{{ url_for('admin.toggle_gdpr_verwerkt', verzoek_id=v.id) }}" method="post">
+                        <form action="{{ url_for('admin.toggle_gdpr_verwerkt', verzoek_id=v.id, toon_verwerkte=1 if toon_verwerkte else 0) }}" method="post">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="admin-button btn-sm">
                                 {{ 'Markeer als niet verwerkt' if v.verwerkt else 'Markeer als verwerkt' }}
@@ -47,7 +55,7 @@
         </table>
     </div>
     {% else %}
-        <p>Er zijn nog geen GDPR-verzoeken binnengekomen.</p>
+        <p>{{ 'Er zijn nog geen GDPR-verzoeken binnengekomen.' if toon_verwerkte else 'Geen onverwerkte GDPR-verzoeken.' }}</p>
     {% endif %}
 </section>
 {% endblock %}
