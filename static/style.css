@@ -929,6 +929,19 @@ form textarea { min-height: 120px; resize: vertical; }
   object-fit: contain;
 }
 
+.home-closing-trooper-link {
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+
+.home-closing-trooper-link:hover { transform: translateY(-1px); }
+
+.home-closing-trooper-logo {
+  display: block;
+  height: 56px;
+  width: auto;
+}
+
 .home-closing-social {
   align-self: flex-start;
   display: flex;
