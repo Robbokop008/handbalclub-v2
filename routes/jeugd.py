@@ -16,8 +16,8 @@ from utils.inschrijving import get_inschrijving_categorieen, get_hoe_gehoord_opt
 
 jeugd_bp = Blueprint("jeugd", __name__, url_prefix="/jeugd")
 
-# Nog aan te vullen met de echte, definitieve URL's
-BALLENBAASJES_URL = "https://www.ballenbaasjes.be"
+BALLENBAASJES_URL = "https://www.deballenbaasjes.be"
+# Nog aan te vullen met de echte, definitieve URL
 VHV_WELZIJN_URL = "https://www.handbal.be/nl/speel-handbal/het-welzijn-van-de-speler"
 
 
