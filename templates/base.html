@@ -15,8 +15,16 @@
        query-parameters. Voorkomt dat Google dezelfde inhoud op meerdere
        URL's als duplicate content behandelt. Een pagina kan dit overschrijven
        met {% block canonical_url %}...{% endblock %} (bv. na een redirect-
-       waardige alias). #}
-    <link rel="canonical" href="{% block canonical_url %}{{ request.url_root.rstrip('/') }}{{ request.path }}{% endblock %}">
+       waardige alias).
+
+       config.CANONICAL_BASE_URL i.p.v. request.url_root: dat laatste
+       weerspiegelt gewoon de binnenkomende host/schema van elke request, dus
+       elke bereikbare URL-variant (www/non-www, http/https) verklaarde
+       zichzelf canoniek i.p.v. één vaste pagina aan te wijzen - reden dat
+       Google Search Console zelf een andere canonieke pagina koos dan
+       bedoeld. In development (geen CANONICAL_BASE_URL geconfigureerd) valt
+       dit terug op request.url_root, zoals voorheen. #}
+    <link rel="canonical" href="{% block canonical_url %}{{ (config.CANONICAL_BASE_URL ~ request.path) if config.CANONICAL_BASE_URL else (request.url_root.rstrip('/') ~ request.path) }}{% endblock %}">
 
     {# robots.txt sluit /admin, login, winkelmandje e.d. al uit, maar sommige
        pagina's (bv. het account-gedeelte) hebben ook geen waarde in

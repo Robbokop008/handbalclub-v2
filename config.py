@@ -80,6 +80,10 @@ class Config:
     UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "images")
     MAX_CONTENT_LENGTH = 8 * 1024 * 1024   # 8 MB, voorkomt te grote uploads
 
+    # Vaste canonieke basis-URL (zie templates/base.html) - None hier zodat
+    # de canonical-tag in development gewoon op request.url_root terugvalt.
+    CANONICAL_BASE_URL = None
+
 
 class DevelopmentConfig(Config):
     """Instellingen voor lokaal ontwikkelen."""
@@ -106,6 +110,14 @@ class ProductionConfig(Config):
     # gewijzigde templates pas oppikken na een herstart van het FastCGI-
     # proces (zie deploy/hetzner/app.fcgi), niet meteen na een upload.
     TEMPLATES_AUTO_RELOAD = True
+
+    # Vaste canonieke host (https, zonder www) waarop de site ook effectief
+    # bereikbaar is via de 301-redirects in deploy/hetzner/.htaccess. Zonder
+    # deze vaste waarde bouwde templates/base.html de canonical-tag op uit
+    # request.url_root, waardoor elke URL-variant (www/non-www, http/https)
+    # zichzelf canoniek verklaarde - Google Search Console koos daardoor zelf
+    # een canonieke pagina i.p.v. de bedoelde.
+    CANONICAL_BASE_URL = os.environ.get("CANONICAL_BASE_URL", "https://handbalsint-truiden.be")
 
 
 # Maak het eenvoudig om per omgeving de juiste config te kiezen

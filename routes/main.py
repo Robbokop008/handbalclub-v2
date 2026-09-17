@@ -10,7 +10,10 @@ De vroegere generieke "/teams" en "/teams/<slug>" (het volledige
 teamoverzicht en een per-team detailpagina) zijn verwijderd: sinds elk
 team een eigen restyled overzichtspagina heeft (Dames/Heren/Jeugd/
 G-Handbal/FIT-Handbal), linkte niets meer naar deze generieke pagina's -
-zie de projectaudit die dit aan het licht bracht.
+zie de projectaudit die dit aan het licht bracht. Google had ze op dat
+moment al geïndexeerd (en her en der stond er nog een bladwijzer naar), dus
+onderaan dit bestand staan permanente redirects van die oude URL's naar hun
+huidige tegenhanger, i.p.v. ze een kale 404 te laten teruggeven.
 """
 
 from datetime import date
@@ -18,7 +21,7 @@ from datetime import date
 from flask import Blueprint, render_template, request, current_app, abort, redirect, url_for, Response
 
 from extensions import db, limiter
-from models import NieuwsBericht, Evenement, VergeetMijVerzoek, Page, Product
+from models import NieuwsBericht, Evenement, VergeetMijVerzoek, Page, Product, Team
 from utils.mail import send_contact_mail, send_vergeet_mij_notification
 from utils.sanitize import korte_omschrijving
 
@@ -220,3 +223,38 @@ def sitemap():
 
     xml = render_template("sitemap.xml", entries=entries)
     return Response(xml, mimetype="application/xml")
+
+
+# Sectie van een team -> huidige overzichtspagina van die sectie, gebruikt
+# door team_detail_legacy_redirect() hieronder om oude /teams/<slug>-links
+# zo specifiek mogelijk door te sturen i.p.v. gewoon naar de homepage.
+TEAM_SECTIE_NAAR_ENDPOINT = {
+    "dames": "dames.overzicht",
+    "heren": "heren.overzicht",
+    "jeugd": "jeugd.overzicht",
+    "ghandbal": "ghandbal.index",
+    "fithandbal": "fithandbal.index",
+}
+
+
+@main_bp.route("/teams")
+def teams_legacy_redirect():
+    """Oude teamoverzichtspagina (zie moduledocstring) - de homepage linkt
+    zelf al door naar elke sectie-overzichtspagina (Dames/Heren/Jeugd/
+    G-Handbal/FIT-Handbal), dus dat is de beste nog bestaande tegenhanger."""
+    return redirect(url_for("main.home"), code=301)
+
+
+@main_bp.route("/teams/<slug>")
+def team_detail_legacy_redirect(slug):
+    """Oude per-team detailpagina (zie moduledocstring) - stuurt door naar
+    de overzichtspagina van de sectie waar dat team toe behoorde. Onbekende
+    slugs (nooit bestaan, of het team is intussen verwijderd) hebben geen
+    zinvolle bestemming en krijgen gewoon een 404."""
+    team = Team.query.filter_by(slug=slug).first()
+    if team is None:
+        abort(404)
+    endpoint = TEAM_SECTIE_NAAR_ENDPOINT.get(team.sectie)
+    if endpoint is None:
+        abort(404)
+    return redirect(url_for(endpoint), code=301)

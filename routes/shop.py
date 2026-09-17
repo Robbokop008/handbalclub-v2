@@ -95,8 +95,15 @@ def _get_cart_items():
 @shop_bp.route("/webshop-gesloten")
 def gesloten():
     """Bereikbaar voor iedereen, ook als de webshop dicht staat - zie
-    app.py: check_webshop_actief stuurt bezoekers hier naartoe."""
-    return render_template("shop/gesloten.html")
+    app.py: check_webshop_actief stuurt bezoekers hier naartoe.
+
+    503 + Retry-After i.p.v. de standaard 200, zelfde aanpak als
+    onderhoud.html in app.py: zonder dit zag Google elke (al geïndexeerde)
+    product-/categoriepagina redirecten naar een inhoudsarme 200-pagina
+    zodra de webshop dichtgezet werd, en beoordeelde dat als "Soft 404" in
+    Search Console - een 503 zegt expliciet dat dit tijdelijk is, zodat die
+    productpagina's hun plek in de index behouden tot de shop heropent."""
+    return render_template("shop/gesloten.html"), 503, {"Retry-After": "3600"}
 
 
 @shop_bp.route("/producten")
