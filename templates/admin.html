@@ -8,6 +8,26 @@
     <p>Snel overzicht van wat aandacht nodig heeft.</p>
 </div>
 
+<section class="section" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:28px;">
+    <div>
+        <h2 class="section-title" style="margin:0 0 4px;">Adminhandleiding</h2>
+        {% if handleiding_bijgewerkt_op %}
+        <p class="muted">Laatst bijgewerkt op {{ handleiding_bijgewerkt_op.strftime('%d/%m/%Y') }}</p>
+        {% if handleiding_verouderd %}
+        <p class="muted">Er zijn wijzigingen doorgevoerd sinds deze versie — mogelijks niet meer volledig up-to-date.</p>
+        {% endif %}
+        {% else %}
+        <p class="muted">Nog geen handleiding geüpload.</p>
+        {% endif %}
+    </div>
+    <div style="display:flex; gap:12px;">
+        {% if handleiding_url %}
+        <a class="admin-button btn-sm" href="{{ handleiding_url }}" target="_blank" rel="noopener">Handleiding openen (PDF)</a>
+        {% endif %}
+        <a class="admin-button btn-sm" href="{{ url_for('admin.changelog') }}">Wijzigingslogboek beheren</a>
+    </div>
+</section>
+
 <section class="section onderhoudsmodus-banner{{ ' onderhoudsmodus-banner-actief' if onderhoudsmodus_actief else '' }}">
     <div>
         <h2 class="section-title" style="margin:0 0 4px;">Onderhoudsmodus</h2>

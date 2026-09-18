@@ -33,3 +33,22 @@ def admin_required(view):
             return redirect(url_for("main.home"))
         return view(*args, **kwargs)
     return wrapped
+
+
+# Gebruikersnaam van het enige account dat de adminhandleiding-PDF mag
+# vervangen en wijzigingslogboek-items mag toevoegen/verwijderen (zie
+# @hoofdadmin_required hieronder) - andere admins mogen enkel bekijken.
+HOOFDADMIN_USERNAME = "RobbeBoyen"
+
+
+def hoofdadmin_required(view):
+    """Zoals @admin_required, maar enkel voor HOOFDADMIN_USERNAME. Andere
+    admins krijgen een redirect naar het dashboard - zij mogen de
+    handleiding/het wijzigingslogboek wel bekijken, niet bewerken."""
+    @wraps(view)
+    @admin_required
+    def wrapped(*args, **kwargs):
+        if g.user.username != HOOFDADMIN_USERNAME:
+            return redirect(url_for("admin.dashboard"))
+        return view(*args, **kwargs)
+    return wrapped

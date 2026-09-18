@@ -44,6 +44,16 @@ def zet_webshop_actief(actief):
     db.session.commit()
 
 
+def handleiding_laatst_bijgewerkt():
+    return _get_or_create().handleiding_bijgewerkt_op
+
+
+def zet_handleiding_bijgewerkt_op(dt):
+    instelling = _get_or_create()
+    instelling.handleiding_bijgewerkt_op = dt
+    db.session.commit()
+
+
 def is_webshop_zichtbaar_voor_huidige_gebruiker():
     """Of de webshop voor de HUIDIGE bezoeker zichtbaar/bereikbaar hoort te
     zijn: gewoon is_webshop_actief(), behalve voor een ingelogde admin - die

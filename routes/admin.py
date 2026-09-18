@@ -18,7 +18,8 @@ from werkzeug.utils import secure_filename
 
 from werkzeug.routing import BuildError
 
-from datetime import datetime
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 from extensions import db
 from models import (
@@ -26,12 +27,17 @@ from models import (
     Page, PageBlock, PAGE_BLOCK_TYPES, NavItem, NAV_ITEM_TYPES, NieuwsBericht, NIEUWS_CATEGORIEEN, Evenement, Sponsor, Team,
     TEAM_SECTIES, TEAM_SECTIE_LABELS, School, SiteText,
     InschrijvingCategorie, HoeGehoordOptie, InschrijvingVeldConfig, INSCHRIJVING_VELD_DEFINITIES,
+    AuditLog, ChangelogEntry,
 )
-from utils.auth import admin_required
+from utils.auth import admin_required, hoofdadmin_required, HOOFDADMIN_USERNAME
+from utils.audit import log_action
 from utils.mail import send_admin_cancellation_mail
 from utils.sanitize import sanitize_html
 from utils.site_text import SITE_TEXT_PAGINAS, vind_pagina, get_site_teksten
-from utils.site_settings import is_onderhoudsmodus_actief, zet_onderhoudsmodus, is_webshop_actief, zet_webshop_actief
+from utils.site_settings import (
+    is_onderhoudsmodus_actief, zet_onderhoudsmodus, is_webshop_actief, zet_webshop_actief,
+    handleiding_laatst_bijgewerkt, zet_handleiding_bijgewerkt_op,
+)
 from utils.nav import _resolve_url as _resolve_nav_item_url
 from utils.inschrijving import get_inschrijving_categorieen, get_hoe_gehoord_opties, get_inschrijving_veld_config
 from utils.page_blocks import block_afbeeldingsbestanden, afbeeldingen_uit_data
@@ -75,6 +81,27 @@ def _delete_uploaded_image(filename):
         path.unlink(missing_ok=True)
     except OSError:
         current_app.logger.warning(f"Kon geüploade afbeelding niet verwijderen: {filename}")
+
+
+ALLOWED_DOC_EXTENSIONS = {".pdf"}
+HANDLEIDING_BESTANDSNAAM = "handleiding.pdf"
+
+
+def _save_handleiding_pdf(pdf_file):
+    """Slaat de geüploade adminhandleiding op onder een vaste bestandsnaam
+    (dit is één document dat vervangen wordt, geen record per bestand zoals
+    bij afbeeldingen - dus geen uuid4 nodig, en de downloadlink blijft
+    stabiel). Geeft True terug bij succes, False bij een ontbrekend of
+    ongeldig bestand."""
+    if not pdf_file or not pdf_file.filename:
+        return False
+    if Path(secure_filename(pdf_file.filename)).suffix.lower() not in ALLOWED_DOC_EXTENSIONS:
+        return False
+
+    doc_folder = Path(current_app.config["DOCUMENT_UPLOAD_FOLDER"])
+    doc_folder.mkdir(parents=True, exist_ok=True)
+    pdf_file.save(doc_folder / HANDLEIDING_BESTANDSNAAM)
+    return True
 
 
 def _slugify(text):
@@ -354,20 +381,51 @@ def _dashboard_waarschuwingen():
     return waarschuwingen
 
 
+def _naar_belgische_datum(dt):
+    """Zet een naive UTC-datetime (zoals overal opgeslagen) om naar een
+    kalenderdatum in Belgische lokale tijd (CET/CEST, incl. zomertijd)."""
+    return dt.replace(tzinfo=timezone.utc).astimezone(ZoneInfo("Europe/Brussels")).date()
+
+
+def _handleiding_is_verouderd(bijgewerkt_op):
+    """True als er een wijzigingslog-item bijkwam ná de laatste keer dat de
+    adminhandleiding-PDF geüpload is - dus een signaal dat de handleiding
+    mogelijk niet meer alles dekt. Geen melding als er nog geen handleiding
+    of nog geen wijzigingslog-items zijn (niets om mee te vergelijken)."""
+    if bijgewerkt_op is None:
+        return False
+    laatste_wijziging = ChangelogEntry.query.order_by(ChangelogEntry.datum.desc()).first()
+    if laatste_wijziging is None:
+        return False
+    return laatste_wijziging.datum > _naar_belgische_datum(bijgewerkt_op)
+
+
 @admin_bp.route("/")
 @admin_required
 def dashboard():
+    handleiding_bijgewerkt_op = handleiding_laatst_bijgewerkt()
+    handleiding_url = None
+    if handleiding_bijgewerkt_op is not None:
+        handleiding_url = url_for(
+            "static", filename=f"documents/{HANDLEIDING_BESTANDSNAAM}",
+            v=handleiding_bijgewerkt_op.strftime("%Y%m%d%H%M%S"),
+        )
     return render_template(
         "admin.html", user=g.user,
         acties=_dashboard_acties(), waarschuwingen=_dashboard_waarschuwingen(),
         onderhoudsmodus_actief=is_onderhoudsmodus_actief(),
+        handleiding_url=handleiding_url,
+        handleiding_bijgewerkt_op=_naar_belgische_datum(handleiding_bijgewerkt_op) if handleiding_bijgewerkt_op else None,
+        handleiding_verouderd=_handleiding_is_verouderd(handleiding_bijgewerkt_op),
     )
 
 
 @admin_bp.route("/onderhoudsmodus/toggle", methods=["POST"])
 @admin_required
 def toggle_onderhoudsmodus():
-    zet_onderhoudsmodus(not is_onderhoudsmodus_actief())
+    nieuwe_status = not is_onderhoudsmodus_actief()
+    log_action("onderhoudsmodus.toggle", f"Onderhoudsmodus {'geactiveerd' if nieuwe_status else 'gedeactiveerd'}")
+    zet_onderhoudsmodus(nieuwe_status)
     return redirect(url_for("admin.dashboard"))
 
 
@@ -400,6 +458,127 @@ def update_own_password():
     return render_template("admin/account.html", user=g.user, success="Wachtwoord gewijzigd.")
 
 
+AUDITLOG_CATEGORIEEN = [
+    ("product", "Producten"),
+    ("variant", "Varianten"),
+    ("order", "Bestellingen"),
+    ("inschrijving", "Inschrijvingen"),
+    ("school", "Scholen"),
+    ("inschrijvingscategorie", "Inschrijvingscategorieën"),
+    ("hoe_gehoord", "Hoe gehoord"),
+    ("inschrijvingsformulier", "Inschrijvingsformulier"),
+    ("site_tekst", "Site-teksten"),
+    ("gdpr", "GDPR-verzoeken"),
+    ("page_block", "Pagina-blokken"),
+    ("page", "Pagina's"),
+    ("nav_item", "Navigatie"),
+    ("nieuws", "Nieuws"),
+    ("evenement", "Evenementen"),
+    ("sponsor", "Sponsors"),
+    ("team", "Teams"),
+    ("admin", "Admin-gebruikers"),
+    ("webshop", "Webshop"),
+    ("onderhoudsmodus", "Onderhoudsmodus"),
+    ("handleiding", "Adminhandleiding"),
+    ("changelog", "Wijzigingslogboek"),
+]
+
+
+@admin_bp.route("/auditlog")
+@admin_required
+def auditlog():
+    page = request.args.get("page", 1, type=int)
+    admin_filter = request.args.get("admin", type=int)
+    actie_filter = request.args.get("actie", "")
+
+    query = AuditLog.query.order_by(AuditLog.created_at.desc())
+    if admin_filter:
+        query = query.filter(AuditLog.user_id == admin_filter)
+    if actie_filter:
+        # Punt in het patroon zodat "page" niet ook "page_block.xxx" matcht.
+        query = query.filter(AuditLog.action.like(f"{actie_filter}.%"))
+
+    logs = query.paginate(page=page, per_page=50)
+    # created_at staat in de databank in UTC (datetime.utcnow) - voor
+    # weergave omzetten naar Belgische lokale tijd (CET/CEST, incl. automatische
+    # zomertijd-omschakeling). Enkel in het geheugen aangepast, niet opgeslagen.
+    for log in logs.items:
+        log.created_at = log.created_at.replace(tzinfo=timezone.utc).astimezone(ZoneInfo("Europe/Brussels"))
+
+    alle_admins = User.query.filter_by(is_admin=True).order_by(User.first_name).all()
+    return render_template(
+        "admin/auditlog.html", user=g.user, logs=logs, categorieen=AUDITLOG_CATEGORIEEN,
+        alle_admins=alle_admins, admin_filter=admin_filter, actie_filter=actie_filter,
+    )
+
+
+def _changelog_context(error=None):
+    handleiding_bijgewerkt_op = handleiding_laatst_bijgewerkt()
+    handleiding_url = None
+    if handleiding_bijgewerkt_op is not None:
+        handleiding_url = url_for(
+            "static", filename=f"documents/{HANDLEIDING_BESTANDSNAAM}",
+            v=handleiding_bijgewerkt_op.strftime("%Y%m%d%H%M%S"),
+        )
+    return dict(
+        user=g.user,
+        is_hoofdadmin=g.user.username == HOOFDADMIN_USERNAME,
+        handleiding_url=handleiding_url,
+        handleiding_bijgewerkt_op=_naar_belgische_datum(handleiding_bijgewerkt_op) if handleiding_bijgewerkt_op else None,
+        entries=ChangelogEntry.query.order_by(ChangelogEntry.datum.desc(), ChangelogEntry.id.desc()).all(),
+        vandaag=_naar_belgische_datum(datetime.utcnow()),
+        error=error,
+    )
+
+
+@admin_bp.route("/changelog")
+@admin_required
+def changelog():
+    return render_template("admin/changelog.html", **_changelog_context())
+
+
+@admin_bp.route("/handleiding/upload", methods=["POST"])
+@hoofdadmin_required
+def upload_handleiding():
+    if not _save_handleiding_pdf(request.files.get("pdf")):
+        return render_template(
+            "admin/changelog.html",
+            **_changelog_context(error="Ongeldig bestand - enkel PDF is toegelaten."),
+        )
+    log_action("handleiding.upload", "Adminhandleiding-PDF vervangen")
+    zet_handleiding_bijgewerkt_op(datetime.utcnow())
+    return redirect(url_for("admin.changelog"))
+
+
+@admin_bp.route("/changelog/add", methods=["POST"])
+@hoofdadmin_required
+def add_changelog_entry():
+    datum = _parse_date(request.form.get("datum")) or _naar_belgische_datum(datetime.utcnow())
+    beschrijving = (request.form.get("beschrijving") or "").strip()
+
+    if not beschrijving:
+        return render_template(
+            "admin/changelog.html",
+            **_changelog_context(error="Beschrijving is verplicht."),
+        )
+
+    db.session.add(ChangelogEntry(datum=datum, beschrijving=beschrijving))
+    log_action("changelog.add", f"Wijziging toegevoegd ({datum.isoformat()}): '{beschrijving[:80]}'")
+    db.session.commit()
+    return redirect(url_for("admin.changelog"))
+
+
+@admin_bp.route("/changelog/<int:entry_id>/delete", methods=["POST"])
+@hoofdadmin_required
+def delete_changelog_entry(entry_id):
+    entry = ChangelogEntry.query.get(entry_id)
+    if entry is not None:
+        log_action("changelog.delete", f"Wijziging verwijderd ({entry.datum.isoformat()}): '{entry.beschrijving[:80]}'")
+        db.session.delete(entry)
+        db.session.commit()
+    return redirect(url_for("admin.changelog"))
+
+
 @admin_bp.route("/products")
 @admin_required
 def products():
@@ -416,7 +595,9 @@ def webshop_instellingen():
 @admin_bp.route("/webshop/toggle", methods=["POST"])
 @admin_required
 def toggle_webshop():
-    zet_webshop_actief(not is_webshop_actief())
+    nieuwe_status = not is_webshop_actief()
+    log_action("webshop.toggle", f"Webshop {'geactiveerd' if nieuwe_status else 'gedeactiveerd'}")
+    zet_webshop_actief(nieuwe_status)
     return redirect(url_for("admin.webshop_instellingen"))
 
 
@@ -435,6 +616,7 @@ def add_product():
         is_active=bool(request.form.get("is_active")),
     )
     db.session.add(product)
+    log_action("product.add", f"Product '{product.product_name}' toegevoegd")
     db.session.commit()
 
     return redirect(url_for("admin.products"))
@@ -461,6 +643,7 @@ def edit_product(product_id):
         _delete_uploaded_image(product.image_url)
         product.image_url = new_image
 
+    log_action("product.edit", f"Product '{product.product_name}' bewerkt")
     db.session.commit()
     return redirect(url_for("admin.products"))
 
@@ -471,6 +654,7 @@ def toggle_product_active(product_id):
     product = Product.query.get(product_id)
     if product is not None:
         product.is_active = not product.is_active
+        log_action("product.toggle_active", f"Product '{product.product_name}' {'geactiveerd' if product.is_active else 'gedeactiveerd'}")
         db.session.commit()
     return redirect(url_for("admin.products"))
 
@@ -487,6 +671,7 @@ def add_variant(product_id):
         is_active=bool(request.form.get("is_active")),
     )
     db.session.add(variant)
+    log_action("variant.add", f"Variant '{variant.color} {variant.size}' toegevoegd aan product '{variant.product.product_name}'")
     db.session.commit()
 
     return redirect(url_for("admin.edit_product", product_id=product_id))
@@ -504,6 +689,7 @@ def edit_variant(variant_id):
     variant.price = float(request.form.get("price"))
     variant.stock = int(request.form.get("stock"))
     variant.is_active = bool(request.form.get("is_active"))
+    log_action("variant.edit", f"Variant '{variant.color} {variant.size}' van product '{variant.product.product_name}' bewerkt")
     db.session.commit()
 
     return redirect(url_for("admin.edit_product", product_id=variant.product_id))
@@ -517,6 +703,7 @@ def toggle_variant_active(variant_id):
         return redirect(url_for("admin.products"))
 
     variant.is_active = not variant.is_active
+    log_action("variant.toggle_active", f"Variant '{variant.color} {variant.size}' van product '{variant.product.product_name}' {'geactiveerd' if variant.is_active else 'gedeactiveerd'}")
     db.session.commit()
     return redirect(url_for("admin.edit_product", product_id=variant.product_id))
 
@@ -561,6 +748,7 @@ def add_admin():
     )
     nieuwe_admin.set_password(password)
     db.session.add(nieuwe_admin)
+    log_action("admin.create", f"Nieuwe admin-gebruiker '{firstname} {lastname}' ({username}) aangemaakt")
     db.session.commit()
     return redirect(url_for("admin.users"))
 
@@ -593,6 +781,7 @@ def update_order_status(order_id):
         return redirect(url_for("admin.view_order", order_id=order_id))
 
     was_cancelled_now = status == "Geannuleerd" and order.order_status != "Geannuleerd"
+    oude_status = order.order_status
     order.order_status = status
 
     if was_cancelled_now:
@@ -601,6 +790,7 @@ def update_order_status(order_id):
             if line.variant:
                 line.variant.stock += line.quantity
 
+    log_action("order.status", f"Bestelling #{order.order_id} status gewijzigd van '{oude_status}' naar '{status}'")
     db.session.commit()
 
     if was_cancelled_now:
@@ -632,6 +822,8 @@ def toggle_inschrijving_verwerkt(inschrijving_id):
     inschrijving = Inschrijving.query.get(inschrijving_id)
     if inschrijving is not None:
         inschrijving.verwerkt = not inschrijving.verwerkt
+        status = "verwerkt" if inschrijving.verwerkt else "opnieuw geopend"
+        log_action("inschrijving.toggle", f"Inschrijving van {inschrijving.voornaam_speler} {inschrijving.achternaam_speler} gemarkeerd als {status}")
         db.session.commit()
     return redirect(url_for("admin.inschrijvingen", toon_verwerkte=request.args.get("toon_verwerkte")))
 
@@ -655,6 +847,7 @@ def add_school():
         return render_template("admin/inschrijvingsformulier.html", **_inschrijvingsformulier_context(error=f"'{naam}' staat al in de lijst.", actieve_tab="scholen"))
 
     db.session.add(School(naam=naam))
+    log_action("school.add", f"School '{naam}' toegevoegd")
     db.session.commit()
     return redirect(url_for("admin.inschrijvingsformulier"))
 
@@ -664,6 +857,7 @@ def add_school():
 def delete_school(school_id):
     school = School.query.get(school_id)
     if school is not None:
+        log_action("school.delete", f"School '{school.naam}' verwijderd")
         db.session.delete(school)
         db.session.commit()
     return redirect(url_for("admin.inschrijvingsformulier"))
@@ -699,6 +893,7 @@ def save_inschrijving_velden():
         if nieuw_label:
             veld_config[sleutel].label = nieuw_label
         veld_config[sleutel].verplicht = bool(request.form.get(f"verplicht_{sleutel}"))
+    log_action("inschrijvingsformulier.velden", "Velden van het inschrijvingsformulier bewerkt")
     db.session.commit()
     return redirect(url_for("admin.inschrijvingsformulier"))
 
@@ -712,6 +907,7 @@ def add_inschrijving_categorie():
     if InschrijvingCategorie.query.filter_by(naam=naam).first() is not None:
         return render_template("admin/inschrijvingsformulier.html", **_inschrijvingsformulier_context(error=f"'{naam}' staat al in de lijst.", actieve_tab="categorieen"))
     db.session.add(InschrijvingCategorie(naam=naam))
+    log_action("inschrijvingscategorie.add", f"Inschrijvingscategorie '{naam}' toegevoegd")
     db.session.commit()
     return redirect(url_for("admin.inschrijvingsformulier"))
 
@@ -721,6 +917,7 @@ def add_inschrijving_categorie():
 def delete_inschrijving_categorie(categorie_id):
     categorie = InschrijvingCategorie.query.get(categorie_id)
     if categorie is not None:
+        log_action("inschrijvingscategorie.delete", f"Inschrijvingscategorie '{categorie.naam}' verwijderd")
         db.session.delete(categorie)
         db.session.commit()
     return redirect(url_for("admin.inschrijvingsformulier"))
@@ -735,6 +932,7 @@ def add_hoe_gehoord_optie():
     if HoeGehoordOptie.query.filter_by(naam=naam).first() is not None:
         return render_template("admin/inschrijvingsformulier.html", **_inschrijvingsformulier_context(error=f"'{naam}' staat al in de lijst.", actieve_tab="hoe-gehoord"))
     db.session.add(HoeGehoordOptie(naam=naam))
+    log_action("hoe_gehoord.add", f"Optie '{naam}' toegevoegd bij 'Hoe gehoord'")
     db.session.commit()
     return redirect(url_for("admin.inschrijvingsformulier"))
 
@@ -744,6 +942,7 @@ def add_hoe_gehoord_optie():
 def delete_hoe_gehoord_optie(optie_id):
     optie = HoeGehoordOptie.query.get(optie_id)
     if optie is not None:
+        log_action("hoe_gehoord.delete", f"Optie '{optie.naam}' verwijderd bij 'Hoe gehoord'")
         db.session.delete(optie)
         db.session.commit()
     return redirect(url_for("admin.inschrijvingsformulier"))
@@ -767,6 +966,7 @@ def edit_site_tekst(slug):
                 bestaande[sleutel].waarde = nieuwe_waarde
             else:
                 db.session.add(SiteText(sleutel=sleutel, omschrijving=omschrijving, waarde=nieuwe_waarde))
+        log_action("site_tekst.edit", f"Teksten van pagina '{pagina['label']}' bewerkt")
         db.session.commit()
         return redirect(url_for("admin.pages"))
 
@@ -805,6 +1005,8 @@ def toggle_gdpr_verwerkt(verzoek_id):
     verzoek = VergeetMijVerzoek.query.get(verzoek_id)
     if verzoek is not None:
         verzoek.verwerkt = not verzoek.verwerkt
+        status = "verwerkt" if verzoek.verwerkt else "opnieuw geopend"
+        log_action("gdpr.toggle", f"GDPR-verzoek van {verzoek.naam} gemarkeerd als {status}")
         db.session.commit()
     return redirect(url_for("admin.gdpr_verzoeken", toon_verwerkte=request.args.get("toon_verwerkte")))
 
@@ -894,6 +1096,7 @@ def add_page():
         meta_description=meta_description,
     )
     db.session.add(page)
+    log_action("page.add", f"Pagina '{page.title}' aangemaakt")
     db.session.commit()
     # Meteen doorrollen naar het bewerkscherm: een pagina zonder inhoud
     # heeft weinig nut, en dit is waar die inhoud voortaan opgebouwd wordt.
@@ -947,6 +1150,7 @@ def edit_page(page_id):
         _delete_uploaded_image(page.hero_image)
         page.hero_image = new_image
 
+    log_action("page.edit", f"Pagina '{page.title}' bewerkt")
     db.session.commit()
     return redirect(url_for("admin.edit_page", page_id=page.id))
 
@@ -957,6 +1161,7 @@ def toggle_page_published(page_id):
     page = Page.query.get(page_id)
     if page is not None:
         page.is_published = not page.is_published
+        log_action("page.toggle_published", f"Pagina '{page.title}' {'gepubliceerd' if page.is_published else 'verborgen'}")
         db.session.commit()
     return redirect(url_for("admin.pages"))
 
@@ -984,6 +1189,7 @@ def delete_page(page_id):
         for filename in block_afbeeldingsbestanden(block):
             _delete_uploaded_image(filename)
     _delete_uploaded_image(page.hero_image)
+    log_action("page.delete", f"Pagina '{page.title}' verwijderd")
     db.session.delete(page)   # cascadeert naar PageBlock-rijen (Page.blocks-relationship)
     db.session.commit()
     return redirect(url_for("admin.pages"))
@@ -1012,6 +1218,7 @@ def add_page_block(page_id, block_type):
 
     blok = PageBlock(page_id=page.id, block_type=block_type, position=_next_block_position(page.id), data=data)
     db.session.add(blok)
+    log_action("page_block.add", f"Blok '{PAGE_BLOCK_TYPE_LABELS[block_type]}' toegevoegd aan pagina '{page.title}'")
     db.session.commit()
     return redirect(url_for("admin.edit_page", page_id=page.id))
 
@@ -1039,6 +1246,7 @@ def edit_page_block(page_id, block_id):
         )
 
     block.data = data
+    log_action("page_block.edit", f"Blok '{PAGE_BLOCK_TYPE_LABELS[block.block_type]}' van pagina '{page.title}' bewerkt")
     db.session.commit()
     return redirect(url_for("admin.edit_page", page_id=page.id))
 
@@ -1050,6 +1258,8 @@ def delete_page_block(page_id, block_id):
     if block is not None and block.page_id == page_id:
         for filename in block_afbeeldingsbestanden(block):
             _delete_uploaded_image(filename)
+        page = Page.query.get(page_id)
+        log_action("page_block.delete", f"Blok '{PAGE_BLOCK_TYPE_LABELS[block.block_type]}' verwijderd van pagina '{page.title if page else page_id}'")
         db.session.delete(block)
         db.session.commit()
     return redirect(url_for("admin.edit_page", page_id=page_id))
@@ -1171,6 +1381,7 @@ def add_nav_item():
         open_in_new_tab=open_in_new_tab, position=max_position + 1,
     )
     db.session.add(item)
+    log_action("nav_item.add", f"Navigatie-item '{item.label}' toegevoegd")
     db.session.commit()
     return _nav_redirect(item.id)
 
@@ -1212,6 +1423,7 @@ def edit_nav_item(item_id):
         item.external_url = external_url
     item.open_in_new_tab = open_in_new_tab
     item.is_visible = is_visible
+    log_action("nav_item.edit", f"Navigatie-item '{item.label}' bewerkt")
     db.session.commit()
     return _nav_redirect(item.id)
 
@@ -1226,6 +1438,7 @@ def delete_nav_item(item_id):
         descendant_ids = _collect_descendant_ids(item_id)
         if descendant_ids:
             NavItem.query.filter(NavItem.id.in_(descendant_ids)).delete(synchronize_session=False)
+        log_action("nav_item.delete", f"Navigatie-item '{item.label}' verwijderd")
         db.session.delete(item)
         db.session.commit()
     return redirect(url_for("admin.navigation"))
@@ -1347,6 +1560,7 @@ def add_nieuws():
         position=min_position - 1,
     )
     db.session.add(bericht)
+    log_action("nieuws.add", f"Nieuwsbericht '{bericht.titel}' toegevoegd")
     db.session.commit()
     return redirect(url_for("admin.nieuws"))
 
@@ -1396,6 +1610,7 @@ def edit_nieuws(bericht_id):
         _delete_uploaded_image(bericht.afbeelding)
         bericht.afbeelding = None
 
+    log_action("nieuws.edit", f"Nieuwsbericht '{bericht.titel}' bewerkt")
     db.session.commit()
     return redirect(url_for("admin.nieuws"))
 
@@ -1456,6 +1671,7 @@ def add_evenement():
 
     evenement = Evenement(titel=titel, datum=datum, tekst=tekst, locatie=locatie)
     db.session.add(evenement)
+    log_action("evenement.add", f"Evenement '{evenement.titel}' toegevoegd")
     db.session.commit()
     return redirect(url_for("admin.evenementen"))
 
@@ -1490,6 +1706,7 @@ def edit_evenement(evenement_id):
     evenement.datum = datum
     evenement.tekst = tekst
     evenement.locatie = locatie
+    log_action("evenement.edit", f"Evenement '{evenement.titel}' bewerkt")
     db.session.commit()
     return redirect(url_for("admin.evenementen"))
 
@@ -1499,6 +1716,7 @@ def edit_evenement(evenement_id):
 def delete_evenement(evenement_id):
     evenement = Evenement.query.get(evenement_id)
     if evenement is not None:
+        log_action("evenement.delete", f"Evenement '{evenement.titel}' verwijderd")
         db.session.delete(evenement)
         db.session.commit()
     return redirect(url_for("admin.evenementen"))
@@ -1530,6 +1748,7 @@ def add_sponsor():
     max_position = db.session.query(db.func.max(Sponsor.position)).scalar() or 0
     sponsor = Sponsor(naam=naam, logo=logo, website_url=website_url, position=max_position + 1)
     db.session.add(sponsor)
+    log_action("sponsor.add", f"Sponsor '{sponsor.naam}' toegevoegd")
     db.session.commit()
     return redirect(url_for("admin.sponsors"))
 
@@ -1551,6 +1770,7 @@ def edit_sponsor(sponsor_id):
         _delete_uploaded_image(sponsor.logo)
         sponsor.logo = new_logo
 
+    log_action("sponsor.edit", f"Sponsor '{sponsor.naam}' bewerkt")
     db.session.commit()
     return redirect(url_for("admin.sponsors"))
 
@@ -1561,6 +1781,7 @@ def toggle_sponsor_active(sponsor_id):
     sponsor = Sponsor.query.get(sponsor_id)
     if sponsor is not None:
         sponsor.is_active = not sponsor.is_active
+        log_action("sponsor.toggle_active", f"Sponsor '{sponsor.naam}' {'geactiveerd' if sponsor.is_active else 'gedeactiveerd'}")
         db.session.commit()
     return redirect(url_for("admin.sponsors"))
 
@@ -1592,6 +1813,7 @@ def delete_sponsor(sponsor_id):
     sponsor = Sponsor.query.get(sponsor_id)
     if sponsor is not None:
         _delete_uploaded_image(sponsor.logo)
+        log_action("sponsor.delete", f"Sponsor '{sponsor.naam}' verwijderd")
         db.session.delete(sponsor)
         db.session.commit()
     return redirect(url_for("admin.sponsors"))
@@ -1603,6 +1825,7 @@ def delete_nieuws(bericht_id):
     bericht = NieuwsBericht.query.get(bericht_id)
     if bericht is not None:
         _delete_uploaded_image(bericht.afbeelding)
+        log_action("nieuws.delete", f"Nieuwsbericht '{bericht.titel}' verwijderd")
         db.session.delete(bericht)
         db.session.commit()
     return redirect(url_for("admin.nieuws"))
@@ -1662,6 +1885,7 @@ def add_team():
         aantal_europese_wedstrijden=aantal_europese_wedstrijden,
     )
     db.session.add(team)
+    log_action("team.add", f"Team '{team.naam}' toegevoegd")
     db.session.commit()
     return redirect(url_for("admin.teams"))
 
@@ -1727,6 +1951,7 @@ def edit_team(team_id):
         _delete_uploaded_image(team.foto_url)
         team.foto_url = None
 
+    log_action("team.edit", f"Team '{team.naam}' bewerkt")
     db.session.commit()
     return redirect(url_for("admin.teams"))
 
@@ -1750,6 +1975,7 @@ def delete_team(team_id):
         return render_template("admin/teams_list.html", user=g.user, teams=alle_teams, sectie_labels=TEAM_SECTIE_LABELS, error=error)
 
     _delete_uploaded_image(team.foto_url)
+    log_action("team.delete", f"Team '{team.naam}' verwijderd")
     db.session.delete(team)
     db.session.commit()
     return redirect(url_for("admin.teams"))

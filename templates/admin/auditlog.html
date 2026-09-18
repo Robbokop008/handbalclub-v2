@@ -1,0 +1,73 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - Activiteitenlogboek{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>Activiteitenlogboek</h1>
+    <p>Overzicht van belangrijke wijzigingen die admins op de site hebben doorgevoerd.</p>
+</div>
+
+<section class="section">
+    <form method="get" style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:16px;">
+        <div>
+            <label for="admin-filter">Admin</label><br>
+            <select id="admin-filter" name="admin" onchange="this.form.submit()">
+                <option value="">Alle admins</option>
+                {% for a in alle_admins %}
+                <option value="{{ a.user_id }}" {{ 'selected' if admin_filter == a.user_id else '' }}>{{ a.first_name }} {{ a.last_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="actie-filter">Categorie</label><br>
+            <select id="actie-filter" name="actie" onchange="this.form.submit()">
+                <option value="">Alle categorieën</option>
+                {% for prefix, label in categorieen %}
+                <option value="{{ prefix }}" {{ 'selected' if actie_filter == prefix else '' }}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% if admin_filter or actie_filter %}
+        <div><a href="{{ url_for('admin.auditlog') }}" class="admin-button btn-sm">Filters wissen</a></div>
+        {% endif %}
+    </form>
+
+    {% if logs.items %}
+    <div class="table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Datum/tijd</th>
+                    <th>Wie</th>
+                    <th>Actie</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs.items %}
+                <tr>
+                    <td>{{ log.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                    <td>{{ log.actor_name }}</td>
+                    <td>{{ log.description }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if logs.pages > 1 %}
+    <p style="margin-top:16px; display:flex; gap:12px; align-items:center;">
+        {% if logs.has_prev %}
+        <a href="{{ url_for('admin.auditlog', page=logs.prev_num, admin=admin_filter, actie=actie_filter) }}">&larr; Vorige</a>
+        {% endif %}
+        <span>Pagina {{ logs.page }} van {{ logs.pages }}</span>
+        {% if logs.has_next %}
+        <a href="{{ url_for('admin.auditlog', page=logs.next_num, admin=admin_filter, actie=actie_filter) }}">Volgende &rarr;</a>
+        {% endif %}
+    </p>
+    {% endif %}
+    {% else %}
+        <p>Nog geen activiteit gelogd{{ ' voor deze filters' if admin_filter or actie_filter else '' }}.</p>
+    {% endif %}
+</section>
+{% endblock %}

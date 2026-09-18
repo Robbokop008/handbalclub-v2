@@ -80,6 +80,11 @@ class Config:
     UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "images")
     MAX_CONTENT_LENGTH = 8 * 1024 * 1024   # 8 MB, voorkomt te grote uploads
 
+    # Upload-map voor de adminhandleiding-PDF (zie routes/admin.py:
+    # _save_handleiding_pdf) - apart van UPLOAD_FOLDER omdat dit geen
+    # afbeelding is.
+    DOCUMENT_UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "documents")
+
     # Vaste canonieke basis-URL (zie templates/base.html) - None hier zodat
     # de canonical-tag in development gewoon op request.url_root terugvalt.
     CANONICAL_BASE_URL = None

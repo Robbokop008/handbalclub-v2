@@ -1,0 +1,89 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - Wijzigingslogboek{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>Wijzigingslogboek</h1>
+    <p>Houd hier bij welke nieuwe dingen je aan de site hebt toegevoegd, en beheer de adminhandleiding-PDF die op het dashboard staat.</p>
+</div>
+
+{% if error %}
+<p class="muted" style="color: var(--danger);">{{ error }}</p>
+{% endif %}
+
+<section class="section">
+    <h2 class="section-title">Adminhandleiding</h2>
+    {% if handleiding_bijgewerkt_op %}
+    <p class="muted">
+        Huidige versie laatst bijgewerkt op {{ handleiding_bijgewerkt_op.strftime('%d/%m/%Y') }} —
+        <a href="{{ handleiding_url }}" target="_blank" rel="noopener">bekijk huidige PDF</a>
+    </p>
+    {% else %}
+    <p class="muted">Er is nog geen handleiding-PDF geüpload.</p>
+    {% endif %}
+
+    {% if is_hoofdadmin %}
+    <form action="{{ url_for('admin.upload_handleiding') }}" method="post" class="admin-form" enctype="multipart/form-data" style="margin-top:12px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+            <label for="pdf">Nieuwe versie uploaden (PDF)</label>
+            <input type="file" id="pdf" name="pdf" accept="application/pdf" required>
+        </div>
+        <button type="submit" class="admin-button">Handleiding vervangen</button>
+    </form>
+    {% endif %}
+</section>
+
+<section class="section" style="margin-top:36px;">
+    <h2 class="section-title">Nieuwe wijziging toevoegen</h2>
+    {% if is_hoofdadmin %}
+    <form action="{{ url_for('admin.add_changelog_entry') }}" method="post" class="admin-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+            <label for="datum">Datum</label>
+            <input type="date" id="datum" name="datum" value="{{ vandaag.isoformat() }}" required>
+        </div>
+        <div style="flex:1; min-width:240px;">
+            <label for="beschrijving">Wat is er toegevoegd/gewijzigd?</label>
+            <input type="text" id="beschrijving" name="beschrijving" required>
+        </div>
+        <button type="submit" class="admin-button">Toevoegen</button>
+    </form>
+    {% else %}
+    <p class="muted">Enkel het hoofdaccount kan de handleiding vervangen of wijzigingen toevoegen/verwijderen. Jij kan dit logboek wel bekijken.</p>
+    {% endif %}
+
+    {% if entries %}
+    <div class="table-wrap" style="margin-top:20px;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Beschrijving</th>
+                    {% if is_hoofdadmin %}<th>Acties</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in entries %}
+                <tr>
+                    <td>{{ entry.datum.strftime('%d/%m/%Y') }}</td>
+                    <td>{{ entry.beschrijving }}</td>
+                    {% if is_hoofdadmin %}
+                    <td>
+                        <form action="{{ url_for('admin.delete_changelog_entry', entry_id=entry.id) }}" method="post" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Dit wijzigingslog-item verwijderen?');">Verwijderen</button>
+                        </form>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p class="muted" style="margin-top:16px;">Nog geen wijzigingen gelogd.</p>
+    {% endif %}
+</section>
+{% endblock %}

@@ -389,12 +389,31 @@ class SiteInstelling(db.Model):
     # Standaard True: de webshop is normaal gewoon open, dit is enkel om ze
     # bewust dicht te zetten (bv. tijdens de zomerstop).
     webshop_actief = db.Column(db.Boolean, default=True, nullable=False)
+    # Wanneer de adminhandleiding-PDF (static/documents/handleiding.pdf) voor
+    # het laatst geüpload is - None zolang er nog nooit één geüpload is.
+    handleiding_bijgewerkt_op = db.Column(db.DateTime, nullable=True)
 
     def __repr__(self):
         return (
             f"<SiteInstelling onderhoudsmodus_actief={self.onderhoudsmodus_actief} "
             f"webshop_actief={self.webshop_actief}>"
         )
+
+
+class ChangelogEntry(db.Model):
+    """Eén item in het door de admin bijgehouden wijzigingslogboek ('wat heb
+    ik toegevoegd aan de site'), zie routes/admin.py: changelog(). Losstaand
+    van AuditLog hierboven: dat logt automatisch élke admin-actie, dit is een
+    handmatig, vrij te formuleren overzicht voor de eigenaar zelf."""
+    __tablename__ = "changelog_entries"
+
+    id = db.Column(db.Integer, primary_key=True)
+    datum = db.Column(db.Date, nullable=False)
+    beschrijving = db.Column(db.Text, nullable=False)
+    aangemaakt_op = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def __repr__(self):
+        return f"<ChangelogEntry {self.datum}: {self.beschrijving[:40]}>"
 
 
 # ---------------------------------------------------------------------------
@@ -428,6 +447,28 @@ class User(db.Model):
 
     def __repr__(self):
         return f"<User {self.username}>"
+
+
+# ---------------------------------------------------------------------------
+# Auditlog
+# ---------------------------------------------------------------------------
+
+class AuditLog(db.Model):
+    __tablename__ = "audit_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True)
+    actor_name = db.Column(db.String(200), nullable=False)
+
+    action = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.String(500), nullable=False)
+
+    user = db.relationship("User", foreign_keys=[user_id])
+
+    def __repr__(self):
+        return f"<AuditLog {self.action} by {self.actor_name}>"
 
 
 # ---------------------------------------------------------------------------
