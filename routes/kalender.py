@@ -13,12 +13,35 @@ SPOND_EMBED_URL.
 """
 
 from datetime import date
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from flask import Blueprint, render_template, current_app, redirect, url_for
 
 from models import Evenement
 
 kalender_bp = Blueprint("kalender", __name__, url_prefix="/kalender")
+
+
+def _volledige_kalender_url(embed_url):
+    """Embed-URL voor de volledige kalenderpagina.
+
+    De embed-URL uit SPOND_EMBED_URL is een Google Agenda-embed in
+    AGENDA-modus (compact, ideaal voor het kaartje op de homepage). Google
+    toont in die modus maar een beperkt aantal weken vooruit, waardoor
+    latere wedstrijden niet zichtbaar zijn hoewel ze wel in de agenda
+    staan. Op de kalenderpagina schakelen we daarom over op de
+    maandweergave met navigatie, zodat het hele seizoen te doorbladeren is.
+    Andere URL's (bv. de placeholder) blijven ongewijzigd.
+    """
+    delen = urlparse(embed_url)
+    if delen.netloc != "calendar.google.com" or not delen.path.startswith("/calendar/embed"):
+        return embed_url
+    params = [
+        (k, v) for k, v in parse_qsl(delen.query, keep_blank_values=True)
+        if k not in ("mode", "showNav", "showDate", "showTabs", "height")
+    ]
+    params += [("mode", "MONTH"), ("showNav", "1"), ("showDate", "1"), ("showTabs", "0")]
+    return urlunparse(delen._replace(query=urlencode(params)))
 
 
 @kalender_bp.route("/")
@@ -35,7 +58,7 @@ def overzicht():
     return render_template(
         "kalender/overzicht.html",
         aankomende_evenementen=aankomende_evenementen,
-        spond_embed_url=current_app.config["SPOND_EMBED_URL"],
+        spond_embed_url=_volledige_kalender_url(current_app.config["SPOND_EMBED_URL"]),
         flanders_trophy_instagram_url=current_app.config["FLANDERS_TROPHY_INSTAGRAM_URL"],
         flanders_trophy_facebook_url=current_app.config["FLANDERS_TROPHY_FACEBOOK_URL"],
     )

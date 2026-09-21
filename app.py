@@ -9,6 +9,8 @@ en de app in kleinere, overzichtelijke stukken (blueprints) kan opdelen.
 Starten voor development doe je via run.py, niet via dit bestand direct.
 """
 
+import re
+
 from flask import Flask, render_template, request, session, redirect, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -236,6 +238,19 @@ def create_app(config_name="development"):
     ONDERHOUDSMODUS_TOEGESTANE_ENDPOINTS = {
         "static", "auth.login", "auth.logout", "shop.stripe_webhook",
     }
+
+    # Spam-URL's zoals "/?9e2ff880915503.html": een kale query-string die
+    # enkel uit "<iets>.html" bestaat. Geen enkele pagina van de site gebruikt
+    # zoiets, maar omdat query-strings gewoon genegeerd worden gaf elke variant
+    # een 200 met de homepage terug - Google Search Console telde er zo'n
+    # 28.000 als "Alternatieve pagina met correcte canonieke tag". Nu een
+    # permanente redirect naar dezelfde URL zonder query-string.
+    @app.before_request
+    def redirect_spam_querystrings():
+        if request.method in ("GET", "HEAD") and re.fullmatch(
+            r"[A-Za-z0-9_.-]+[.]html", request.query_string.decode("latin-1")
+        ):
+            return redirect(request.path, code=301)
 
     @app.before_request
     def check_onderhoudsmodus():
