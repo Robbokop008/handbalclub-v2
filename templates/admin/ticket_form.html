@@ -1,0 +1,125 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - {{ 'Wedstrijd bewerken' if wedstrijd else 'Nieuwe wedstrijd' }}{% endblock %}
+
+{# Bij een validatiefout tonen we wat de admin net ingevuld had (form), anders de opgeslagen waarden #}
+{% macro waarde(veld, opgeslagen) -%}
+{{ form.get(veld, '') if form else (opgeslagen if opgeslagen is not none else '') }}
+{%- endmacro %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>{{ 'Wedstrijd bewerken' if wedstrijd else 'Nieuwe wedstrijd toevoegen' }}</h1>
+    {% if not wedstrijd %}
+    <p>Na het opslaan kan je de tickettypes (bv. Volwassene, Kind -12) met hun prijs toevoegen.</p>
+    {% endif %}
+</div>
+
+<section class="section">
+    {% if error %}
+    <p class="alert alert-error" style="margin-bottom:20px;">{{ error }}</p>
+    {% endif %}
+
+    <form action="{{ url_for('admin.edit_ticket_wedstrijd', wedstrijd_id=wedstrijd.id) if wedstrijd else url_for('admin.add_ticket_wedstrijd') }}" method="post" class="admin-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div>
+            <label for="titel">Wedstrijd</label>
+            <input type="text" id="titel" name="titel" placeholder="bv. Heren 1 - HC Tongeren" value="{{ waarde('titel', wedstrijd.titel if wedstrijd else none) }}" required>
+        </div>
+        <div>
+            <label for="datum_tijd">Datum en aanvangsuur</label>
+            <input type="datetime-local" id="datum_tijd" name="datum_tijd" value="{{ waarde('datum_tijd', wedstrijd.datum_tijd.strftime('%Y-%m-%dT%H:%M') if wedstrijd else none) }}" required>
+        </div>
+        <div>
+            <label for="verkoop_einde">Einde online verkoop (leeg = bij aanvang)</label>
+            <input type="datetime-local" id="verkoop_einde" name="verkoop_einde" value="{{ waarde('verkoop_einde', wedstrijd.verkoop_einde.strftime('%Y-%m-%dT%H:%M') if wedstrijd and wedstrijd.verkoop_einde else none) }}">
+        </div>
+        <div>
+            <label for="locatie">Locatie (optioneel)</label>
+            <input type="text" id="locatie" name="locatie" placeholder="bv. Sporthal Kortenbos, Kortenbosstraat 58, Sint-Truiden" value="{{ waarde('locatie', wedstrijd.locatie if wedstrijd else none) }}">
+        </div>
+        <div>
+            <label for="max_tickets">Maximum aantal tickets (leeg = onbeperkt)</label>
+            <input type="number" id="max_tickets" name="max_tickets" min="1" value="{{ waarde('max_tickets', wedstrijd.max_tickets if wedstrijd else none) }}">
+        </div>
+        <div>
+            <label for="max_per_bestelling">Maximum per bestelling (leeg = onbeperkt)</label>
+            <input type="number" id="max_per_bestelling" name="max_per_bestelling" min="1" value="{{ waarde('max_per_bestelling', wedstrijd.max_per_bestelling if wedstrijd else none) }}">
+        </div>
+        <div style="grid-column:1/-1;">
+            <label for="omschrijving">Extra info (optioneel)</label>
+            <textarea id="omschrijving" name="omschrijving" rows="3" placeholder="bv. Deuren open om 19u30. Kinderen onder 6 jaar gratis.">{{ waarde('omschrijving', wedstrijd.omschrijving if wedstrijd else none) }}</textarea>
+        </div>
+        <div class="checkbox-field">
+            {% set actief = (form.get('is_active') if form else (wedstrijd.is_active if wedstrijd else true)) %}
+            <label for="is_active"><input type="checkbox" id="is_active" name="is_active" {{ 'checked' if actief else '' }}> Actief (tickets te koop tot het einde van de online verkoop)</label>
+        </div>
+
+        <div class="form-actions" style="grid-column:1/-1;">
+            <button type="submit" class="admin-button">Opslaan</button>
+            <a href="{{ url_for('admin.tickets') }}" class="btn btn-secondary">Terug</a>
+        </div>
+    </form>
+
+    {% if wedstrijd %}
+    <h2 class="section-title" style="margin-top:40px;">Tickettypes</h2>
+    <p>Elk type heeft een eigen prijs. Een prijswijziging geldt enkel voor nieuwe bestellingen. Tickettypes worden niet verwijderd, enkel gedeactiveerd.</p>
+
+    {% if wedstrijd.ticket_types %}
+    <div class="table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Naam / Prijs / Actief</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ticket_type in wedstrijd.ticket_types %}
+                <tr>
+                    <td style="padding:0;">
+                        <div class="variant-row">
+                            <form action="{{ url_for('admin.edit_ticket_type', ticket_type_id=ticket_type.id) }}" method="post" class="variant-edit-form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="text" name="naam" value="{{ ticket_type.naam }}" aria-label="Naam" required>
+                                <input type="number" name="prijs" value="{{ '%.2f'|format(ticket_type.prijs) }}" step="0.01" min="0" aria-label="Prijs" required>
+                                <label class="variant-active-toggle">
+                                    <input type="checkbox" name="is_active" {{ 'checked' if ticket_type.is_active else '' }}> Actief
+                                </label>
+                                <button type="submit" class="admin-button btn-sm">Opslaan</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p><strong>Nog geen tickettypes</strong> — voeg er minstens één toe, anders verschijnt deze wedstrijd niet in de webshop.</p>
+    {% endif %}
+
+    <form action="{{ url_for('admin.add_ticket_type', wedstrijd_id=wedstrijd.id) }}" method="post" class="admin-form" style="margin-top:24px;">
+        <h3>Nieuw tickettype toevoegen</h3>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+            <label for="type_naam">Naam</label>
+            <input type="text" id="type_naam" name="naam" placeholder="bv. Volwassene" required>
+        </div>
+        <div>
+            <label for="type_prijs">Prijs (€)</label>
+            <input type="number" id="type_prijs" name="prijs" step="0.01" min="0" required>
+        </div>
+        <div class="checkbox-field">
+            <label for="type_is_active"><input type="checkbox" id="type_is_active" name="is_active" checked> Actief</label>
+        </div>
+        <button type="submit" class="admin-button">Tickettype toevoegen</button>
+    </form>
+
+    <form action="{{ url_for('admin.delete_ticket_wedstrijd', wedstrijd_id=wedstrijd.id) }}" method="post" style="margin-top:24px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Deze wedstrijd definitief verwijderen? Dit kan enkel zolang er nog geen tickets voor besteld zijn.');">Wedstrijd verwijderen</button>
+    </form>
+    {% endif %}
+</section>
+{% endblock %}

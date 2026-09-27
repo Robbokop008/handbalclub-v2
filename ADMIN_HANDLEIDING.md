@@ -38,7 +38,7 @@ Het adminpaneel heeft links een menu met vijf groepen:
 |---|---|
 | **Content** | Pagina's, Nieuws, Evenementen, Sponsors, Teams, Navigatie |
 | **Leden & inschrijvingen** | Gebruikers, Inschrijvingen, Inschrijvingsformulier |
-| **Webshop** | Producten, Bestellingen, Instellingen |
+| **Webshop** | Producten, Tickets, Bestellingen, Instellingen |
 | **Beheer** | GDPR-verzoeken, Mijn account |
 
 ### Het dashboard
@@ -200,16 +200,33 @@ Bij een product: **Naam**, **Beschrijving**, **Afbeelding**, of **bedrukking mog
 
 Per product beheer je ook de **varianten** (kleur + maat), elk met eigen **prijs**, **voorraad** en actief/inactief-status. Een actief product zonder enige koopbare variant (voorraad > 0) verschijnt als waarschuwing op het dashboard.
 
-### 9.2 Bestellingen
+### 9.2 Tickets voor wedstrijden
 
-Via **Webshop → Bestellingen** zie je alle geplaatste bestellingen: klant, bedrag, verzendkosten, betaalstatus en status. Klik op **"Bekijken"** voor de volledige inhoud (producten, kleur/maat, bedrukkingstekst voor- en achterkant, aantallen en prijzen).
+Via **Webshop → Tickets** verkoop je tickets voor wedstrijden. Supporters kopen ze in de webshop (pagina **/tickets**, ook bereikbaar via een knop op de productpagina) en kunnen ze samen met kledij in hetzelfde winkelmandje afrekenen. Net als bij de webshop moeten ze daarvoor ingelogd zijn.
+
+1. Klik op **"Nieuwe wedstrijd toevoegen"** en vul de **wedstrijd** (bv. "Heren 1 - HC Tongeren"), **datum en aanvangsuur**, optioneel een **einde online verkoop**, de **locatie**, **extra info**, een **maximum aantal tickets** en een **maximum per bestelling** in (beide leeg = onbeperkt).
+2. Na het opslaan voeg je de **tickettypes** toe, elk met een eigen prijs (bv. Volwassene €8, Kind -12 €4). Zonder minstens één actief tickettype verschijnt de wedstrijd niet in de webshop.
+
+Goed om te weten:
+
+- De online verkoop **sluit automatisch** op het ingestelde **einde online verkoop**, of bij het aanvangsuur als je dat veld leeg laat. De wedstrijd verdwijnt dan uit de webshop. Wil je onverwacht meteen stoppen, **deactiveer** de wedstrijd dan.
+- Het **maximum per bestelling** geldt voor alle tickettypes van die wedstrijd samen (bv. max. 6 = 4 volwassenen + 2 kinderen).
+- Het maximum aantal tickets telt ook bestellingen die nog op betaling wachten. Wordt een betaling niet afgerond, dan komen die plaatsen na ongeveer een halfuur automatisch weer vrij.
+- Een prijswijziging geldt enkel voor nieuwe bestellingen.
+- Een wedstrijd verwijderen kan enkel zolang er nog geen tickets voor besteld zijn — daarna kan je ze enkel deactiveren.
+
+**Naamlijst voor aan de ingang:** klik bij een wedstrijd op **"Naamlijst"**. Je ziet alle betaalde bestellingen, alfabetisch op achternaam, met het bestelnummer en het aantal tickets per type. Met **"Afdrukken"** druk je een lijst af met een afvinkvakje per koper. Met **"Download als Excel (CSV)"** krijg je dezelfde lijst als bestand. De koper toont aan de ingang de bevestigingsmail (met naam en bestelnummer). Geannuleerde of terugbetaalde bestellingen verdwijnen automatisch van de lijst.
+
+### 9.3 Bestellingen
+
+Via **Webshop → Bestellingen** zie je alle geplaatste bestellingen: klant, bedrag, verzendkosten, betaalstatus en status. Bestellingen met tickets zijn gemarkeerd met 🎟️. Klik op **"Bekijken"** voor de volledige inhoud (producten, kleur/maat, bedrukkingstekst voor- en achterkant, tickets, aantallen en prijzen). Bestellingen met enkel tickets hoeven niet verzonden te worden en tellen niet mee bij "Bestellingen die actie nodig hebben" op het dashboard.
 
 Op de detailpagina wijzig je de **status** van de bestelling (bv. In verwerking → Verzonden). Zet je een bestelling op **"Geannuleerd"**, dan gebeurt automatisch twee dingen:
 
-1. De voorraad van elke bestelde variant wordt terugbetoekt.
+1. De voorraad van elke bestelde variant wordt teruggeboekt, en eventuele tickets komen weer vrij.
 2. De klant krijgt automatisch een annulatiemail.
 
-### 9.3 Instellingen
+### 9.4 Instellingen
 
 Via **Webshop → Instellingen** kan je de **hele webshop tijdelijk sluiten**. Staat ze dicht, dan verdwijnt de FanShop-link en het winkelmandje-icoon
 overal van de site, en tonen alle webshop-pagina's een "tijdelijk gesloten"-melding voor bezoekers. Enkel ingelogde admins zien de webshop dan nog — de rest van de site blijft gewoon normaal bereikbaar.

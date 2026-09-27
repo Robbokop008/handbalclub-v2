@@ -1,0 +1,21 @@
+{# Kaartjes van de wedstrijden met open ticketverkoop - gedeeld door
+   shop/tickets.html en shop/products.html (als er geen producten zijn). #}
+<div class="content-grid">
+    {% for wedstrijd in wedstrijden %}
+    {% set beschikbaar = wedstrijd.aantal_beschikbaar() %}
+    <a href="{{ url_for('shop.ticket_detail', wedstrijd_id=wedstrijd.id) }}" style="text-decoration:none; color:inherit;">
+        <div class="content-preview-card">
+            <h3>{{ wedstrijd.titel }}</h3>
+            <p class="content-preview-meta">
+                {{ wedstrijd.datum_tijd.strftime('%d/%m/%Y') }} om {{ wedstrijd.datum_tijd.strftime('%H:%M') }}
+                {% if wedstrijd.locatie %}<br>{{ wedstrijd.locatie }}{% endif %}
+            </p>
+            <p class="content-preview-tekst">
+                Vanaf €{{ '%.2f'|format(wedstrijd.actieve_ticket_types | map(attribute='prijs') | min) }}
+                {% if beschikbaar == 0 %} — <strong>Uitverkocht</strong>{% endif %}
+            </p>
+            <p class="content-preview-lees-meer"><span>{{ 'Bekijk' if beschikbaar == 0 else 'Tickets kopen' }} &rarr;</span></p>
+        </div>
+    </a>
+    {% endfor %}
+</div>

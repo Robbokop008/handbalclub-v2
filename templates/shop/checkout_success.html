@@ -34,15 +34,33 @@
             {% endif %}
         </div>
         {% endfor %}
+        {% for line in order.ticket_lines %}
+        <div class="order-line" style="flex-direction:column; align-items:flex-start; gap:2px;">
+            <div style="display:flex; justify-content:space-between; width:100%;">
+                <span>🎟️ {{ line.wedstrijd.titel }} — {{ line.ticket_type.naam }}</span>
+                <span>{{ line.quantity }} × €{{ '%.2f'|format(line.price) }}</span>
+            </div>
+            <div class="item-printing">
+                <span>{{ line.wedstrijd.datum_tijd.strftime('%d/%m/%Y %H:%M') }}{% if line.wedstrijd.locatie %} — {{ line.wedstrijd.locatie }}{% endif %}</span>
+            </div>
+        </div>
+        {% endfor %}
         <hr style="border:none; border-top:1px solid var(--border); margin:16px 0;">
         <div class="order-line">
             <span>Subtotaal</span>
             <span>€{{ '%.2f'|format(order.total_price) }}</span>
         </div>
+        {% if order.lines %}
         <div class="order-line">
             <span>Verzendkosten</span>
             <span>{{ 'Gratis' if not order.shipping_cost else '€' + '%.2f'|format(order.shipping_cost) }}</span>
         </div>
+        {% endif %}
+        {% if order.ticket_lines %}
+        <p class="alert alert-info" style="margin:16px 0 0;">
+            Je staat op de naamlijst. Toon je bevestigingsmail aan de ingang van de sporthal om binnen te gaan of je tickets op te halen.
+        </p>
+        {% endif %}
     </div>
 </section>
 {% endblock %}

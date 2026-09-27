@@ -1,0 +1,3 @@
+# Shellscripts draaien op de Linux-server: altijd LF, ook na een checkout op Windows
+*.sh text eol=lf
+*.fcgi text eol=lf

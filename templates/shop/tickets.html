@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Handbal Sint-Truiden | Tickets{% endblock %}
+{% block meta_description %}Koop online tickets voor de thuiswedstrijden van Handbal Sint-Truiden.{% endblock %}
+
+{% block content %}
+<section class="club-hero">
+    <h1>Tickets</h1>
+    <p>Koop je tickets online en sta meteen op de naamlijst aan de ingang van de sporthal.</p>
+</section>
+
+{% if wedstrijden %}
+<section class="section" id="tickets">
+    {% include "shop/_ticket_kaarten.html" %}
+</section>
+{% else %}
+<section class="section">
+    <p style="text-align:center;color:rgba(255,255,255,0.8);">Er zijn op dit moment geen wedstrijden met online ticketverkoop. Probeer het later opnieuw.</p>
+</section>
+{% endif %}
+{% endblock %}

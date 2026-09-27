@@ -1,0 +1,56 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Naamlijst - {{ wedstrijd.titel }}{% endblock %}
+
+{% block admin_content %}
+<div class="naamlijst">
+    <div class="admin-page-header">
+        <h1>Naamlijst: {{ wedstrijd.titel }}</h1>
+        <p>
+            {{ wedstrijd.datum_tijd.strftime('%d/%m/%Y') }} om {{ wedstrijd.datum_tijd.strftime('%H:%M') }}{% if wedstrijd.locatie %} — {{ wedstrijd.locatie }}{% endif %}<br>
+            <strong>{{ totaal_tickets }}</strong> ticket{{ '' if totaal_tickets == 1 else 's' }} in {{ rijen|length }} bestelling{{ '' if rijen|length == 1 else 'en' }}
+            {%- if types %}: {% for t in types %}{{ t.naam }} {{ totalen_per_type[t.id] }}{{ ', ' if not loop.last else '' }}{% endfor %}{% endif %}
+        </p>
+        <p class="naamlijst-geen-print muted">
+            Enkel betaalde, niet-geannuleerde bestellingen staan op deze lijst. Aan de ingang toont de koper de bevestigingsmail (met naam en bestelnummer).
+        </p>
+    </div>
+
+    <p class="naamlijst-geen-print">
+        <button type="button" class="admin-button btn-sm" onclick="window.print()">Afdrukken</button>
+        <a href="{{ url_for('admin.ticket_naamlijst', wedstrijd_id=wedstrijd.id, format='csv') }}" class="admin-button btn-sm">Download als Excel (CSV)</a>
+        <a href="{{ url_for('admin.tickets') }}" class="btn btn-secondary btn-sm">Terug</a>
+    </p>
+
+    {% if rijen %}
+    <div class="table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th class="naamlijst-afvinken">✓</th>
+                    <th>Naam</th>
+                    <th>Bestelnr.</th>
+                    {% for t in types %}<th>{{ t.naam }}</th>{% endfor %}
+                    <th>Totaal</th>
+                    <th class="naamlijst-geen-print">E-mail</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rij in rijen %}
+                <tr>
+                    <td><span class="naamlijst-vakje"></span></td>
+                    <td><strong>{{ rij.order.user.last_name }}</strong> {{ rij.order.user.first_name }}</td>
+                    <td><a href="{{ url_for('admin.view_order', order_id=rij.order.order_id) }}">#{{ rij.order.order_id }}</a></td>
+                    {% for t in types %}<td>{{ rij.aantallen.get(t.id, '') }}</td>{% endfor %}
+                    <td><strong>{{ rij.totaal }}</strong></td>
+                    <td class="naamlijst-geen-print">{{ rij.order.user.email }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p>Er zijn nog geen (betaalde) tickets voor deze wedstrijd.</p>
+    {% endif %}
+</div>
+{% endblock %}

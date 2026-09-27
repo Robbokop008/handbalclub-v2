@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Tickets {{ wedstrijd.titel }} - Handbal Sint-Truiden{% endblock %}
+{% block meta_description %}Koop online tickets voor {{ wedstrijd.titel }} op {{ wedstrijd.datum_tijd.strftime('%d/%m/%Y') }}.{% endblock %}
+
+{% block content %}
+<section class="section">
+<div class="product-detail ticket-detail">
+    <div class="details">
+        <div class="product-name">{{ wedstrijd.titel }}</div>
+        <p class="ticket-meta">
+            📅 {{ wedstrijd.datum_tijd.strftime('%d/%m/%Y') }} om {{ wedstrijd.datum_tijd.strftime('%H:%M') }}
+            {% if wedstrijd.locatie %}<br>📍 {{ wedstrijd.locatie }}{% endif %}
+        </p>
+        {% if wedstrijd.omschrijving %}
+        <div class="product-description" style="white-space:pre-line;">{{ wedstrijd.omschrijving }}</div>
+        {% endif %}
+
+        {% if error %}
+        <p class="alert alert-error">{{ error }}</p>
+        {% endif %}
+
+        {% if wedstrijd.verkoop_gesloten %}
+            <p class="stock-note">De online ticketverkoop voor deze wedstrijd is gesloten.</p>
+        {% elif not wedstrijd.actieve_ticket_types %}
+            <p class="stock-note">Er zijn (nog) geen tickets te koop voor deze wedstrijd.</p>
+        {% elif beschikbaar == 0 %}
+            <p class="stock-note">Deze wedstrijd is uitverkocht.</p>
+        {% else %}
+        <form action="{{ url_for('shop.add_tickets_to_cart') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="wedstrijd_id" value="{{ wedstrijd.id }}">
+            {% set limieten = [beschikbaar, wedstrijd.max_per_bestelling] | reject('none') | list %}
+            {% set limiet = limieten | min if limieten else none %}
+
+            <div class="ticket-types">
+                {% for ticket_type in wedstrijd.actieve_ticket_types %}
+                <div class="ticket-type-row">
+                    <label for="aantal_{{ ticket_type.id }}">
+                        <span class="ticket-type-naam">{{ ticket_type.naam }}</span>
+                        <span class="ticket-type-prijs">€{{ '%.2f'|format(ticket_type.prijs) }}</span>
+                    </label>
+                    <input type="number" class="qty" name="aantal_{{ ticket_type.id }}" id="aantal_{{ ticket_type.id }}"
+                           value="0" min="0" {% if limiet is not none %}max="{{ limiet }}"{% endif %}>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if wedstrijd.verkoop_einde %}
+            <p class="stock-note">Online verkoop tot {{ wedstrijd.verkoop_einde.strftime('%d/%m/%Y') }} om {{ wedstrijd.verkoop_einde.strftime('%H:%M') }}.</p>
+            {% endif %}
+
+            {% if wedstrijd.max_per_bestelling %}
+            <p class="stock-note">Maximaal {{ wedstrijd.max_per_bestelling }} tickets per bestelling.</p>
+            {% endif %}
+
+            {% if beschikbaar is not none and beschikbaar <= 20 %}
+            <p class="stock-note">Nog maar {{ beschikbaar }} tickets beschikbaar.</p>
+            {% endif %}
+
+            <button type="submit" class="add-to-cart">Toevoegen aan winkelmandje</button>
+        </form>
+        <p class="muted" style="margin-top:16px;font-size:13px;">
+            Na betaling ontvang je een bevestigingsmail en sta je op de naamlijst.
+            Toon die mail aan de ingang van de sporthal om binnen te gaan of je tickets op te halen.
+        </p>
+        {% endif %}
+
+        <p style="margin-top:20px;"><a href="{{ url_for('shop.tickets') }}">&larr; Alle wedstrijden</a></p>
+    </div>
+</div>
+</section>
+{% endblock %}

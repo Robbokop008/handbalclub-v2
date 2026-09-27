@@ -132,6 +132,7 @@ NIET_TE_CRAWLEN_PADEN = [
     "/login", "/register", "/logout", "/profile", "/account_settings",
     "/update_profile", "/delete_account",
     "/cart", "/add_to_cart", "/adjust_cart", "/remove_from_cart", "/clear_cart",
+    "/add_tickets_to_cart",
     "/checkout", "/checkout_success", "/webhook",
     "/privacy/vergeet-mij",
 ]
@@ -188,6 +189,7 @@ STATISCHE_SITEMAP_ENDPOINTS = [
     # hieronder, een aparte sitemap-entry zou enkel een nutteloze redirect-
     # hop toevoegen.
     ("shop.products", 0.7, "weekly"),
+    ("shop.tickets", 0.6, "weekly"),
 ]
 
 
@@ -216,7 +218,7 @@ def sitemap():
 
     for product in Product.query.filter_by(is_active=True).all():
         entries.append({
-            "loc": url_for("shop.product_detail", product_id=product.id, _external=True),
+            "loc": url_for("shop.product_detail", product_id=product.product_id, _external=True),
             "changefreq": "weekly",
             "priority": 0.5,
         })

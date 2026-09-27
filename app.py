@@ -167,6 +167,8 @@ def create_app(config_name="development"):
         "pages.view": "content-page",
         "shop.products": "content-page",
         "shop.product_detail": "content-page",
+        "shop.tickets": "content-page",
+        "shop.ticket_detail": "content-page",
         "shop.cart": "content-page",
         "shop.checkout_success": "content-page",
         "shop.gesloten": "content-page",

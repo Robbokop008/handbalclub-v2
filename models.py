@@ -7,6 +7,8 @@ Gegroepeerd in:
 1. Club (Team, NieuwsBericht)
 2. Gebruikers & authenticatie (User)
 3. Webshop (Product, ProductVariant, Order, OrderLine)
+4. Tickets (TicketWedstrijd, TicketType, TicketLijn) - via dezelfde
+   winkelmand/Order als de webshop
 
 De webshop-modellen zijn gemigreerd vanuit de originele sqlite3-versie
 (model.py uit hello_flask) naar SQLAlchemy, met dezelfde velden/relaties,
@@ -517,7 +519,7 @@ class Order(db.Model):
 
     order_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
-    total_price = db.Column(db.Numeric(10, 2), nullable=False)          # subtotaal producten, excl. verzending
+    total_price = db.Column(db.Numeric(10, 2), nullable=False)          # subtotaal producten + tickets, excl. verzending
     shipping_cost = db.Column(db.Numeric(10, 2), nullable=False, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     payment_status = db.Column(db.String(20), default="Pending", nullable=False)
@@ -525,6 +527,9 @@ class Order(db.Model):
 
     lines = db.relationship(
         "OrderLine", backref="order", lazy=True, cascade="all, delete-orphan"
+    )
+    ticket_lines = db.relationship(
+        "TicketLijn", backref="order", lazy=True, cascade="all, delete-orphan"
     )
 
     @property
@@ -550,6 +555,139 @@ class OrderLine(db.Model):
 
     product = db.relationship("Product")
     variant = db.relationship("ProductVariant")
+
+    @property
+    def subtotal(self):
+        return self.quantity * float(self.price)
+
+
+# ---------------------------------------------------------------------------
+# Tickets voor wedstrijden (onderdeel van de webshop)
+# ---------------------------------------------------------------------------
+
+# Bestellingen met deze status tellen niet (meer) mee voor verkochte tickets
+# of de naamlijst - zelfde principe als de voorraad die bij annulatie
+# teruggeboekt wordt.
+TICKET_ONGELDIGE_ORDER_STATUSSEN = ["Geannuleerd", "Terugbetaald"]
+
+
+def nu_belgisch():
+    """Huidige Belgische lokale tijd als naive datetime - zelfde vorm als
+    TicketWedstrijd.datum_tijd (die een admin in lokale tijd invult)."""
+    from zoneinfo import ZoneInfo
+    return datetime.now(ZoneInfo("Europe/Brussels")).replace(tzinfo=None)
+
+
+class TicketWedstrijd(db.Model):
+    """Een wedstrijd waarvoor tickets verkocht worden. Los van de Spond-
+    kalender (die geen koppelbare API heeft) - een admin maakt ze zelf aan.
+    Net als producten nooit verwijderd zodra er tickets voor verkocht zijn,
+    enkel actief/inactief gezet."""
+    __tablename__ = "ticket_wedstrijden"
+
+    id = db.Column(db.Integer, primary_key=True)
+    titel = db.Column(db.String(200), nullable=False)          # bv. "Heren 1 - HC Tongeren"
+    datum_tijd = db.Column(db.DateTime, nullable=False)          # aanvangsuur, Belgische lokale tijd
+    locatie = db.Column(db.String(255))
+    omschrijving = db.Column(db.Text)
+    # Leeg = geen limiet. Anders het maximum aantal tickets over alle
+    # tickettypes samen (bv. de capaciteit van de tribune).
+    max_tickets = db.Column(db.Integer, nullable=True)
+    # Leeg = geen limiet. Anders het maximum aantal tickets (alle types
+    # samen) dat één klant in één bestelling voor deze wedstrijd koopt.
+    max_per_bestelling = db.Column(db.Integer, nullable=True)
+    # Leeg = de verkoop sluit bij de aanvang. Anders het moment (Belgische
+    # lokale tijd, net als datum_tijd) waarop de online verkoop eerder sluit.
+    verkoop_einde = db.Column(db.DateTime, nullable=True)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    ticket_types = db.relationship(
+        "TicketType", backref="wedstrijd", lazy=True, cascade="all, delete-orphan",
+        order_by="TicketType.id",
+    )
+
+    @property
+    def actieve_ticket_types(self):
+        return [t for t in self.ticket_types if t.is_active]
+
+    @property
+    def verkoop_sluit_op(self):
+        """De ingestelde einddatum van de verkoop, of anders de aanvang."""
+        return self.verkoop_einde or self.datum_tijd
+
+    @property
+    def verkoop_gesloten(self):
+        """De verkoop sluit automatisch op verkoop_sluit_op."""
+        return self.verkoop_sluit_op <= nu_belgisch()
+
+    def aantal_verkocht(self):
+        """Tickets in bestellingen die (nog) niet mislukt/geannuleerd zijn.
+        Bewust incl. bestellingen die nog op betaling wachten: die houden hun
+        plaatsen vast, net zoals de voorraad bij producten al bij het
+        afrekenen afgeschreven wordt. Mislukt/verloopt de betaling, dan
+        telt de bestelling vanzelf niet meer mee (payment_status 'failed')."""
+        totaal = (
+            db.session.query(db.func.coalesce(db.func.sum(TicketLijn.quantity), 0))
+            .join(Order, TicketLijn.order_id == Order.order_id)
+            .join(TicketType, TicketLijn.ticket_type_id == TicketType.id)
+            .filter(
+                TicketType.wedstrijd_id == self.id,
+                Order.payment_status != "failed",
+                Order.order_status.notin_(TICKET_ONGELDIGE_ORDER_STATUSSEN),
+            )
+            .scalar()
+        )
+        return int(totaal or 0)
+
+    def aantal_beschikbaar(self):
+        """None = onbeperkt."""
+        if self.max_tickets is None:
+            return None
+        return max(0, self.max_tickets - self.aantal_verkocht())
+
+    @property
+    def is_koopbaar(self):
+        return self.is_active and not self.verkoop_gesloten and bool(self.actieve_ticket_types)
+
+    def __repr__(self):
+        return f"<TicketWedstrijd {self.titel} ({self.datum_tijd})>"
+
+
+class TicketType(db.Model):
+    """Soort ticket voor een wedstrijd, bv. 'Volwassene' of 'Kind -12', elk
+    met een eigen prijs. Zelfde principe als ProductVariant: nooit
+    verwijderd, enkel gedeactiveerd, omdat ticketregels ernaar verwijzen."""
+    __tablename__ = "ticket_types"
+
+    id = db.Column(db.Integer, primary_key=True)
+    wedstrijd_id = db.Column(db.Integer, db.ForeignKey("ticket_wedstrijden.id"), nullable=False)
+    naam = db.Column(db.String(100), nullable=False)
+    prijs = db.Column(db.Float, nullable=False)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+
+    def __repr__(self):
+        return f"<TicketType {self.naam} ({self.wedstrijd_id})>"
+
+
+class TicketLijn(db.Model):
+    """Ticketregel in een bestelling - de tegenhanger van OrderLine voor
+    tickets. Aparte tabel i.p.v. OrderLine uitbreiden: OrderLine.product_id
+    is verplicht, en die kolom nullable maken vraagt op sqlite een volledige
+    tabel-herbouw."""
+    __tablename__ = "order_ticket_lines"
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey("orders.order_id"), nullable=False)
+    ticket_type_id = db.Column(db.Integer, db.ForeignKey("ticket_types.id"), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    price = db.Column(db.Numeric(10, 2), nullable=False)   # prijs per ticket, bevroren bij bestellen
+
+    ticket_type = db.relationship("TicketType")
+
+    @property
+    def wedstrijd(self):
+        return self.ticket_type.wedstrijd
 
     @property
     def subtotal(self):

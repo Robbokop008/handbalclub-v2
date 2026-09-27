@@ -58,8 +58,9 @@ Bedankt voor je bestelling!
 
 Bestelnummer: {order.order_id}
 
-Bestelling:
 """
+    if order.lines:
+        body += "Bestelling:\n"
     for line in order.lines:
         variant_label = ""
         if line.variant:
@@ -70,13 +71,41 @@ Bestelling:
         if line.print_back:
             body += f"    Bedrukking achterkant: {line.print_back}\n"
 
+    if order.ticket_lines:
+        if order.lines:
+            body += "\n"
+        body += "Tickets:\n"
+        # Gegroepeerd per wedstrijd, in chronologische volgorde
+        per_wedstrijd = {}
+        for line in order.ticket_lines:
+            per_wedstrijd.setdefault(line.wedstrijd, []).append(line)
+        for wedstrijd in sorted(per_wedstrijd, key=lambda w: w.datum_tijd):
+            body += f"\n{wedstrijd.titel}\n"
+            body += f"  Datum: {wedstrijd.datum_tijd.strftime('%d/%m/%Y')} om {wedstrijd.datum_tijd.strftime('%H:%M')}\n"
+            if wedstrijd.locatie:
+                body += f"  Locatie: {wedstrijd.locatie}\n"
+            for line in per_wedstrijd[wedstrijd]:
+                body += f"  - {line.ticket_type.naam} x {line.quantity} (€{float(line.price):.2f})\n"
+
     body += f"\nSubtotaal: €{float(order.total_price):.2f}\n"
-    body += f"Verzendkosten: {'Gratis' if not order.shipping_cost else '€' + f'{float(order.shipping_cost):.2f}'}\n"
+    if order.lines:
+        body += f"Verzendkosten: {'Gratis' if not order.shipping_cost else '€' + f'{float(order.shipping_cost):.2f}'}\n"
     body += f"Totaal: €{order.total_paid:.2f}\n\n"
-    body += "We gaan meteen met je bestelling aan de slag."
+
+    if order.ticket_lines:
+        body += (
+            "TOEGANG TOT DE WEDSTRIJD\n"
+            f"Je staat op de naamlijst onder de naam {order.user.first_name} {order.user.last_name} "
+            f"(bestelnummer {order.order_id}). Toon deze e-mail aan de ingang van de sporthal "
+            "om binnen te gaan of je tickets op te halen. Je hoeft niets af te drukken.\n\n"
+        )
+    if order.lines:
+        body += "We gaan meteen met je bestelling aan de slag."
+    else:
+        body += "Tot in de sporthal!"
 
     msg = MIMEText(body, "plain", "utf-8")
-    msg["Subject"] = f"Bestelbevestiging #{order.order_id}"
+    msg["Subject"] = f"{'Ticketbevestiging' if order.ticket_lines and not order.lines else 'Bestelbevestiging'} #{order.order_id}"
     msg["From"] = current_app.config["GMAIL_USER"]
     msg["To"] = order.user.email
     _send(msg)

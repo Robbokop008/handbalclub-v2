@@ -1,9 +1,10 @@
 """
 routes/shop.py
 ---------------
-De webshop: productoverzicht, productdetail, winkelmandje (met optionele
-bedrukking per stuk), afrekenen via Stripe Checkout (incl. gratis
-verzending vanaf een drempelbedrag), en de Stripe webhook.
+De webshop: productoverzicht, productdetail, tickets voor wedstrijden,
+winkelmandje (met optionele bedrukking per stuk), afrekenen via Stripe
+Checkout (incl. gratis verzending vanaf een drempelbedrag), en de Stripe
+webhook.
 
 Cart-structuur in de sessie:
     session["cart"] = {
@@ -11,18 +12,30 @@ Cart-structuur in de sessie:
             "variant_id": int, "quantity": int,
             "print_front": str | None, "print_back": str | None,
         },
+        "<cart_item_id (uuid)>": {
+            "ticket_type_id": int, "quantity": int,
+        },
         ...
     }
 Elke combinatie van variant + bedrukking krijgt een eigen regel, zodat je
-bv. twee T-shirts met elk een andere opdruk apart kan bestellen.
+bv. twee T-shirts met elk een andere opdruk apart kan bestellen. Tickets
+krijgen één regel per tickettype.
+
+Tickets en producten kunnen samen in één bestelling. Bevat de bestelling
+enkel tickets, dan vraagt Stripe geen verzendadres en zijn er geen
+verzendkosten; de drempel voor gratis verzending telt enkel producten.
 """
 
+import time
+from collections import defaultdict
 from uuid import uuid4
 from flask import Blueprint, render_template, request, redirect, url_for, session, current_app, g
 import stripe
 
 from extensions import db, csrf
-from models import Product, ProductVariant, Order, OrderLine
+from models import (
+    Product, ProductVariant, Order, OrderLine, TicketWedstrijd, TicketType, TicketLijn, nu_belgisch,
+)
 from utils.auth import login_required
 from utils.mail import send_order_confirmation_mail, send_admin_cancellation_mail
 
@@ -64,12 +77,42 @@ def get_shipping_rate():
     return rate
 
 
+def _stripe_order_id(stripe_object):
+    """order_id uit de metadata van een Stripe-object (Checkout Session of
+    PaymentIntent), of None. Sinds stripe-python v13 is een StripeObject
+    geen dict meer: .get() bestaat niet meer (AttributeError), enkel
+    ['sleutel'] en 'sleutel' in obj werken nog."""
+    if "metadata" not in stripe_object or not stripe_object["metadata"]:
+        return None
+    metadata = stripe_object["metadata"]
+    return metadata["order_id"] if "order_id" in metadata else None
+
+
 def _get_cart_items():
     """Zet de sessie-cart om naar een lijst met volledige variant/product-info."""
     items = []
     cart = session.get("cart", {})
 
     for cart_item_id, line in cart.items():
+        if "ticket_type_id" in line:
+            ticket_type = TicketType.query.get(line["ticket_type_id"])
+            if ticket_type is None:
+                continue
+            items.append({
+                "cart_item_id": cart_item_id,
+                "type": "ticket",
+                "ticket_type": ticket_type,
+                "wedstrijd": ticket_type.wedstrijd,
+                "product": None,
+                "variant": None,
+                "quantity": line["quantity"],
+                "price": ticket_type.prijs,
+                "subtotal": ticket_type.prijs * line["quantity"],
+                "print_front": None,
+                "print_back": None,
+            })
+            continue
+
         variant = ProductVariant.query.get(line["variant_id"])
         if variant is None:
             continue
@@ -80,6 +123,7 @@ def _get_cart_items():
 
         items.append({
             "cart_item_id": cart_item_id,
+            "type": "product",
             "product": variant.product,
             "variant": variant,
             "quantity": line["quantity"],
@@ -106,10 +150,24 @@ def gesloten():
     return render_template("shop/gesloten.html"), 503, {"Retry-After": "3600"}
 
 
+def _komende_ticket_wedstrijden():
+    """Actieve wedstrijden met open verkoop en minstens één actief tickettype."""
+    wedstrijden = (
+        TicketWedstrijd.query
+        .filter(TicketWedstrijd.is_active.is_(True), TicketWedstrijd.datum_tijd > nu_belgisch())
+        .order_by(TicketWedstrijd.datum_tijd.asc())
+        .all()
+    )
+    return [w for w in wedstrijden if w.actieve_ticket_types and not w.verkoop_gesloten]
+
+
 @shop_bp.route("/producten")
 def products():
     all_products = Product.query.filter_by(is_active=True).all()
-    return render_template("shop/products.html", products=all_products)
+    return render_template(
+        "shop/products.html", products=all_products,
+        ticket_wedstrijden=_komende_ticket_wedstrijden(),
+    )
 
 
 @shop_bp.route("/product/<int:product_id>")
@@ -132,16 +190,25 @@ def product_detail(product_id):
     return render_template("shop/product_detail.html", product=product, variants=variants)
 
 
-@shop_bp.route("/cart")
-def cart():
-    items = _get_cart_items()
+def _render_cart(items, **extra):
     total_price = sum(item["subtotal"] for item in items)
+    # Gratis verzending hangt enkel af van de producten: tickets worden niet
+    # verzonden, en een duur ticket mag geen gratis verzending opleveren.
+    product_subtotal = sum(item["subtotal"] for item in items if item["type"] == "product")
     threshold = current_app.config["FREE_SHIPPING_THRESHOLD"]
-    remaining_for_free_shipping = max(0, threshold - total_price)
+    remaining_for_free_shipping = max(0, threshold - product_subtotal)
     return render_template(
         "shop/cart.html", items=items, total_price=total_price,
+        heeft_producten=any(item["type"] == "product" for item in items),
         free_shipping_threshold=threshold, remaining_for_free_shipping=remaining_for_free_shipping,
+        **extra,
     )
+
+
+@shop_bp.route("/cart")
+def cart():
+    error = request.args.get("error")
+    return _render_cart(_get_cart_items(), errors=[error] if error else None)
 
 
 @shop_bp.route("/add_to_cart", methods=["POST"])
@@ -163,7 +230,7 @@ def add_to_cart():
     # Andere (of geen) bedrukking -> altijd een nieuwe regel.
     existing_key = next(
         (key for key, line in cart.items()
-         if line["variant_id"] == variant_id
+         if line.get("variant_id") == variant_id
          and line.get("print_front") == print_front
          and line.get("print_back") == print_back),
         None
@@ -183,6 +250,82 @@ def add_to_cart():
     return redirect(url_for("shop.cart"))
 
 
+def _tickets_in_cart_per_wedstrijd(cart):
+    """{wedstrijd_id: aantal tickets} voor de ticketregels in de sessie-cart."""
+    aantallen = defaultdict(int)
+    for line in cart.values():
+        if "ticket_type_id" not in line:
+            continue
+        ticket_type = TicketType.query.get(line["ticket_type_id"])
+        if ticket_type is not None:
+            aantallen[ticket_type.wedstrijd_id] += line["quantity"]
+    return aantallen
+
+
+@shop_bp.route("/tickets")
+def tickets():
+    """Komende wedstrijden waarvoor tickets te koop zijn."""
+    return render_template("shop/tickets.html", wedstrijden=_komende_ticket_wedstrijden())
+
+
+@shop_bp.route("/tickets/<int:wedstrijd_id>")
+def ticket_detail(wedstrijd_id):
+    wedstrijd = TicketWedstrijd.query.get(wedstrijd_id)
+    if wedstrijd is None or not wedstrijd.is_active:
+        return redirect(url_for("shop.tickets"))
+    return render_template(
+        "shop/ticket_detail.html", wedstrijd=wedstrijd,
+        beschikbaar=wedstrijd.aantal_beschikbaar(), error=request.args.get("error"),
+    )
+
+
+@shop_bp.route("/add_tickets_to_cart", methods=["POST"])
+def add_tickets_to_cart():
+    """Voegt in één keer tickets van één of meerdere types voor dezelfde
+    wedstrijd toe (formuliervelden 'aantal_<ticket_type_id>')."""
+    wedstrijd = TicketWedstrijd.query.get(request.form.get("wedstrijd_id", type=int) or 0)
+    if wedstrijd is None or not wedstrijd.is_koopbaar:
+        return redirect(url_for("shop.tickets"))
+
+    gekozen = []
+    for ticket_type in wedstrijd.actieve_ticket_types:
+        aantal = request.form.get(f"aantal_{ticket_type.id}", type=int) or 0
+        if aantal > 0:
+            gekozen.append((ticket_type, aantal))
+
+    if not gekozen:
+        return redirect(url_for("shop.ticket_detail", wedstrijd_id=wedstrijd.id, error="Kies minstens één ticket."))
+
+    cart = session.get("cart", {})
+    al_in_mandje = _tickets_in_cart_per_wedstrijd(cart)[wedstrijd.id]
+    nieuw_totaal = al_in_mandje + sum(aantal for _, aantal in gekozen)
+    if wedstrijd.max_per_bestelling is not None and nieuw_totaal > wedstrijd.max_per_bestelling:
+        return redirect(url_for(
+            "shop.ticket_detail", wedstrijd_id=wedstrijd.id,
+            error=f"Je kan maximaal {wedstrijd.max_per_bestelling} tickets per bestelling kopen voor deze wedstrijd"
+                  + (f" (waarvan je er al {al_in_mandje} in je winkelmandje hebt)." if al_in_mandje else "."),
+        ))
+    beschikbaar = wedstrijd.aantal_beschikbaar()
+    if beschikbaar is not None and nieuw_totaal > beschikbaar:
+        return redirect(url_for(
+            "shop.ticket_detail", wedstrijd_id=wedstrijd.id,
+            error=f"Er zijn nog maar {beschikbaar} tickets beschikbaar (waarvan je er al {al_in_mandje} in je winkelmandje hebt).",
+        ))
+
+    for ticket_type, aantal in gekozen:
+        existing_key = next(
+            (key for key, line in cart.items() if line.get("ticket_type_id") == ticket_type.id),
+            None
+        )
+        if existing_key:
+            cart[existing_key]["quantity"] += aantal
+        else:
+            cart[uuid4().hex] = {"ticket_type_id": ticket_type.id, "quantity": aantal}
+
+    session["cart"] = cart
+    return redirect(url_for("shop.cart"))
+
+
 @shop_bp.route("/adjust_cart", methods=["POST"])
 def adjust_cart():
     cart_item_id = request.form["cart_item_id"]
@@ -190,7 +333,16 @@ def adjust_cart():
 
     cart = session.get("cart", {})
     if cart_item_id in cart:
-        new_qty = cart[cart_item_id]["quantity"] + delta
+        line = cart[cart_item_id]
+        ticket_type = TicketType.query.get(line["ticket_type_id"]) if "ticket_type_id" in line else None
+        if ticket_type is not None and delta > 0:
+            limiet = ticket_type.wedstrijd.max_per_bestelling
+            if limiet is not None and _tickets_in_cart_per_wedstrijd(cart)[ticket_type.wedstrijd_id] + delta > limiet:
+                return redirect(url_for(
+                    "shop.cart",
+                    error=f"Je kan maximaal {limiet} tickets per bestelling kopen voor {ticket_type.wedstrijd.titel}.",
+                ))
+        new_qty = line["quantity"] + delta
         if new_qty <= 0:
             del cart[cart_item_id]
         else:
@@ -229,30 +381,44 @@ def checkout():
     errors = []
     if not akkoord_voorwaarden:
         errors.append("Je moet akkoord gaan met de algemene voorwaarden en het privacybeleid om te bestellen.")
-    for item in items:
+    product_items = [item for item in items if item["type"] == "product"]
+    ticket_items = [item for item in items if item["type"] == "ticket"]
+
+    for item in product_items:
         variant = item["variant"]
         if not variant.is_active:
             errors.append(f"{item['product'].product_name} ({variant.color} / {variant.size}) is niet meer beschikbaar")
         elif variant.stock < item["quantity"]:
             errors.append(f"Onvoldoende voorraad voor {item['product'].product_name} ({variant.color} / {variant.size})")
 
+    tickets_per_wedstrijd = defaultdict(int)
+    for item in ticket_items:
+        wedstrijd = item["wedstrijd"]
+        if not item["ticket_type"].is_active or not wedstrijd.is_active:
+            errors.append(f"Ticket '{item['ticket_type'].naam}' voor {wedstrijd.titel} is niet meer beschikbaar")
+        elif wedstrijd.verkoop_gesloten:
+            errors.append(f"De ticketverkoop voor {wedstrijd.titel} is gesloten")
+        tickets_per_wedstrijd[wedstrijd] += item["quantity"]
+    for wedstrijd, aantal in tickets_per_wedstrijd.items():
+        if wedstrijd.max_per_bestelling is not None and aantal > wedstrijd.max_per_bestelling:
+            errors.append(f"Je kan maximaal {wedstrijd.max_per_bestelling} tickets per bestelling kopen voor {wedstrijd.titel}")
+        beschikbaar = wedstrijd.aantal_beschikbaar()
+        if beschikbaar is not None and aantal > beschikbaar:
+            errors.append(f"Voor {wedstrijd.titel} zijn nog maar {beschikbaar} tickets beschikbaar")
+
     subtotal = sum(item["subtotal"] for item in items)
+    product_subtotal = sum(item["subtotal"] for item in product_items)
 
     if errors:
-        threshold = current_app.config["FREE_SHIPPING_THRESHOLD"]
-        remaining_for_free_shipping = max(0, threshold - subtotal)
-        return render_template(
-            "shop/cart.html", items=items, total_price=subtotal, errors=errors,
-            remaining_for_free_shipping=remaining_for_free_shipping,
-            akkoord_voorwaarden=akkoord_voorwaarden,
-        )
+        return _render_cart(items, errors=errors, akkoord_voorwaarden=akkoord_voorwaarden)
 
     # Gratis verzending vanaf de drempel: onder de drempel de shipping rate
-    # toevoegen, erboven gewoon geen shipping_options meesturen.
+    # toevoegen, erboven gewoon geen shipping_options meesturen. Enkel
+    # tickets -> niets te verzenden, dus ook geen verzendkosten.
     threshold = current_app.config["FREE_SHIPPING_THRESHOLD"]
     shipping_rate = None
     shipping_cost = 0.0
-    if subtotal < threshold:
+    if product_items and product_subtotal < threshold:
         shipping_rate = get_shipping_rate()
         if shipping_rate:
             shipping_cost = shipping_rate.fixed_amount.amount / 100
@@ -261,7 +427,7 @@ def checkout():
 
     # Voorraad afschrijven en order aanmaken
     order = Order(user_id=g.user.user_id, total_price=subtotal, shipping_cost=shipping_cost)
-    for item in items:
+    for item in product_items:
         item["variant"].stock -= item["quantity"]
         order.lines.append(OrderLine(
             product_id=item["product"].product_id,
@@ -270,6 +436,14 @@ def checkout():
             price=item["price"],
             print_front=item["print_front"],
             print_back=item["print_back"],
+        ))
+    # Tickets hebben geen voorraadteller: TicketWedstrijd.aantal_verkocht()
+    # telt deze regels zolang de bestelling niet mislukt/geannuleerd is.
+    for item in ticket_items:
+        order.ticket_lines.append(TicketLijn(
+            ticket_type_id=item["ticket_type"].id,
+            quantity=item["quantity"],
+            price=item["price"],
         ))
     db.session.add(order)
     db.session.commit()
@@ -281,29 +455,42 @@ def checkout():
 
     stripe.api_key = current_app.config["STRIPE_API_KEY"]
 
+    def _line_item_naam(item):
+        if item["type"] == "ticket":
+            wedstrijd = item["wedstrijd"]
+            return f"Ticket {wedstrijd.titel} ({wedstrijd.datum_tijd.strftime('%d/%m/%Y %H:%M')}) - {item['ticket_type'].naam}"
+        return item["product"].product_name + f" ({item['variant'].color} / {item['variant'].size})"
+
     line_items = [{
         "price_data": {
             "currency": "eur",
-            "product_data": {
-                "name": item["product"].product_name + f" ({item['variant'].color} / {item['variant'].size})",
-            },
+            "product_data": {"name": _line_item_naam(item)},
             "unit_amount": round(item["price"] * 100),
         },
         "quantity": item["quantity"],
     } for item in items]
 
     checkout_session_params = dict(
-        payment_method_types=["card"],
+        # "card" omvat ook Apple Pay en Google Pay. Elke methode moet ook in
+        # het Stripe-dashboard (Settings -> Payment methods) aan staan.
+        payment_method_types=["card", "bancontact"],
         mode="payment",
         line_items=line_items,
-        shipping_address_collection={"allowed_countries": ["BE", "NL", "LU"]},
         metadata={"user_id": g.user.user_id, "order_id": order.order_id},
         payment_intent_data={"metadata": {"user_id": g.user.user_id, "order_id": order.order_id}},
         success_url=url_for("shop.checkout_success", _external=True) + "?session_id={CHECKOUT_SESSION_ID}",
         cancel_url=url_for("shop.cart", _external=True),
     )
+    if product_items:
+        checkout_session_params["shipping_address_collection"] = {"allowed_countries": ["BE", "NL", "LU"]}
     if shipping_rate:
         checkout_session_params["shipping_options"] = [{"shipping_rate": shipping_rate.id}]
+    if ticket_items:
+        # Een openstaande bestelling houdt haar tickets vast tot de betaling
+        # mislukt of de Stripe-sessie verloopt (standaard pas na 24u). Bij een
+        # beperkt aantal plaatsen zo snel mogelijk vrijgeven: 30 minuten is
+        # het minimum dat Stripe toelaat (+1 minuut marge voor klokverschil).
+        checkout_session_params["expires_at"] = int(time.time()) + 31 * 60
 
     checkout_session = stripe.checkout.Session.create(**checkout_session_params)
     return redirect(checkout_session.url, code=303)
@@ -329,8 +516,7 @@ def stripe_webhook():
 
     event_type = event["type"]
     data_object = event["data"]["object"]
-    metadata = data_object.get("metadata", {}) or {}
-    order_id = metadata.get("order_id")
+    order_id = _stripe_order_id(data_object)
 
     if not order_id:
         current_app.logger.warning(f"Webhook event {event_type} ontvangen zonder order_id, genegeerd.")
@@ -344,23 +530,37 @@ def stripe_webhook():
     # meermaals binnenkomen. De payment_status-checks hieronder (en newly_paid
     # voor de mail) zorgen dat een herhaald event geen tweede bevestigingsmail
     # stuurt en de voorraad niet dubbel terugboekt.
+    #
+    # Enkel events op de Checkout Session zelf zijn definitief. Een losse
+    # payment_intent.payment_failed NIET: op de Stripe-betaalpagina kan de
+    # klant na een mislukte poging (bv. geannuleerd in de Bancontact-app)
+    # gewoon opnieuw proberen. Die bestelling toen al op 'failed' zetten
+    # boekte de voorraad terug, terwijl een tweede poging nog kon slagen.
+    # Wordt er nooit betaald, dan komt checkout.session.expired vanzelf.
     newly_paid = False
     try:
-        if event_type == "checkout.session.completed":
+        # completed = betaalpagina afgerond. Bij trage methodes (bv. SEPA)
+        # is het geld dan nog niet binnen (payment_status 'unpaid') en volgt
+        # later async_payment_succeeded of async_payment_failed.
+        is_betaald = (
+            event_type == "checkout.session.completed"
+            and "payment_status" in data_object and data_object["payment_status"] == "paid"
+        ) or event_type == "checkout.session.async_payment_succeeded"
+        if is_betaald:
             if order.payment_status != "paid":
                 order.payment_status = "paid"
                 db.session.commit()
                 newly_paid = True
         elif event_type in (
             "checkout.session.async_payment_failed",
-            "payment_intent.payment_failed",
             "checkout.session.expired",
         ):
             if order.payment_status not in ("paid", "failed"):
                 order.payment_status = "failed"
                 # Betaling mislukt/verlopen -> de bij checkout afgeschreven
                 # voorraad terugboeken (zelfde principe als bij handmatige
-                # annulatie in het adminpaneel).
+                # annulatie in het adminpaneel). Tickets komen vanzelf vrij:
+                # een 'failed' bestelling telt niet mee in aantal_verkocht().
                 for line in order.lines:
                     if line.variant:
                         line.variant.stock += line.quantity
@@ -393,7 +593,7 @@ def checkout_success():
     if checkout_session.payment_status != "paid":
         return redirect(url_for("shop.cart"))
 
-    order_id = checkout_session.metadata.get("order_id")
+    order_id = _stripe_order_id(checkout_session)
     order = Order.query.get(int(order_id)) if order_id else None
     # Niet enkel op een bestaande order controleren: zonder deze check kan
     # elke ingelogde gebruiker de orderbevestiging van een ANDERE klant zien

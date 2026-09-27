@@ -5,7 +5,7 @@
 {% block admin_content %}
 <div class="admin-page-header">
     <h1>Bestellingen beheren</h1>
-    <p>Op deze pagina kun je alle bestellingen bekijken en de status controleren.</p>
+    <p>Op deze pagina kun je alle bestellingen bekijken en de status controleren. Bestellingen met tickets zijn gemarkeerd met 🎟️.</p>
 </div>
 
 <section class="section">
@@ -28,10 +28,10 @@
             <tbody>
                 {% for order in orders %}
                 <tr>
-                    <td>{{ order.order_id }}</td>
+                    <td>{{ order.order_id }}{% if order.ticket_lines %} 🎟️{% endif %}</td>
                     <td>{{ order.user.first_name }} {{ order.user.last_name }} - {{ order.user.email }}</td>
                     <td>€{{ '%.2f'|format(order.total_price) }}</td>
-                    <td>{{ 'Gratis' if order.shipping_cost == 0 else '€' + '%.2f'|format(order.shipping_cost) }}</td>
+                    <td>{{ '—' if not order.lines else ('Gratis' if order.shipping_cost == 0 else '€' + '%.2f'|format(order.shipping_cost)) }}</td>
                     <td>{{ order.payment_status }}</td>
                     <td><span class="order-status-badge">{{ order.order_status }}</span></td>
                     <td>{{ order.created_at.strftime('%d/%m/%Y') }}</td>

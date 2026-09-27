@@ -546,6 +546,23 @@ form textarea { min-height: 120px; resize: vertical; }
   .product-detail { grid-template-columns: 1fr; padding: 32px 20px; }
 }
 
+/* Ticketpagina: zelfde kaart als .product-detail, maar 1 kolom (geen foto) */
+.product-detail.ticket-detail { max-width: 640px; grid-template-columns: 1fr; }
+.ticket-meta { margin: 0 0 16px; color: var(--ink); line-height: 1.7; }
+.ticket-types { display: flex; flex-direction: column; gap: 10px; margin: 16px 0 8px; }
+.ticket-type-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--blue-light);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+}
+.ticket-type-row label { display: flex; flex-direction: column; margin: 0; }
+.ticket-type-naam { font-weight: 700; color: var(--ink); }
+.ticket-type-prijs { font-size: 14px; color: var(--blue); font-weight: 700; }
+
 /* =========================================================
    ABOUT PAGE
    ========================================================= */
@@ -2593,4 +2610,24 @@ nav#nav-menu > ul {
 
 @media (max-width: 600px) {
   .spond-embed-wrap-card { height: 320px; }
+}
+
+/* =========================================================
+   ADMIN: TICKET-NAAMLIJST (afdrukbaar voor aan de ingang)
+   ========================================================= */
+.naamlijst-afvinken { width: 48px; }
+.naamlijst-vakje {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+}
+
+@media print {
+  .admin-topbar, .admin-sidebar, .naamlijst-geen-print { display: none !important; }
+  .admin-layout, .admin-content { display: block; padding: 0; margin: 0; }
+  .admin-body { background: #fff; }
+  .naamlijst .admin-table { font-size: 12px; }
+  .naamlijst .admin-table tr { break-inside: avoid; }
 }

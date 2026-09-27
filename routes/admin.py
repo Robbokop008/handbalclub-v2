@@ -1,7 +1,8 @@
 """
 routes/admin.py
 ----------------
-Adminpaneel: producten (+ varianten), gebruikers en bestellingen beheren.
+Adminpaneel: producten (+ varianten), tickets voor wedstrijden (+ tickettypes
+en naamlijst), gebruikers en bestellingen beheren.
 
 Belangrijk principe: producten en varianten worden nooit verwijderd, enkel
 actief/inactief gezet. Bestaande orderregels verwijzen naar hun product_id/
@@ -9,11 +10,13 @@ variant_id (voor historiek: kleur, maat, prijs op moment van bestellen) en
 zouden anders naar niets meer verwijzen.
 """
 
+import csv
+import io
 import re
 from pathlib import Path
 from uuid import uuid4
 
-from flask import Blueprint, render_template, request, redirect, url_for, current_app, g, jsonify, abort
+from flask import Blueprint, render_template, request, redirect, url_for, current_app, g, jsonify, abort, Response
 from werkzeug.utils import secure_filename
 
 from werkzeug.routing import BuildError
@@ -27,7 +30,7 @@ from models import (
     Page, PageBlock, PAGE_BLOCK_TYPES, NavItem, NAV_ITEM_TYPES, NieuwsBericht, NIEUWS_CATEGORIEEN, Evenement, Sponsor, Team,
     TEAM_SECTIES, TEAM_SECTIE_LABELS, School, SiteText,
     InschrijvingCategorie, HoeGehoordOptie, InschrijvingVeldConfig, INSCHRIJVING_VELD_DEFINITIES,
-    AuditLog, ChangelogEntry,
+    AuditLog, ChangelogEntry, TicketWedstrijd, TicketType, TicketLijn, TICKET_ONGELDIGE_ORDER_STATUSSEN,
 )
 from utils.auth import admin_required, hoofdadmin_required, HOOFDADMIN_USERNAME
 from utils.audit import log_action
@@ -332,7 +335,13 @@ def _dashboard_acties():
         },
         {
             "label": "Bestellingen die actie nodig hebben",
-            "aantal": Order.query.filter(Order.order_status.notin_(["Verzonden", "Geannuleerd", "Terugbetaald"])).count(),
+            # Enkel bestellingen met producten: een bestelling met enkel
+            # tickets moet niet verzonden worden en zou hier anders altijd
+            # blijven staan.
+            "aantal": Order.query.filter(
+                Order.order_status.notin_(["Verzonden", "Geannuleerd", "Terugbetaald"]),
+                Order.lines.any(),
+            ).count(),
             "url": url_for("admin.orders"),
         },
         {
@@ -461,6 +470,8 @@ def update_own_password():
 AUDITLOG_CATEGORIEEN = [
     ("product", "Producten"),
     ("variant", "Varianten"),
+    ("ticket", "Ticketwedstrijden"),
+    ("ticket_type", "Tickettypes"),
     ("order", "Bestellingen"),
     ("inschrijving", "Inschrijvingen"),
     ("school", "Scholen"),
@@ -800,6 +811,252 @@ def update_order_status(order_id):
             current_app.logger.exception(f"Annulatiemail versturen voor order {order_id} is mislukt")
 
     return redirect(url_for("admin.view_order", order_id=order_id))
+
+
+# ---------------------------------------------------------------------------
+# Tickets voor wedstrijden
+# ---------------------------------------------------------------------------
+
+def _ticket_wedstrijd_form_data():
+    """Leest en valideert het wedstrijdformulier. Geeft (data, error) terug."""
+    data = {
+        "titel": (request.form.get("titel") or "").strip(),
+        "datum_tijd": _parse_datetime_local(request.form.get("datum_tijd")),
+        "locatie": (request.form.get("locatie") or "").strip() or None,
+        "omschrijving": (request.form.get("omschrijving") or "").strip() or None,
+        "verkoop_einde": _parse_datetime_local(request.form.get("verkoop_einde")),
+        "is_active": bool(request.form.get("is_active")),
+    }
+    error = None
+    if request.form.get("verkoop_einde") and not data["verkoop_einde"]:
+        error = "Ongeldige einddatum van de verkoop."
+    elif data["verkoop_einde"] and data["datum_tijd"] and data["verkoop_einde"] > data["datum_tijd"]:
+        error = "De verkoop moet sluiten vóór (of bij) de aanvang van de wedstrijd."
+    for veld, omschrijving in (("max_tickets", "Maximum aantal tickets"),
+                               ("max_per_bestelling", "Maximum aantal tickets per bestelling")):
+        raw = (request.form.get(veld) or "").strip()
+        data[veld] = None
+        if raw:
+            try:
+                data[veld] = int(raw)
+            except ValueError:
+                data[veld] = -1
+            if data[veld] < 1:
+                error = f"{omschrijving} moet een positief getal zijn (of leeg voor onbeperkt)."
+    if not data["titel"] or not data["datum_tijd"]:
+        error = "Titel en datum/uur zijn verplicht."
+    return data, error
+
+
+def _parse_ticket_prijs(value):
+    try:
+        prijs = float((value or "").replace(",", "."))
+    except ValueError:
+        return None
+    return prijs if prijs >= 0 else None
+
+
+@admin_bp.route("/tickets")
+@admin_required
+def tickets():
+    wedstrijden = TicketWedstrijd.query.order_by(TicketWedstrijd.datum_tijd.desc()).all()
+    return render_template("admin/tickets_list.html", user=g.user, wedstrijden=wedstrijden)
+
+
+@admin_bp.route("/tickets/add", methods=["GET", "POST"])
+@admin_required
+def add_ticket_wedstrijd():
+    if request.method == "GET":
+        return render_template("admin/ticket_form.html", user=g.user, wedstrijd=None, form=None)
+
+    data, error = _ticket_wedstrijd_form_data()
+    if error:
+        return render_template(
+            "admin/ticket_form.html", user=g.user, wedstrijd=None, error=error,
+            form=request.form,
+        )
+
+    wedstrijd = TicketWedstrijd(**data)
+    db.session.add(wedstrijd)
+    log_action("ticket.add", f"Ticketwedstrijd '{wedstrijd.titel}' toegevoegd")
+    db.session.commit()
+    # Meteen naar de bewerkpagina: daar voeg je de tickettypes toe
+    return redirect(url_for("admin.edit_ticket_wedstrijd", wedstrijd_id=wedstrijd.id))
+
+
+@admin_bp.route("/tickets/<int:wedstrijd_id>/edit", methods=["GET", "POST"])
+@admin_required
+def edit_ticket_wedstrijd(wedstrijd_id):
+    wedstrijd = TicketWedstrijd.query.get(wedstrijd_id)
+    if wedstrijd is None:
+        return redirect(url_for("admin.tickets"))
+
+    if request.method == "GET":
+        return render_template(
+            "admin/ticket_form.html", user=g.user, wedstrijd=wedstrijd, form=None,
+            error=request.args.get("error"),
+        )
+
+    data, error = _ticket_wedstrijd_form_data()
+    if error:
+        return render_template(
+            "admin/ticket_form.html", user=g.user, wedstrijd=wedstrijd, error=error,
+            form=request.form,
+        )
+
+    for veld, waarde in data.items():
+        setattr(wedstrijd, veld, waarde)
+    log_action("ticket.edit", f"Ticketwedstrijd '{wedstrijd.titel}' bewerkt")
+    db.session.commit()
+    return redirect(url_for("admin.edit_ticket_wedstrijd", wedstrijd_id=wedstrijd.id))
+
+
+@admin_bp.route("/tickets/<int:wedstrijd_id>/toggle_active", methods=["POST"])
+@admin_required
+def toggle_ticket_wedstrijd_active(wedstrijd_id):
+    wedstrijd = TicketWedstrijd.query.get(wedstrijd_id)
+    if wedstrijd is not None:
+        wedstrijd.is_active = not wedstrijd.is_active
+        log_action("ticket.toggle_active", f"Ticketwedstrijd '{wedstrijd.titel}' {'geactiveerd' if wedstrijd.is_active else 'gedeactiveerd'}")
+        db.session.commit()
+    return redirect(url_for("admin.tickets"))
+
+
+@admin_bp.route("/tickets/<int:wedstrijd_id>/delete", methods=["POST"])
+@admin_required
+def delete_ticket_wedstrijd(wedstrijd_id):
+    """Enkel voor wedstrijden zonder enige ticketbestelling (bv. een
+    vergissing) - anders zouden bestellingen naar niets meer verwijzen, zelfde
+    principe als bij producten. Zo'n wedstrijd kan je enkel deactiveren."""
+    wedstrijd = TicketWedstrijd.query.get(wedstrijd_id)
+    if wedstrijd is None:
+        return redirect(url_for("admin.tickets"))
+
+    heeft_bestellingen = (
+        TicketLijn.query.join(TicketType, TicketLijn.ticket_type_id == TicketType.id)
+        .filter(TicketType.wedstrijd_id == wedstrijd.id).first() is not None
+    )
+    if heeft_bestellingen:
+        return redirect(url_for(
+            "admin.edit_ticket_wedstrijd", wedstrijd_id=wedstrijd.id,
+            error="Er zijn al tickets besteld voor deze wedstrijd - deactiveer ze in plaats van ze te verwijderen.",
+        ))
+
+    log_action("ticket.delete", f"Ticketwedstrijd '{wedstrijd.titel}' verwijderd")
+    db.session.delete(wedstrijd)
+    db.session.commit()
+    return redirect(url_for("admin.tickets"))
+
+
+@admin_bp.route("/tickets/<int:wedstrijd_id>/types/add", methods=["POST"])
+@admin_required
+def add_ticket_type(wedstrijd_id):
+    wedstrijd = TicketWedstrijd.query.get(wedstrijd_id)
+    if wedstrijd is None:
+        return redirect(url_for("admin.tickets"))
+
+    naam = (request.form.get("naam") or "").strip()
+    prijs = _parse_ticket_prijs(request.form.get("prijs"))
+    if not naam or prijs is None:
+        return redirect(url_for(
+            "admin.edit_ticket_wedstrijd", wedstrijd_id=wedstrijd.id,
+            error="Naam en een geldige prijs (0 of meer) zijn verplicht voor een tickettype.",
+        ))
+
+    ticket_type = TicketType(wedstrijd=wedstrijd, naam=naam, prijs=prijs, is_active=bool(request.form.get("is_active")))
+    db.session.add(ticket_type)
+    log_action("ticket_type.add", f"Tickettype '{naam}' (€{prijs:.2f}) toegevoegd aan '{wedstrijd.titel}'")
+    db.session.commit()
+    return redirect(url_for("admin.edit_ticket_wedstrijd", wedstrijd_id=wedstrijd.id))
+
+
+@admin_bp.route("/ticket_types/<int:ticket_type_id>/edit", methods=["POST"])
+@admin_required
+def edit_ticket_type(ticket_type_id):
+    """Een prijswijziging geldt enkel voor nieuwe bestellingen: bestaande
+    ticketregels hebben hun prijs bevroren (TicketLijn.price)."""
+    ticket_type = TicketType.query.get(ticket_type_id)
+    if ticket_type is None:
+        return redirect(url_for("admin.tickets"))
+
+    naam = (request.form.get("naam") or "").strip()
+    prijs = _parse_ticket_prijs(request.form.get("prijs"))
+    if not naam or prijs is None:
+        return redirect(url_for(
+            "admin.edit_ticket_wedstrijd", wedstrijd_id=ticket_type.wedstrijd_id,
+            error="Naam en een geldige prijs (0 of meer) zijn verplicht voor een tickettype.",
+        ))
+
+    ticket_type.naam = naam
+    ticket_type.prijs = prijs
+    ticket_type.is_active = bool(request.form.get("is_active"))
+    log_action("ticket_type.edit", f"Tickettype '{naam}' van '{ticket_type.wedstrijd.titel}' bewerkt")
+    db.session.commit()
+    return redirect(url_for("admin.edit_ticket_wedstrijd", wedstrijd_id=ticket_type.wedstrijd_id))
+
+
+def _ticket_naamlijst(wedstrijd):
+    """Eén rij per betaalde, niet-geannuleerde bestelling met tickets voor
+    deze wedstrijd, alfabetisch op achternaam. Openstaande (nog niet
+    betaalde) bestellingen staan er bewust niet op: die hebben (nog) geen
+    bevestigingsmail gekregen."""
+    lijnen = (
+        TicketLijn.query
+        .join(Order, TicketLijn.order_id == Order.order_id)
+        .join(TicketType, TicketLijn.ticket_type_id == TicketType.id)
+        .filter(
+            TicketType.wedstrijd_id == wedstrijd.id,
+            Order.payment_status == "paid",
+            Order.order_status.notin_(TICKET_ONGELDIGE_ORDER_STATUSSEN),
+        )
+        .all()
+    )
+    per_order = {}
+    for lijn in lijnen:
+        rij = per_order.setdefault(lijn.order_id, {"order": lijn.order, "aantallen": {}, "totaal": 0})
+        rij["aantallen"][lijn.ticket_type_id] = rij["aantallen"].get(lijn.ticket_type_id, 0) + lijn.quantity
+        rij["totaal"] += lijn.quantity
+    return sorted(
+        per_order.values(),
+        key=lambda r: (r["order"].user.last_name.lower(), r["order"].user.first_name.lower(), r["order"].order_id),
+    )
+
+
+@admin_bp.route("/tickets/<int:wedstrijd_id>/naamlijst")
+@admin_required
+def ticket_naamlijst(wedstrijd_id):
+    wedstrijd = TicketWedstrijd.query.get(wedstrijd_id)
+    if wedstrijd is None:
+        return redirect(url_for("admin.tickets"))
+
+    rijen = _ticket_naamlijst(wedstrijd)
+    # Ook inactieve types tonen als er tickets van verkocht zijn
+    types = [t for t in wedstrijd.ticket_types if t.is_active or any(t.id in r["aantallen"] for r in rijen)]
+
+    if request.args.get("format") == "csv":
+        buffer = io.StringIO()
+        # Puntkomma: zo opent Excel met Belgische/Nederlandse landinstellingen
+        # het bestand meteen in aparte kolommen.
+        writer = csv.writer(buffer, delimiter=";")
+        writer.writerow(["Achternaam", "Voornaam", "E-mail", "Bestelnummer"] + [t.naam for t in types] + ["Totaal"])
+        for rij in rijen:
+            klant = rij["order"].user
+            writer.writerow(
+                [klant.last_name, klant.first_name, klant.email or "", rij["order"].order_id]
+                + [rij["aantallen"].get(t.id, 0) for t in types] + [rij["totaal"]]
+            )
+        bestandsnaam = f"naamlijst-{wedstrijd.datum_tijd.strftime('%Y-%m-%d')}-{wedstrijd.id}.csv"
+        # utf-8-sig (BOM) zodat Excel accenten in namen correct toont
+        return Response(
+            buffer.getvalue().encode("utf-8-sig"), mimetype="text/csv",
+            headers={"Content-Disposition": f"attachment; filename={bestandsnaam}"},
+        )
+
+    return render_template(
+        "admin/ticket_naamlijst.html", user=g.user, wedstrijd=wedstrijd, rijen=rijen, types=types,
+        totaal_tickets=sum(r["totaal"] for r in rijen),
+        totalen_per_type={t.id: sum(r["aantallen"].get(t.id, 0) for r in rijen) for t in types},
+    )
 
 
 @admin_bp.route("/inschrijvingen")

@@ -5,7 +5,10 @@
 {% block content %}
 <section class="club-hero">
     <h1>{{ site_teksten.shop_hero_titel }}</h1>
-    <p><a href="#products" class="profile-action-button">Bekijk onze producten</a></p>
+    <p>
+        {% if products %}<a href="#products" class="profile-action-button">Bekijk onze producten</a>{% endif %}
+        {% if ticket_wedstrijden %}<a href="{{ url_for('shop.tickets') }}" class="profile-action-button">Tickets voor wedstrijden</a>{% endif %}
+    </p>
 </section>
 
 {% if products %}
@@ -25,6 +28,13 @@
         </a>
         {% endfor %}
     </div>
+</section>
+{% elif ticket_wedstrijden %}
+{# Geen producten maar wel tickets: meteen de wedstrijden tonen i.p.v. een
+   "geen producten"-melding die doet denken dat er niets te koop is. #}
+<section class="section" id="tickets">
+    <p style="text-align:center;color:rgba(255,255,255,0.8);margin:0 0 24px;">Koop hier je tickets voor onze Europese thuiswedstrijd</p>
+    {% with wedstrijden = ticket_wedstrijden %}{% include "shop/_ticket_kaarten.html" %}{% endwith %}
 </section>
 {% else %}
 <section class="section">

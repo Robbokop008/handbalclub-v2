@@ -1,0 +1,61 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - Tickets{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>Tickets voor wedstrijden</h1>
+    <p>Wedstrijden waarvoor tickets verkocht worden via de webshop. Per wedstrijd stel je de tickettypes (bv. Volwassene, Kind) met hun prijs in. De online verkoop sluit automatisch bij de aanvang van de wedstrijd. Via "Naamlijst" vind je wie tickets gekocht heeft — af te drukken voor aan de ingang.</p>
+</div>
+
+<section class="section">
+    <a href="{{ url_for('admin.add_ticket_wedstrijd') }}" class="admin-button" style="display:inline-block;margin-bottom:24px;">Nieuwe wedstrijd toevoegen</a>
+
+    {% if wedstrijden %}
+    <div class="table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Wedstrijd</th>
+                    <th>Verkocht</th>
+                    <th>Status</th>
+                    <th>Acties</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for wedstrijd in wedstrijden %}
+                <tr>
+                    <td>{{ wedstrijd.datum_tijd.strftime('%d/%m/%Y %H:%M') }}</td>
+                    <td>{{ wedstrijd.titel }}</td>
+                    <td>{{ wedstrijd.aantal_verkocht() }}{% if wedstrijd.max_tickets %} / {{ wedstrijd.max_tickets }}{% endif %}</td>
+                    <td>
+                        <span class="order-status-badge">
+                            {% if not wedstrijd.is_active %}Inactief
+                            {% elif wedstrijd.verkoop_gesloten %}Verkoop gesloten
+                            {% elif not wedstrijd.actieve_ticket_types %}Geen tickettypes
+                            {% else %}In verkoop{% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('admin.ticket_naamlijst', wedstrijd_id=wedstrijd.id) }}" class="admin-button btn-sm">Naamlijst</a>
+                        <a href="{{ url_for('admin.edit_ticket_wedstrijd', wedstrijd_id=wedstrijd.id) }}" class="admin-button btn-sm">Bewerken</a>
+                        <form action="{{ url_for('admin.toggle_ticket_wedstrijd_active', wedstrijd_id=wedstrijd.id) }}" method="post" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            {% if wedstrijd.is_active %}
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Deze wedstrijd deactiveren? Er kunnen dan geen tickets meer voor gekocht worden. Bestaande tickets blijven geldig.');">Deactiveren</button>
+                            {% else %}
+                            <button type="submit" class="admin-button btn-sm">Activeren</button>
+                            {% endif %}
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p>Er zijn nog geen wedstrijden met ticketverkoop toegevoegd.</p>
+    {% endif %}
+</section>
+{% endblock %}
