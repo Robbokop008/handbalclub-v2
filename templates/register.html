@@ -13,6 +13,7 @@
         <h2>Maak een account aan</h2>
         <form action="{{ url_for('auth.register') }}" method="POST">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
             <label for="first-name">Voornaam</label>
             <input class="login-input" id="first-name" name="firstname" type="text" placeholder="Voornaam" required value="{{ gegevens.get('firstname', '') }}">
 
@@ -47,7 +48,7 @@
 
             <button class="btn-dark btn login-button" type="submit">Registreer</button>
         </form>
-        <p class="login-note">Heeft u al een account? <a href="{{ url_for('auth.login') }}">Log in</a></p>
+        <p class="login-note">Heeft u al een account? <a href="{{ url_for('auth.login', next=next_url) }}">Log in</a></p>
     </div>
 </section>
 {% endblock %}

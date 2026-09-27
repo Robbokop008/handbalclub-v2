@@ -153,7 +153,9 @@
                     {% if session.get('user_id') %}
                         <li><a href="{{ url_for('auth.profile') }}">Profiel</a></li>
                     {% else %}
-                        <li><a href="{{ url_for('auth.login') }}">Inloggen</a></li>
+                        {# next = huidige pagina, behalve op login/registratie zelf (anders
+                           kom je na het inloggen terug op het loginscherm) #}
+                        <li><a href="{{ url_for('auth.login', next=(request.full_path.rstrip('?') if request.endpoint not in ('auth.login', 'auth.register') else next_url)) }}">Inloggen</a></li>
                     {% endif %}
                 </ul>
             </nav>

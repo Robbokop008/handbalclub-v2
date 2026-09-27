@@ -8,7 +8,7 @@ sqlite3-versie (app.py + validators.py uit hello_flask) naar SQLAlchemy.
 from flask import Blueprint, render_template, request, redirect, url_for, session, g
 from extensions import db, limiter
 from models import User
-from utils.auth import login_required
+from utils.auth import login_required, veilige_next_url
 from utils.validators import is_valid_email, is_valid_password
 
 auth_bp = Blueprint("auth", __name__)
@@ -17,8 +17,12 @@ auth_bp = Blueprint("auth", __name__)
 @auth_bp.route("/login", methods=["GET", "POST"])
 @limiter.limit("5 per minute")
 def login():
+    # Pagina waar de gebruiker zich bevond (zie huidige_pagina_als_next in
+    # utils/auth.py); zit in de querystring bij GET en als verborgen veld bij POST.
+    next_url = veilige_next_url(request.values.get("next"))
+
     if "user_id" in session:
-        return redirect(url_for("main.home"))
+        return redirect(next_url or url_for("main.home"))
 
     if request.method == "POST":
         username = (request.form.get("username") or "").strip()
@@ -33,19 +37,23 @@ def login():
                 error = "Ongeldige gebruikersnaam of wachtwoord."
 
         if error:
-            return render_template("login.html", error=error)
+            return render_template("login.html", error=error, next_url=next_url)
 
         session["user_id"] = user.user_id
-        return redirect(url_for("main.home"))
+        return redirect(next_url or url_for("main.home"))
 
-    return render_template("login.html")
+    return render_template("login.html", next_url=next_url)
 
 
 @auth_bp.route("/register", methods=["GET", "POST"])
 @limiter.limit("10 per hour", methods=["POST"])
 def register():
+    # Doorgegeven vanaf de loginpagina, zodat de gebruiker na registreren en
+    # inloggen alsnog terugkomt op de pagina waar hij zich bevond.
+    next_url = veilige_next_url(request.values.get("next"))
+
     if "user_id" in session:
-        return redirect(url_for("main.home"))
+        return redirect(next_url or url_for("main.home"))
 
     gegevens = {"firstname": "", "lastname": "", "email": "", "username": ""}
 
@@ -74,16 +82,16 @@ def register():
             error = "Emailadres is al geregistreerd."
 
         if error:
-            return render_template("register.html", error=error, gegevens=gegevens)
+            return render_template("register.html", error=error, gegevens=gegevens, next_url=next_url)
 
         user = User(first_name=firstname, last_name=lastname, username=username, email=email)
         user.set_password(password)
         db.session.add(user)
         db.session.commit()
 
-        return redirect(url_for("auth.login"))
+        return redirect(url_for("auth.login", next=next_url))
 
-    return render_template("register.html", gegevens=gegevens)
+    return render_template("register.html", gegevens=gegevens, next_url=next_url)
 
 
 @auth_bp.route("/logout")

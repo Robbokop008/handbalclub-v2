@@ -13,6 +13,7 @@
         <h2>Welkom terug</h2>
         <form action="{{ url_for('auth.login') }}" method="post">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
             <label for="username">Gebruikersnaam</label>
             <input id="username" type="text" name="username" class="login-input" placeholder="Voer uw gebruikersnaam in" required>
 
@@ -30,7 +31,7 @@
 
             <button type="submit" class="btn-dark btn login-button">Inloggen</button>
         </form>
-        <p class="login-note">Nieuw hier? <a href="{{ url_for('auth.register') }}">Maak een account aan</a></p>
+        <p class="login-note">Nieuw hier? <a href="{{ url_for('auth.register', next=next_url) }}">Maak een account aan</a></p>
     </div>
 </section>
 {% endblock %}
