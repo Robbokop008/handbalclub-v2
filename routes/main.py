@@ -151,43 +151,30 @@ def robots_txt():
 # niet in - zie NIET_TE_CRAWLEN_PADEN hierboven. Pagina's met een variabele
 # in de URL (nieuwsbericht, CMS-pagina, product) worden verderop in
 # sitemap() dynamisch uit de database opgebouwd.
+#
+# Enkel URL's die zelf een 200 teruggeven: de vroegere losse pagina's die nu
+# een redirect zijn (bv. /club/bestuur, /dames/dames-1-en-beloften,
+# /kalender/wedstrijden, /jeugd/jm12, /vacatures, en de doorlinks naar
+# externe sites zoals /jeugd/ballenbaasjes) horen hier niet in - Google
+# Search Console meldt die anders als "Pagina met omleiding". Het
+# jeugdbeleidsplan en de vacatures komen binnen via de Page-query hieronder.
 STATISCHE_SITEMAP_ENDPOINTS = [
     ("main.home", 1.0, "weekly"),
     ("main.nieuws", 0.7, "daily"),
     ("main.contact", 0.5, "yearly"),
     ("club.overzicht", 0.8, "monthly"),
-    ("club.missie_visie", 0.4, "yearly"),
-    ("club.bestuur", 0.4, "yearly"),
-    ("club.historiek", 0.4, "yearly"),
-    ("club.verzekering", 0.4, "yearly"),
-    ("club.api", 0.4, "yearly"),
     ("dames.overzicht", 0.8, "weekly"),
-    ("dames.dames_1", 0.6, "monthly"),
-    ("dames.dames_regio", 0.6, "monthly"),
     ("heren.overzicht", 0.8, "weekly"),
-    ("heren.heren_1", 0.6, "monthly"),
-    ("heren.heren_2", 0.6, "monthly"),
     ("jeugd.overzicht", 0.8, "weekly"),
     ("jeugd.inschrijving", 0.6, "monthly"),
-    ("jeugd.jeugdbeleidsplan", 0.4, "yearly"),
-    ("jeugd.ballenbaasjes", 0.6, "monthly"),
-    ("jeugd.jm08_jm10", 0.6, "monthly"),
-    ("jeugd.jm12", 0.6, "monthly"),
-    ("jeugd.j14", 0.6, "monthly"),
-    ("jeugd.m14", 0.6, "monthly"),
-    ("jeugd.api", 0.4, "yearly"),
-    ("jeugd.welzijn", 0.4, "yearly"),
     ("ghandbal.index", 0.7, "monthly"),
-    ("ghandbal.inschrijving", 0.6, "monthly"),
     ("fithandbal.index", 0.7, "monthly"),
     ("kalender.overzicht", 0.6, "weekly"),
-    ("kalender.wedstrijden", 0.6, "weekly"),
-    ("kalender.trainingen", 0.6, "weekly"),
-    ("kalender.evenementen", 0.6, "weekly"),
-    # vacatures.index is een permanente 301-redirect naar /pagina/vacatures
-    # (zie routes/vacatures.py) - die pagina komt al binnen via de Page-query
-    # hieronder, een aparte sitemap-entry zou enkel een nutteloze redirect-
-    # hop toevoegen.
+]
+
+# Webshoppagina's: enkel in de sitemap als de webshop open staat - anders
+# redirecten ze naar de "webshop gesloten"-pagina (503, zie routes/shop.py).
+WEBSHOP_SITEMAP_ENDPOINTS = [
     ("shop.products", 0.7, "weekly"),
     ("shop.tickets", 0.6, "weekly"),
 ]
@@ -195,9 +182,15 @@ STATISCHE_SITEMAP_ENDPOINTS = [
 
 @main_bp.route("/sitemap.xml")
 def sitemap():
+    from utils.site_settings import is_webshop_actief
+
+    statische_endpoints = STATISCHE_SITEMAP_ENDPOINTS
+    if is_webshop_actief():
+        statische_endpoints = statische_endpoints + WEBSHOP_SITEMAP_ENDPOINTS
+
     entries = [
         {"loc": url_for(endpoint, _external=True), "changefreq": freq, "priority": prioriteit}
-        for endpoint, prioriteit, freq in STATISCHE_SITEMAP_ENDPOINTS
+        for endpoint, prioriteit, freq in statische_endpoints
     ]
 
     for page in Page.query.filter_by(is_published=True).all():
@@ -216,7 +209,8 @@ def sitemap():
             "priority": 0.4,
         })
 
-    for product in Product.query.filter_by(is_active=True).all():
+    producten = Product.query.filter_by(is_active=True).all() if is_webshop_actief() else []
+    for product in producten:
         entries.append({
             "loc": url_for("shop.product_detail", product_id=product.product_id, _external=True),
             "changefreq": "weekly",

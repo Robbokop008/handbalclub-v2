@@ -23,7 +23,7 @@ cd "$PROJECT" || exit 1
 
     echo
     echo "=== Geüploade bestanden (controleer de datums) ==="
-    ls -l app.py models.py routes/shop.py routes/admin.py templates/shop/products.html templates/shop/_ticket_kaarten.html
+    ls -l app.py extensions.py routes/main.py utils/oude_site_redirects.py deploy/hetzner/update.sh
 
     echo
     echo "=== scripts/update_site.py ==="

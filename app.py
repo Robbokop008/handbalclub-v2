@@ -203,8 +203,20 @@ def create_app(config_name="development"):
     # Eigen foutpagina's i.p.v. Flask/Werkzeug's kale standaardpagina's:
     # 404 (onbestaande URL) en 429 (rate limit overschreden, bv. te vaak
     # inloggen na elkaar - zie @limiter.limit(...) in routes/auth.py).
+    #
+    # Oude URL's van de vorige website (bv. /kalender/wedstrijden.html) krijgen
+    # hier een 301 naar hun tegenhanger i.p.v. een 404 - zie
+    # utils/oude_site_redirects.py. Enkel als er geen route matchte
+    # (url_rule is None): een abort(404) vanuit een bestaande route, bv. een
+    # onbestaand /nieuws/<id>, blijft gewoon een 404.
+    from utils.oude_site_redirects import oude_site_doel_url
+
     @app.errorhandler(404)
     def pagina_niet_gevonden(_error):
+        if request.url_rule is None:
+            doel = oude_site_doel_url(request.path)
+            if doel is not None:
+                return redirect(doel, code=301)
         return render_template("errors/404.html"), 404
 
     @app.errorhandler(429)
