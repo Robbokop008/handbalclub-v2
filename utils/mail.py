@@ -1,14 +1,15 @@
 """
 utils/mail.py
 --------------
-Helperfuncties om e-mails te versturen via Gmail SMTP: het contactformulier,
-de orderbevestiging na een geslaagde betaling, en de melding aan de admin
-wanneer een bestelling geannuleerd wordt.
+Helperfuncties om e-mails te versturen via de mailserver van Hetzner: het
+contactformulier, de orderbevestiging na een geslaagde betaling, en de
+meldingen aan de club (inschrijvingen, GDPR-verzoeken, annuleringen).
 """
 
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.utils import formataddr, formatdate, make_msgid
 from flask import current_app
 
 
@@ -21,21 +22,30 @@ def _veilige_header_waarde(waarde):
 
 
 def _send(msg):
-    gmail_user = current_app.config["GMAIL_USER"]
-    gmail_password = current_app.config["GMAIL_APP_PASSWORD"]
-    with smtplib.SMTP("smtp.gmail.com", 587) as server:
+    """Verstuurt een bericht met club@ als afzender. Date en Message-ID zetten
+    we zelf: Gmail vulde die vroeger aan, de mailserver van Hetzner niet
+    noodzakelijk, en spamfilters rekenen ontbrekende headers aan."""
+    config = current_app.config
+    afzender = config["MAIL_FROM"]
+    msg["From"] = formataddr((config["MAIL_FROM_NAME"], afzender))
+    msg["Date"] = formatdate(localtime=True)
+    msg["Message-ID"] = make_msgid(domain=afzender.split("@")[-1])
+
+    # Timeout zodat een hangende mailserver het request (bv. de Stripe-webhook)
+    # niet eindeloos laat wachten. Als envelope-afzender gebruiken we de
+    # mailbox waarmee we inloggen: onbestelbare mails komen zo terug in
+    # webmaster@ in plaats van via de forward van club@.
+    with smtplib.SMTP(config["MAIL_SERVER"], config["MAIL_PORT"], timeout=15) as server:
         server.starttls()
-        server.login(gmail_user, gmail_password)
-        server.send_message(msg)
+        server.login(config["MAIL_USERNAME"], config["MAIL_PASSWORD"])
+        server.send_message(msg, from_addr=config["MAIL_USERNAME"])
 
 
 def send_contact_mail(name, email, message):
     """Stuurt een kopie van het contactformulier naar de clubmail."""
-    gmail_user = current_app.config["GMAIL_USER"]
 
     msg = MIMEMultipart()
-    msg["From"] = gmail_user
-    msg["To"] = gmail_user
+    msg["To"] = current_app.config["MAIL_ADMIN"]
     msg["Subject"] = "Nieuw contactformulier bericht"
     msg["Reply-To"] = _veilige_header_waarde(email)
 
@@ -106,15 +116,12 @@ Bestelnummer: {order.order_id}
 
     msg = MIMEText(body, "plain", "utf-8")
     msg["Subject"] = f"{'Ticketbevestiging' if order.ticket_lines and not order.lines else 'Bestelbevestiging'} #{order.order_id}"
-    msg["From"] = current_app.config["GMAIL_USER"]
     msg["To"] = order.user.email
     _send(msg)
 
 
 def send_admin_cancellation_mail(order):
     """Meldt de admin dat een bestelling geannuleerd is."""
-    gmail_user = current_app.config["GMAIL_USER"]
-
     body = f"""Admin,
 
 De bestelling met bestelnummer {order.order_id} van gebruiker {order.user.first_name} {order.user.last_name} ({order.user.email}) is geannuleerd.
@@ -123,15 +130,12 @@ Dit is een automatische melding, gelieve hier niet op te antwoorden.
 """
     msg = MIMEText(body, "plain", "utf-8")
     msg["Subject"] = f"Bestelling #{order.order_id} geannuleerd"
-    msg["From"] = gmail_user
-    msg["To"] = gmail_user
+    msg["To"] = current_app.config["MAIL_ADMIN"]
     _send(msg)
 
 
 def send_inschrijving_notification(inschrijving):
     """Meldt de club dat er een nieuwe inschrijving is binnengekomen."""
-    gmail_user = current_app.config["GMAIL_USER"]
-
     geboortedatum_tekst = inschrijving.geboortedatum.strftime('%d/%m/%Y') if inschrijving.geboortedatum else '-'
     speler_naam = f"{inschrijving.voornaam_speler or ''} {inschrijving.achternaam_speler or ''}".strip() or '-'
 
@@ -155,16 +159,13 @@ Ingediend op: {inschrijving.aangemaakt_op.strftime('%d/%m/%Y %H:%M')}
 """
     msg = MIMEText(body, "plain", "utf-8")
     msg["Subject"] = _veilige_header_waarde(f"Nieuwe inschrijving: {speler_naam} ({inschrijving.categorie or '-'})")
-    msg["From"] = gmail_user
-    msg["To"] = gmail_user
+    msg["To"] = current_app.config["MAIL_ADMIN"]
     msg["Reply-To"] = _veilige_header_waarde(inschrijving.email)
     _send(msg)
 
 
 def send_vergeet_mij_notification(verzoek):
     """Meldt de club dat er een GDPR-verwijderingsverzoek is binnengekomen."""
-    gmail_user = current_app.config["GMAIL_USER"]
-
     body = f"""Nieuw GDPR-verzoek: gegevens verwijderen
 
 Naam: {verzoek.naam}
@@ -178,7 +179,6 @@ Gelieve dit verzoek binnen de wettelijke termijn te verwerken.
 """
     msg = MIMEText(body, "plain", "utf-8")
     msg["Subject"] = _veilige_header_waarde(f"GDPR-verzoek: {verzoek.naam}")
-    msg["From"] = gmail_user
-    msg["To"] = gmail_user
+    msg["To"] = current_app.config["MAIL_ADMIN"]
     msg["Reply-To"] = _veilige_header_waarde(verzoek.email)
     _send(msg)

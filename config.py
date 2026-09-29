@@ -65,9 +65,18 @@ class Config:
     FLANDERS_TROPHY_INSTAGRAM_URL = "https://www.instagram.com/flandershandballtrophy/"
     FLANDERS_TROPHY_WEBSITE_URL = "https://www.flanderstrophy.be"
 
-    # Mail (contactformulier + orderbevestiging)
-    GMAIL_USER = os.environ.get("GMAIL_USER")
-    GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD")
+    # Mail via de eigen mailserver van Hetzner (zie utils/mail.py). De site
+    # logt in met MAIL_USERNAME (de mailbox webmaster@), maar de ontvanger ziet
+    # MAIL_FROM als afzender (club@, een forward zonder eigen wachtwoord).
+    # MAIL_ADMIN krijgt de meldingen: contactformulier, inschrijvingen,
+    # GDPR-verzoeken en annuleringen.
+    MAIL_SERVER = os.environ.get("MAIL_SERVER") or "www767.your-server.de"
+    MAIL_PORT = int(os.environ.get("MAIL_PORT") or 587)
+    MAIL_USERNAME = os.environ.get("MAIL_USERNAME")
+    MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")
+    MAIL_FROM = os.environ.get("MAIL_FROM") or "club@handbalsint-truiden.be"
+    MAIL_FROM_NAME = "Handbal Sint-Truiden"
+    MAIL_ADMIN = os.environ.get("MAIL_ADMIN") or "club@handbalsint-truiden.be"
 
     # Google Analytics (Measurement ID, bv. "G-XXXXXXXXXX"). Leeg = geen
     # Analytics-script en geen cookiebanner op de site (zie base.html) -
