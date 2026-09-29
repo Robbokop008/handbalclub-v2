@@ -215,7 +215,7 @@ Goed om te weten:
 - Een prijswijziging geldt enkel voor nieuwe bestellingen.
 - Een wedstrijd verwijderen kan enkel zolang er nog geen tickets voor besteld zijn — daarna kan je ze enkel deactiveren.
 
-**Naamlijst voor aan de ingang:** klik bij een wedstrijd op **"Naamlijst"**. Je ziet alle betaalde bestellingen, alfabetisch op achternaam, met het bestelnummer en het aantal tickets per type. Met **"Afdrukken"** druk je een lijst af met een afvinkvakje per koper. Met **"Download als Excel (CSV)"** krijg je dezelfde lijst als bestand. De koper toont aan de ingang de bevestigingsmail (met naam en bestelnummer). Geannuleerde of terugbetaalde bestellingen verdwijnen automatisch van de lijst.
+**Naamlijst voor aan de ingang:** klik bij een wedstrijd op **"Naamlijst"**. Je ziet alle kopers met een betaalde bestelling, alfabetisch op achternaam, met het aantal tickets per type. Wie op verschillende momenten bestelde, staat er één keer op: de tickets worden opgeteld en alle bestelnummers staan erbij. Met **"Afdrukken"** druk je een lijst af met een afvinkvakje per koper. Met **"Download als Excel (CSV)"** krijg je dezelfde lijst als bestand. De koper toont aan de ingang de bevestigingsmail (met naam en bestelnummer). Geannuleerde of terugbetaalde bestellingen verdwijnen automatisch van de lijst.
 
 ### 9.3 Bestellingen
 

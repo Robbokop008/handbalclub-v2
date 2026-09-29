@@ -8,11 +8,11 @@
         <h1>Naamlijst: {{ wedstrijd.titel }}</h1>
         <p>
             {{ wedstrijd.datum_tijd.strftime('%d/%m/%Y') }} om {{ wedstrijd.datum_tijd.strftime('%H:%M') }}{% if wedstrijd.locatie %} — {{ wedstrijd.locatie }}{% endif %}<br>
-            <strong>{{ totaal_tickets }}</strong> ticket{{ '' if totaal_tickets == 1 else 's' }} in {{ rijen|length }} bestelling{{ '' if rijen|length == 1 else 'en' }}
+            <strong>{{ totaal_tickets }}</strong> ticket{{ '' if totaal_tickets == 1 else 's' }} voor {{ rijen|length }} koper{{ '' if rijen|length == 1 else 's' }} ({{ aantal_bestellingen }} bestelling{{ '' if aantal_bestellingen == 1 else 'en' }})
             {%- if types %}: {% for t in types %}{{ t.naam }} {{ totalen_per_type[t.id] }}{{ ', ' if not loop.last else '' }}{% endfor %}{% endif %}
         </p>
         <p class="naamlijst-geen-print muted">
-            Enkel betaalde, niet-geannuleerde bestellingen staan op deze lijst. Aan de ingang toont de koper de bevestigingsmail (met naam en bestelnummer).
+            Enkel betaalde, niet-geannuleerde bestellingen staan op deze lijst. Wie meerdere keren bestelde, staat er één keer op met alle tickets opgeteld. Aan de ingang toont de koper een van de bevestigingsmails (met naam en bestelnummer).
         </p>
     </div>
 
@@ -29,7 +29,7 @@
                 <tr>
                     <th class="naamlijst-afvinken">✓</th>
                     <th>Naam</th>
-                    <th>Bestelnr.</th>
+                    <th>Bestelnrs.</th>
                     {% for t in types %}<th>{{ t.naam }}</th>{% endfor %}
                     <th>Totaal</th>
                     <th class="naamlijst-geen-print">E-mail</th>
@@ -39,11 +39,11 @@
                 {% for rij in rijen %}
                 <tr>
                     <td><span class="naamlijst-vakje"></span></td>
-                    <td><strong>{{ rij.order.user.last_name }}</strong> {{ rij.order.user.first_name }}</td>
-                    <td><a href="{{ url_for('admin.view_order', order_id=rij.order.order_id) }}">#{{ rij.order.order_id }}</a></td>
+                    <td><strong>{{ rij.klant.last_name }}</strong> {{ rij.klant.first_name }}</td>
+                    <td>{% for order in rij.orders %}<a href="{{ url_for('admin.view_order', order_id=order.order_id) }}">#{{ order.order_id }}</a>{{ ', ' if not loop.last else '' }}{% endfor %}</td>
                     {% for t in types %}<td>{{ rij.aantallen.get(t.id, '') }}</td>{% endfor %}
                     <td><strong>{{ rij.totaal }}</strong></td>
-                    <td class="naamlijst-geen-print">{{ rij.order.user.email }}</td>
+                    <td class="naamlijst-geen-print">{{ rij.klant.email }}</td>
                 </tr>
                 {% endfor %}
             </tbody>

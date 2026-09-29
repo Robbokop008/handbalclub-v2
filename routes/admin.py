@@ -996,10 +996,15 @@ def edit_ticket_type(ticket_type_id):
 
 
 def _ticket_naamlijst(wedstrijd):
-    """Eén rij per betaalde, niet-geannuleerde bestelling met tickets voor
-    deze wedstrijd, alfabetisch op achternaam. Openstaande (nog niet
-    betaalde) bestellingen staan er bewust niet op: die hebben (nog) geen
-    bevestigingsmail gekregen."""
+    """Eén rij per koper met tickets voor deze wedstrijd, alfabetisch op
+    achternaam. Wie op verschillende momenten bestelde, staat er één keer op:
+    de aantallen worden opgeteld over al die bestellingen en alle
+    bestelnummers worden getoond (de koper kan aan de ingang elk van die
+    bevestigingsmails tonen). Enkel betaalde, niet-geannuleerde bestellingen
+    tellen mee: openstaande hebben (nog) geen bevestigingsmail gekregen.
+
+    Samenvoegen gebeurt per account (Order.user_id); komt er ooit afrekenen
+    zonder account, dan moet dit bv. op e-mailadres gebeuren."""
     lijnen = (
         TicketLijn.query
         .join(Order, TicketLijn.order_id == Order.order_id)
@@ -1011,14 +1016,18 @@ def _ticket_naamlijst(wedstrijd):
         )
         .all()
     )
-    per_order = {}
+    per_klant = {}
     for lijn in lijnen:
-        rij = per_order.setdefault(lijn.order_id, {"order": lijn.order, "aantallen": {}, "totaal": 0})
+        rij = per_klant.setdefault(lijn.order.user_id, {"klant": lijn.order.user, "orders": [], "aantallen": {}, "totaal": 0})
+        if lijn.order not in rij["orders"]:
+            rij["orders"].append(lijn.order)
         rij["aantallen"][lijn.ticket_type_id] = rij["aantallen"].get(lijn.ticket_type_id, 0) + lijn.quantity
         rij["totaal"] += lijn.quantity
+    for rij in per_klant.values():
+        rij["orders"].sort(key=lambda o: o.order_id)
     return sorted(
-        per_order.values(),
-        key=lambda r: (r["order"].user.last_name.lower(), r["order"].user.first_name.lower(), r["order"].order_id),
+        per_klant.values(),
+        key=lambda r: (r["klant"].last_name.lower(), r["klant"].first_name.lower(), r["orders"][0].order_id),
     )
 
 
@@ -1038,11 +1047,11 @@ def ticket_naamlijst(wedstrijd_id):
         # Puntkomma: zo opent Excel met Belgische/Nederlandse landinstellingen
         # het bestand meteen in aparte kolommen.
         writer = csv.writer(buffer, delimiter=";")
-        writer.writerow(["Achternaam", "Voornaam", "E-mail", "Bestelnummer"] + [t.naam for t in types] + ["Totaal"])
+        writer.writerow(["Achternaam", "Voornaam", "E-mail", "Bestelnummers"] + [t.naam for t in types] + ["Totaal"])
         for rij in rijen:
-            klant = rij["order"].user
+            klant = rij["klant"]
             writer.writerow(
-                [klant.last_name, klant.first_name, klant.email or "", rij["order"].order_id]
+                [klant.last_name, klant.first_name, klant.email or "", ", ".join(str(o.order_id) for o in rij["orders"])]
                 + [rij["aantallen"].get(t.id, 0) for t in types] + [rij["totaal"]]
             )
         bestandsnaam = f"naamlijst-{wedstrijd.datum_tijd.strftime('%Y-%m-%d')}-{wedstrijd.id}.csv"
@@ -1055,6 +1064,7 @@ def ticket_naamlijst(wedstrijd_id):
     return render_template(
         "admin/ticket_naamlijst.html", user=g.user, wedstrijd=wedstrijd, rijen=rijen, types=types,
         totaal_tickets=sum(r["totaal"] for r in rijen),
+        aantal_bestellingen=sum(len(r["orders"]) for r in rijen),
         totalen_per_type={t.id: sum(r["aantallen"].get(t.id, 0) for r in rijen) for t in types},
     )
 
