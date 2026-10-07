@@ -209,6 +209,11 @@ def create_app(config_name="development"):
     # utils/oude_site_redirects.py. Enkel als er geen route matchte
     # (url_rule is None): een abort(404) vanuit een bestaande route, bv. een
     # onbestaand /nieuws/<id>, blijft gewoon een 404.
+    #
+    # body_page_class expliciet op None, zelfde reden als bij onderhoud.html
+    # hieronder: anders krijgt bv. een 404 op /nieuws/<id> of een 410 op
+    # "/?e=..." de achtergrond van de opgevraagde pagina, en is de titel van
+    # de foutpagina onleesbaar.
     from utils.oude_site_redirects import oude_site_doel_url
 
     @app.errorhandler(404)
@@ -217,11 +222,11 @@ def create_app(config_name="development"):
             doel = oude_site_doel_url(request.path)
             if doel is not None:
                 return redirect(doel, code=301)
-        return render_template("errors/404.html"), 404
+        return render_template("errors/404.html", body_page_class=None), 404
 
     @app.errorhandler(429)
     def te_veel_aanvragen(_error):
-        return render_template("errors/429.html"), 429
+        return render_template("errors/429.html", body_page_class=None), 429
 
     @app.errorhandler(500)
     def interne_fout(_error):
@@ -231,7 +236,7 @@ def create_app(config_name="development"):
         # kwam, zou die render dus ook mislukken - vandaar deze fallback
         # naar kale HTML in plaats van een tweede crash.
         try:
-            return render_template("errors/500.html"), 500
+            return render_template("errors/500.html", body_page_class=None), 500
         except Exception:
             return (
                 "<h1>Er ging iets mis</h1>"
@@ -271,7 +276,7 @@ def create_app(config_name="development"):
         if request.method in ("GET", "HEAD") and SPAM_QUERYSTRING.fullmatch(
             request.query_string.decode("latin-1")
         ):
-            return render_template("errors/404.html"), 410
+            return render_template("errors/404.html", body_page_class=None), 410
 
     @app.before_request
     def check_onderhoudsmodus():
