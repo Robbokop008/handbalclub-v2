@@ -253,18 +253,25 @@ def create_app(config_name="development"):
         "static", "auth.login", "auth.logout", "shop.stripe_webhook",
     }
 
-    # Spam-URL's zoals "/?9e2ff880915503.html": een kale query-string die
-    # enkel uit "<iets>.html" bestaat. Geen enkele pagina van de site gebruikt
-    # zoiets, maar omdat query-strings gewoon genegeerd worden gaf elke variant
-    # een 200 met de homepage terug - Google Search Console telde er zo'n
-    # 28.000 als "Alternatieve pagina met correcte canonieke tag". Nu een
-    # permanente redirect naar dezelfde URL zonder query-string.
+    # Spam-URL's van de oude hack, zoals "/?9e2ff880915503.html" (een kale
+    # query-string "<iets>.html") en "/?e=33321715651" (enkel "e=<getal>").
+    # Geen enkele pagina van de site gebruikt zoiets, maar omdat query-strings
+    # gewoon genegeerd worden gaf elke variant een 200 met de homepage terug -
+    # Google Search Console telde er honderdduizenden als "Alternatieve pagina
+    # met correcte canonieke tag" en "Gecrawld - momenteel niet geïndexeerd".
+    #
+    # 410 Gone i.p.v. een 301 naar de URL zonder query-string: met de 301
+    # bleef Google ze opnieuw crawlen en tellen als "Pagina met omleiding"
+    # (200.000+). Een 410 zegt dat de URL definitief weg is, waarna Google ze
+    # sneller laat vallen.
+    SPAM_QUERYSTRING = re.compile(r"[A-Za-z0-9_.-]+[.]html|e=[0-9]+")
+
     @app.before_request
-    def redirect_spam_querystrings():
-        if request.method in ("GET", "HEAD") and re.fullmatch(
-            r"[A-Za-z0-9_.-]+[.]html", request.query_string.decode("latin-1")
+    def weiger_spam_querystrings():
+        if request.method in ("GET", "HEAD") and SPAM_QUERYSTRING.fullmatch(
+            request.query_string.decode("latin-1")
         ):
-            return redirect(request.path, code=301)
+            return render_template("errors/404.html"), 410
 
     @app.before_request
     def check_onderhoudsmodus():
