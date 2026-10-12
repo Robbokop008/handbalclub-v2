@@ -123,6 +123,7 @@ SITE_TEXT_PAGINAS = [
             )),
             _html("kalender_trainingen_jm0810", "Trainingen > JM08 & JM10: uren", "<p>Binnenkort meer over de trainingsuren van JM08 &amp; JM10.</p>"),
             _html("kalender_trainingen_jm12", "Trainingen > JM12: uren", "<p>Binnenkort meer over de trainingsuren van JM12.</p>"),
+            _html("kalender_trainingen_jm14", "Trainingen > JM14: uren", "<p>Binnenkort meer over de trainingsuren van JM14.</p>"),
             _tekst("kalender_trainingen_cta_titel", "Trainingen: titel van het gele kaartje", "Wil je handbal eens proberen?"),
             _html("kalender_trainingen_cta_tekst", "Trainingen: tekst van het gele kaartje", (
                 '<p>Train <strong>1 maand gratis</strong> mee en ontdek welke talenten jij hebt op het veld!</p>'

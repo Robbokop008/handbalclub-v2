@@ -26,12 +26,13 @@ def _volledige_kalender_url(embed_url):
     """Embed-URL voor de volledige kalenderpagina.
 
     De embed-URL uit SPOND_EMBED_URL is een Google Agenda-embed in
-    AGENDA-modus (compact, ideaal voor het kaartje op de homepage). Google
-    toont in die modus maar een beperkt aantal weken vooruit, waardoor
-    latere wedstrijden niet zichtbaar zijn hoewel ze wel in de agenda
-    staan. Op de kalenderpagina schakelen we daarom over op de
-    maandweergave met navigatie, zodat het hele seizoen te doorbladeren is.
-    Andere URL's (bv. de placeholder) blijven ongewijzigd.
+    AGENDA-modus zonder navigatie (ideaal voor het kaartje op de homepage).
+    Google toont in die modus altijd maar zo'n 6 à 7 weken vooruit, en een
+    langer datumbereik (dates=...) wordt genegeerd. Op de kalenderpagina
+    houden we daarom dezelfde lijstweergave, maar zetten we de
+    navigatiepijltjes en de datumbalk aan, zodat je per periode door het
+    hele seizoen kan bladeren. Andere URL's (bv. de placeholder) blijven
+    ongewijzigd.
     """
     delen = urlparse(embed_url)
     if delen.netloc != "calendar.google.com" or not delen.path.startswith("/calendar/embed"):
@@ -40,7 +41,7 @@ def _volledige_kalender_url(embed_url):
         (k, v) for k, v in parse_qsl(delen.query, keep_blank_values=True)
         if k not in ("mode", "showNav", "showDate", "showTabs", "height")
     ]
-    params += [("mode", "MONTH"), ("showNav", "1"), ("showDate", "1"), ("showTabs", "0")]
+    params += [("mode", "AGENDA"), ("showNav", "1"), ("showDate", "1"), ("showTabs", "0")]
     return urlunparse(delen._replace(query=urlencode(params)))
 
 
