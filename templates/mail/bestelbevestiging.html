@@ -1,0 +1,86 @@
+{% extends "mail/_basis.html" %}
+{% import "mail/_onderdelen.html" as m %}
+
+{% block onderwerp %}{{ onderwerp }}{% endblock %}
+{% block voorbeeldtekst %}Bestelnummer #{{ order.order_id }} · totaal €{{ '%.2f'|format(order.total_paid) }}{% endblock %}
+
+{% block inhoud %}
+{{ m.titel('Bedankt voor je bestelling!') }}
+{{ m.alinea('Beste ' ~ order.user.first_name ~ ' ' ~ order.user.last_name ~ ',') }}
+<p style="margin:0 0 6px;">We hebben je betaling goed ontvangen. Hieronder vind je een overzicht.</p>
+<p style="margin:0 0 4px;"><span style="display:inline-block;padding:4px 12px;background:#05316b;color:#ffffff;border-radius:999px;font-size:13px;font-weight:bold;">Bestelnummer #{{ order.order_id }}</span></p>
+
+{% if order.lines %}
+{{ m.tussentitel('Producten') }}
+{% set rijen = [] %}
+{% for line in order.lines %}
+    {% set detail = [] %}
+    {% if line.variant %}{% set _ = detail.append(line.variant.color ~ ' / ' ~ line.variant.size) %}{% endif %}
+    {% if line.print_front %}{% set _ = detail.append('Bedrukking voorkant: ' ~ line.print_front) %}{% endif %}
+    {% if line.print_back %}{% set _ = detail.append('Bedrukking achterkant: ' ~ line.print_back) %}{% endif %}
+    {% set _ = rijen.append((line.product.product_name, detail | join(' · '), line.quantity, line.price | float)) %}
+{% endfor %}
+{{ m.regels(rijen) }}
+{% endif %}
+
+{% if order.ticket_lines %}
+{{ m.tussentitel('Tickets') }}
+{% for wedstrijd, lijnen in tickets_per_wedstrijd %}
+{% set rijen = [] %}
+{% for l in lijnen %}{% set _ = rijen.append((l.ticket_type.naam, none, l.quantity, l.price | float)) %}{% endfor %}
+{% call m.kaart() %}
+    {{ m.kaart_titel(wedstrijd.titel, wedstrijd.datum_tijd.strftime('%d/%m/%Y') ~ ' om ' ~ wedstrijd.datum_tijd.strftime('%H:%M') ~ ((' · ' ~ wedstrijd.locatie) if wedstrijd.locatie else '')) }}
+    {{ m.regels(rijen) }}
+{% endcall %}
+{% endfor %}
+{% call m.kader('geel') %}
+    <strong>Toegang tot de wedstrijd</strong><br>
+    Je staat op de naamlijst onder de naam <strong>{{ order.user.first_name }} {{ order.user.last_name }}</strong> (bestelnummer {{ order.order_id }}). Toon deze e-mail aan de ingang van de sporthal om binnen te gaan of je tickets op te halen. Je hoeft niets af te drukken.
+{% endcall %}
+{% endif %}
+
+{% if order.actie_lines %}
+{{ m.tussentitel('Afhalen') }}
+{% for moment, lijnen in actie_lijnen_per_moment(order.actie_lines) %}
+{% set rijen = [] %}
+{% for l in lijnen %}{% set _ = rijen.append((l.variant.volledige_naam, none, l.quantity, l.price | float)) %}{% endfor %}
+{% call m.kaart() %}
+    {{ m.kaart_titel(moment.actie.titel) }}
+    <div style="margin:2px 0 10px;font-size:14px;">
+        📅 <strong>{{ moment.label | capitalize }}</strong><br>
+        📍 {{ moment.adres }}
+    </div>
+    {{ m.regels(rijen) }}
+{% endcall %}
+{% endfor %}
+{% call m.kader('geel') %}
+    <strong>Afhalen</strong><br>
+    Kom je bestelling afhalen op het gekozen moment en adres. Vermeld daar je naam (<strong>{{ order.user.first_name }} {{ order.user.last_name }}</strong>) of bestelnummer <strong>{{ order.order_id }}</strong>.
+{% endcall %}
+{% endif %}
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:10px 0 18px;font-size:14px;">
+    <tr>
+        <td style="padding:5px 0;color:#64748b;">Subtotaal</td>
+        <td align="right" style="padding:5px 0;">€{{ '%.2f'|format(order.total_price | float) }}</td>
+    </tr>
+    {% if order.lines %}
+    <tr>
+        <td style="padding:5px 0;color:#64748b;">Verzendkosten</td>
+        <td align="right" style="padding:5px 0;">{{ 'Gratis' if not order.shipping_cost else '€' ~ '%.2f'|format(order.shipping_cost | float) }}</td>
+    </tr>
+    {% endif %}
+    <tr>
+        <td style="padding:10px 0 0;border-top:2px solid #05316b;font-size:16px;font-weight:bold;">Totaal betaald</td>
+        <td align="right" style="padding:10px 0 0;border-top:2px solid #05316b;font-size:16px;font-weight:bold;">€{{ '%.2f'|format(order.total_paid) }}</td>
+    </tr>
+</table>
+
+{% if order.lines %}
+{{ m.alinea('We gaan meteen met je bestelling aan de slag.') }}
+{% elif order.actie_lines %}
+{{ m.alinea('Tot bij het afhalen!') }}
+{% else %}
+{{ m.alinea('Tot in de sporthal!') }}
+{% endif %}
+{% endblock %}

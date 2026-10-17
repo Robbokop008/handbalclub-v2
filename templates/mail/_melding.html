@@ -1,0 +1,25 @@
+{#- Gedeelde layout voor de interne meldingen aan de club (nieuwe
+    inschrijving, GDPR-verzoek, contactformulier, annulatie): een titel,
+    een tabel met gegevens, optioneel een vrije tekst en een knop naar de
+    admin. Context: onderwerp, titel, inleiding, gegevens [(label, waarde)],
+    vrije_tekst_titel/vrije_tekst (optioneel), knop_url/knop_tekst (optioneel). -#}
+{% extends "mail/_basis.html" %}
+{% import "mail/_onderdelen.html" as m %}
+
+{% block onderwerp %}{{ onderwerp }}{% endblock %}
+{% block voorbeeldtekst %}{{ inleiding }}{% endblock %}
+
+{% block inhoud %}
+{{ m.titel(titel) }}
+{% if inleiding %}{{ m.alinea(inleiding) }}{% endif %}
+{{ m.gegevens(gegevens) }}
+{% if vrije_tekst %}
+{% if vrije_tekst_titel %}<div style="margin:0 0 4px;font-size:13px;color:#64748b;">{{ vrije_tekst_titel }}</div>{% endif %}
+{% call m.kader('geel') %}<div style="white-space:pre-line;">{{ vrije_tekst }}</div>{% endcall %}
+{% endif %}
+{% if knop_url %}{{ m.knop(knop_url, knop_tekst) }}{% endif %}
+{% endblock %}
+
+{% block voet %}
+Automatische melding van de website{% if basis_url %} · <a href="{{ basis_url }}" style="color:#05316b;">{{ basis_url | replace('https://', '') | replace('http://', '') }}</a>{% endif %}
+{% endblock %}

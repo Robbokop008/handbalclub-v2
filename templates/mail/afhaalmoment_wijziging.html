@@ -1,0 +1,35 @@
+{% extends "mail/_basis.html" %}
+{% import "mail/_onderdelen.html" as m %}
+
+{% block onderwerp %}{{ onderwerp }}{% endblock %}
+{% block voorbeeldtekst %}{{ 'Je nieuwe afhaalmoment: ' ~ moment.label if moment.is_active else 'Je afhaalmoment gaat niet door' }}{% endblock %}
+
+{% block inhoud %}
+{{ m.titel('Wijziging afhaalmoment') }}
+{{ m.alinea('Beste ' ~ order.user.first_name ~ ' ' ~ order.user.last_name ~ ',') }}
+{{ m.alinea('Er is iets gewijzigd aan het afhalen van je bestelling #' ~ order.order_id ~ ' bij ' ~ moment.actie.titel ~ '.') }}
+
+{% if bericht %}
+<p style="margin:0 0 16px;white-space:pre-line;">{{ bericht }}</p>
+{% endif %}
+
+{% if moment.is_active %}
+{{ m.tussentitel('Je afhaalmoment is nu') }}
+{% set rijen = [] %}
+{% for l in lijnen %}{% set _ = rijen.append((l.variant.volledige_naam, none, l.quantity, l.price | float)) %}{% endfor %}
+{% call m.kaart() %}
+    {{ m.kaart_titel(moment.actie.titel) }}
+    <div style="margin:2px 0 10px;font-size:14px;">
+        📅 <strong>{{ moment.label | capitalize }}</strong><br>
+        📍 {{ moment.adres }}
+    </div>
+    {{ m.regels(rijen) }}
+{% endcall %}
+{% else %}
+{% call m.kader('rood') %}
+    <strong>Dit afhaalmoment gaat niet door</strong><br>
+    {{ moment.label | capitalize }} op {{ moment.adres }}.<br>
+    De club neemt contact met je op over het verdere verloop.
+{% endcall %}
+{% endif %}
+{% endblock %}

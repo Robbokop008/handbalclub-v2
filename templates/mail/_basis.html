@@ -1,0 +1,35 @@
+{#- Basislayout van alle HTML-mails (zie utils/mail.py). Mailprogramma's
+    (Outlook, Gmail, ...) negeren <style>-blokken en moderne CSS grotendeels,
+    vandaar tabellen en inline stijlen. Elke mail heeft daarnaast ook een
+    platte-tekstversie. Kleuren = de clubkleuren uit static/style.css. -#}
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>{% block onderwerp %}{% endblock %}</title>
+</head>
+<body style="margin:0;padding:0;background:#eaeff6;-webkit-text-size-adjust:100%;">
+{#- Voorbeeldtekst die mailprogramma's naast het onderwerp tonen -#}
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">{% block voorbeeldtekst %}{% endblock %}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#eaeff6;">
+<tr><td align="center" style="padding:24px 12px;">
+    <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;font-family:Arial,Helvetica,sans-serif;color:#12203c;">
+        <tr><td style="background:#05316b;padding:22px 28px;border-bottom:4px solid #e8cb18;">
+            <span style="font-size:19px;font-weight:bold;letter-spacing:1.5px;color:#ffffff;">HANDBAL SINT-TRUIDEN</span>
+        </td></tr>
+        <tr><td style="padding:28px 28px 8px;font-size:15px;line-height:1.6;">
+            {% block inhoud %}{% endblock %}
+        </td></tr>
+        <tr><td style="padding:18px 28px;background:#f4f6fa;border-top:1px solid #e2e8f0;font-size:12px;line-height:1.6;color:#64748b;">
+            {% block voet %}
+            Handbal Sint-Truiden{% if basis_url %} · <a href="{{ basis_url }}" style="color:#05316b;">{{ basis_url | replace('https://', '') | replace('http://', '') }}</a>{% endif %}<br>
+            Vragen? Antwoord gerust op deze e-mail.
+            {% endblock %}
+        </td></tr>
+    </table>
+</td></tr>
+</table>
+</body>
+</html>
