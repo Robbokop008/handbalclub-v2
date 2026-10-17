@@ -1,73 +1,79 @@
 {% extends "admin/_shell.html" %}
+{% import "admin/_lijst_macros.html" as lijst %}
 
 {% block title %}Adminpagina - Inschrijvingen{% endblock %}
 
 {% block admin_content %}
 <div class="admin-page-header">
     <h1>Inschrijvingen</h1>
-    <p>Overzicht van alle inschrijvingen via Jeugd, G-Handbal en FIT-Handbal.</p>
+    <p>Inschrijvingen via Jeugd, G-Handbal en FIT-Handbal ({{ aantal_onverwerkt }} nog te verwerken). Klik op een inschrijving voor alle gegevens en een interne notitie.</p>
 </div>
 
 <section class="section">
-    <p style="margin-bottom:16px;">
-        {{ aantal_onverwerkt }} onverwerkt &middot;
-        {% if toon_verwerkte %}
-        <a href="{{ url_for('admin.inschrijvingen') }}">Toon enkel onverwerkte inschrijvingen</a>
-        {% else %}
-        <a href="{{ url_for('admin.inschrijvingen', toon_verwerkte=1) }}">Toon ook verwerkte inschrijvingen</a>
-        {% endif %}
-    </p>
+    {% call lijst.filterbalk(actief_filter) %}
+    <div class="admin-filterbalk-zoek">
+        <label for="q">Zoeken</label>
+        <input type="search" id="q" name="q" value="{{ f.q }}" placeholder="Naam speler, e-mail of gsm">
+    </div>
+    <div>
+        <label for="categorie">Categorie</label>
+        <select id="categorie" name="categorie">
+            <option value="">Alle</option>
+            {% for c in categorieen %}<option value="{{ c }}" {{ 'selected' if f.categorie == c }}>{{ c }}</option>{% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="status">Status</label>
+        <select id="status" name="status">
+            {% for waarde, label in status_filters.items() %}<option value="{{ waarde }}" {{ 'selected' if f.status == waarde }}>{{ label }}</option>{% endfor %}
+        </select>
+    </div>
+    {% endcall %}
+
+    {{ lijst.paginering(pagination, 'inschrijving', 'inschrijvingen') }}
 
     {% if inschrijvingen %}
-    <div class="table-wrap">
-        <table class="admin-table">
-            <thead>
-                <tr>
-                    <th>Datum</th>
-                    <th>Categorie</th>
-                    <th>Speler</th>
-                    <th>Geboortedatum</th>
-                    <th>Geboorteplaats</th>
-                    <th>Adres</th>
-                    <th>E-mail</th>
-                    <th>Gsm</th>
-                    <th>Hoe leren kennen</th>
-                    <th>School</th>
-                    <th>Opmerkingen</th>
-                    <th>Status</th>
-                    <th>Acties</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for i in inschrijvingen %}
-                <tr>
-                    <td>{{ i.aangemaakt_op.strftime('%d/%m/%Y %H:%M') }}</td>
-                    <td>{{ i.categorie or '—' }}</td>
-                    <td>{{ (i.voornaam_speler or '') ~ ' ' ~ (i.achternaam_speler or '') }}</td>
-                    <td>{{ i.geboortedatum.strftime('%d/%m/%Y') if i.geboortedatum else '—' }}</td>
-                    <td>{{ i.geboorteplaats or '—' }}</td>
-                    <td>{{ i.straat_nr or '—' }}, {{ i.postcode or '' }} {{ i.gemeente or '' }}</td>
-                    <td>{{ i.email or '—' }}</td>
-                    <td>{{ i.telefoon or '—' }}</td>
-                    <td>{{ i.hoe_gehoord or '—' }}</td>
-                    <td>{{ i.school or '—' }}</td>
-                    <td>{{ i.opmerkingen or '—' }}</td>
-                    <td><span class="order-status-badge{{ ' order-status-badge-verwerkt' if i.verwerkt else '' }}">{{ 'Verwerkt' if i.verwerkt else 'Nog te verwerken' }}</span></td>
-                    <td>
-                        <form action="{{ url_for('admin.toggle_inschrijving_verwerkt', inschrijving_id=i.id, toon_verwerkte=1 if toon_verwerkte else 0) }}" method="post">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="admin-button btn-sm">
-                                {{ 'Markeer als niet verwerkt' if i.verwerkt else 'Markeer als verwerkt' }}
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+    <form action="{{ url_for('admin.bulk_inschrijvingen_verwerkt') }}" method="post" data-bulk-form>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {{ lijst.terug_veld() }}
+        <div class="admin-bulkbalk">
+            <button type="submit" name="actie" value="verwerkt" class="admin-button btn-sm" data-bulk-knop>Markeer als verwerkt</button>
+            <button type="submit" name="actie" value="onverwerkt" class="btn btn-secondary btn-sm" data-bulk-knop>Markeer als niet verwerkt</button>
+            <span data-bulk-teller></span>
+        </div>
+        <div class="table-wrap">
+            <table class="admin-table admin-lijst">
+                <thead>
+                    <tr>
+                        {{ lijst.vinkje_kop() }}
+                        <th>Datum</th>
+                        <th>Speler</th>
+                        <th>Categorie</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in inschrijvingen %}
+                    {% set naam = ((i.voornaam_speler or '') ~ ' ' ~ (i.achternaam_speler or '')).strip() or '(geen naam)' %}
+                    <tr>
+                        {{ lijst.vinkje(i.id, naam ~ ' selecteren') }}
+                        <td>{{ i.aangemaakt_op.strftime('%d/%m/%Y') }}</td>
+                        <td class="lijst-afkap"><a class="lijst-link" href="{{ lijst.fiche_url(url_for('admin.view_inschrijving', inschrijving_id=i.id)) }}">{{ naam }}</a>{% if i.notitie %} <span class="lijst-klein" title="Heeft een notitie">📝</span>{% endif %}</td>
+                        <td class="lijst-afkap">{{ i.categorie or '—' }}</td>
+                        <td><span class="order-status-badge{{ ' order-status-badge-verwerkt' if i.verwerkt else '' }}">{{ 'Verwerkt' if i.verwerkt else 'Nog te verwerken' }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </form>
+    {{ lijst.paginering(pagination, 'inschrijving', 'inschrijvingen') }}
     {% else %}
-        <p>{{ 'Er zijn nog geen inschrijvingen binnengekomen.' if toon_verwerkte else 'Geen onverwerkte inschrijvingen.' }}</p>
+        <p>{{ 'Geen inschrijvingen gevonden voor deze filters.' if actief_filter else 'Geen inschrijvingen meer te verwerken.' }}</p>
     {% endif %}
 </section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/admin_lijsten.js') }}" defer></script>
 {% endblock %}

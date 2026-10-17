@@ -1,0 +1,127 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - Artikel bewerken{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>Artikel bewerken</h1>
+    <p>{{ artikel.actie.titel }} — {{ artikel.naam }}</p>
+</div>
+
+<section class="section">
+    {% if error %}
+    <p class="alert alert-error" style="margin-bottom:20px;">{{ error }}</p>
+    {% endif %}
+
+    <form action="{{ url_for('admin.edit_actie_artikel', artikel_id=artikel.id) }}" method="post" class="admin-form" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div>
+            <label for="naam">Naam</label>
+            <input type="text" id="naam" name="naam" value="{{ artikel.naam }}" required>
+        </div>
+        <div>
+            <label for="max_per_bestelling">Maximum per bestelling (leeg = onbeperkt)</label>
+            <input type="number" id="max_per_bestelling" name="max_per_bestelling" min="1" value="{{ artikel.max_per_bestelling if artikel.max_per_bestelling is not none else '' }}">
+        </div>
+        <div style="grid-column:1/-1;">
+            <label for="omschrijving">Omschrijving (optioneel)</label>
+            <textarea id="omschrijving" name="omschrijving" rows="3" placeholder="bv. Huisgemaakte lasagne bolognese, 500 g. Opwarmen in de oven: 30 min op 180°C.">{{ artikel.omschrijving or '' }}</textarea>
+        </div>
+        <div style="grid-column:1/-1;">
+            <label for="afbeelding">Foto (optioneel)</label>
+            {% if artikel.afbeelding %}
+            <p class="muted">
+                Huidige foto: {{ artikel.afbeelding }} —
+                <label class="checkbox-inline" style="display:inline-flex;"><input type="checkbox" name="verwijder_afbeelding" value="1"> verwijderen</label>
+            </p>
+            {% endif %}
+            <input type="file" id="afbeelding" name="afbeelding" accept="image/*">
+        </div>
+        <fieldset style="grid-column:1/-1;border:none;padding:0;margin:0;">
+            <legend style="font-weight:600;margin-bottom:8px;">Allergenen</legend>
+            <div class="allergenen-keuze">
+                {% for sleutel, label in allergenen %}
+                <label class="checkbox-inline"><input type="checkbox" name="allergenen" value="{{ sleutel }}" {{ 'checked' if sleutel in (artikel.allergenen or []) else '' }}> {{ label }}</label>
+                {% endfor %}
+            </div>
+        </fieldset>
+        <div class="checkbox-field">
+            <label for="is_active"><input type="checkbox" id="is_active" name="is_active" {{ 'checked' if artikel.is_active else '' }}> Actief (te koop)</label>
+        </div>
+
+        <div class="form-actions" style="grid-column:1/-1;">
+            <button type="submit" class="admin-button">Opslaan</button>
+            <a href="{{ url_for('admin.edit_actie', actie_id=artikel.actie_id) }}" class="btn btn-secondary">Terug</a>
+        </div>
+    </form>
+
+    <h2 class="section-title" style="margin-top:40px;">Varianten</h2>
+    <p>
+        Elke variant heeft een eigen prijs en voorraad (leeg = onbeperkt). De voorraad is het totaal over alle afhaalmomenten.
+        Heeft het artikel maar één soort, laat de naam dan leeg. Een prijswijziging geldt enkel voor nieuwe bestellingen.
+        Varianten worden niet verwijderd, enkel gedeactiveerd.
+    </p>
+
+    <div class="table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Naam / Prijs / Voorraad / Actief</th>
+                    <th>Verkocht</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for variant in artikel.varianten %}
+                <tr>
+                    <td style="padding:0;">
+                        <div class="variant-row">
+                            <form action="{{ url_for('admin.edit_actie_variant', variant_id=variant.id) }}" method="post" class="variant-edit-form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="text" name="naam" value="{{ variant.naam or '' }}" placeholder="Naam (bv. Groot)" aria-label="Naam">
+                                <input type="number" name="prijs" value="{{ '%.2f'|format(variant.prijs) }}" step="0.01" min="0" aria-label="Prijs" required>
+                                <input type="number" name="voorraad" value="{{ variant.voorraad if variant.voorraad is not none else '' }}" min="0" placeholder="Onbeperkt" aria-label="Voorraad">
+                                <label class="variant-active-toggle">
+                                    <input type="checkbox" name="is_active" {{ 'checked' if variant.is_active else '' }}> Actief
+                                </label>
+                                <button type="submit" class="admin-button btn-sm">Opslaan</button>
+                            </form>
+                        </div>
+                    </td>
+                    <td>{{ variant.aantal_verkocht() }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <form action="{{ url_for('admin.add_actie_variant', artikel_id=artikel.id) }}" method="post" class="admin-form" style="margin-top:24px;">
+        <h3>Variant toevoegen</h3>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+            <label for="variant_naam">Naam</label>
+            <input type="text" id="variant_naam" name="naam" placeholder="bv. Groot of Vegetarisch" required>
+        </div>
+        <div>
+            <label for="variant_prijs">Prijs (€)</label>
+            <input type="number" id="variant_prijs" name="prijs" step="0.01" min="0" required>
+        </div>
+        <div>
+            <label for="variant_voorraad">Voorraad (leeg = onbeperkt)</label>
+            <input type="number" id="variant_voorraad" name="voorraad" min="0">
+        </div>
+        <div class="checkbox-field">
+            <label for="variant_is_active"><input type="checkbox" id="variant_is_active" name="is_active" checked> Actief</label>
+        </div>
+        <button type="submit" class="admin-button">Variant toevoegen</button>
+    </form>
+    {% if artikel.varianten | length == 1 and not artikel.varianten[0].naam %}
+    <p class="muted" style="font-size:13px;">Wil je een tweede variant toevoegen, geef de bestaande dan eerst een naam (bv. "Klein") en sla die op.</p>
+    {% endif %}
+
+    <form action="{{ url_for('admin.delete_actie_artikel', artikel_id=artikel.id) }}" method="post" style="margin-top:24px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Dit artikel definitief verwijderen? Dit kan enkel zolang het nog niet besteld is.');">Artikel verwijderen</button>
+    </form>
+</section>
+{% endblock %}

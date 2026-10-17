@@ -1,0 +1,26 @@
+{# Kaartjes van de zichtbare acties - gedeeld door shop/acties.html en
+   shop/products.html (als er geen producten of tickets zijn). #}
+<div class="content-grid">
+    {% for actie in acties %}
+    {% set momenten = actie.actieve_momenten %}
+    <a href="{{ url_for('shop.actie_detail', actie_id=actie.id) }}" style="text-decoration:none; color:inherit;">
+        <div class="content-preview-card">
+            {% if actie.afbeelding %}
+            <img src="{{ url_for('static', filename='images/' + actie.afbeelding) }}" alt="{{ actie.titel }}" loading="lazy">
+            {% endif %}
+            <h3>{{ actie.titel }}</h3>
+            <p class="content-preview-meta">
+                Afhalen
+                {% if momenten | length == 1 %}op {{ momenten[0].label }}
+                {% else %}van {{ momenten[0].start.strftime('%d/%m') }} tot {{ momenten[-1].start.strftime('%d/%m/%Y') }} ({{ momenten | length }} momenten){% endif %}
+            </p>
+            <p class="content-preview-tekst">
+                {% if actie.laagste_prijs is not none %}Vanaf €{{ '%.2f'|format(actie.laagste_prijs) }}{% endif %}
+                {% if actie.is_uitverkocht %} — <strong>Uitverkocht</strong>
+                {% elif not actie.bestelbare_momenten %} — <strong>Bestellen gesloten</strong>{% endif %}
+            </p>
+            <p class="content-preview-lees-meer"><span>{{ 'Bestellen' if actie.is_bestelbaar else 'Bekijk' }} &rarr;</span></p>
+        </div>
+    </a>
+    {% endfor %}
+</div>

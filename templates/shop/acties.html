@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Handbal Sint-Truiden | Acties{% endblock %}
+{% block meta_description %}Steun Handbal Sint-Truiden: bestel online bij onze acties en haal je bestelling af op een moment naar keuze.{% endblock %}
+
+{% block content %}
+<section class="club-hero">
+    <h1>Acties</h1>
+    <p>Bestel online, kies een afhaalmoment en steun de club.</p>
+</section>
+
+{% if acties %}
+<section class="section" id="acties">
+    {% include "shop/_actie_kaarten.html" %}
+</section>
+{% else %}
+<section class="section">
+    <p style="text-align:center;color:rgba(255,255,255,0.8);">Er lopen op dit moment geen acties. Probeer het later opnieuw.</p>
+</section>
+{% endif %}
+{% endblock %}

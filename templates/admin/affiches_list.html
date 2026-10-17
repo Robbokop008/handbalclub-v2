@@ -1,0 +1,72 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - Affiches{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>Affiches</h1>
+    <p>Liggende affiches die bovenaan de homepage verschijnen, bv. voor een actie of een tornooi. Een affiche is zichtbaar zolang ze actief is en binnen haar periode valt. Zijn er meerdere tegelijk zichtbaar, dan wisselen ze elkaar af in de volgorde hieronder.</p>
+</div>
+
+<section class="section">
+    <a href="{{ url_for('admin.add_affiche') }}" class="admin-button" style="display:inline-block;margin-bottom:24px;">Nieuwe affiche toevoegen</a>
+
+    {% if affiches %}
+    <div class="table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Volgorde</th>
+                    <th>Affiche</th>
+                    <th>Titel</th>
+                    <th>Periode</th>
+                    <th>Status</th>
+                    <th>Acties</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for affiche in affiches %}
+                <tr>
+                    <td style="white-space:nowrap;">
+                        <form action="{{ url_for('admin.move_affiche', affiche_id=affiche.id) }}" method="post" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="direction" value="up">
+                            <button type="submit" class="btn btn-secondary btn-sm" title="Omhoog">&uarr;</button>
+                        </form>
+                        <form action="{{ url_for('admin.move_affiche', affiche_id=affiche.id) }}" method="post" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="direction" value="down">
+                            <button type="submit" class="btn btn-secondary btn-sm" title="Omlaag">&darr;</button>
+                        </form>
+                    </td>
+                    <td><img src="{{ url_for('static', filename='images/' + affiche.afbeelding) }}" alt="" class="affiche-thumb"></td>
+                    <td>
+                        {{ affiche.titel }}
+                        {% if affiche.afbeelding_gsm %}<br><small class="muted">met gsm-versie</small>{% endif %}
+                    </td>
+                    <td style="white-space:nowrap;">
+                        {{ affiche.toon_vanaf.strftime('%d/%m/%Y %H:%M') if affiche.toon_vanaf else 'meteen' }}<br>
+                        t.e.m. {{ affiche.toon_tot.strftime('%d/%m/%Y %H:%M') if affiche.toon_tot else 'onbeperkt' }}
+                    </td>
+                    <td><span class="order-status-badge">{{ affiche.status }}</span></td>
+                    <td>
+                        <a href="{{ url_for('admin.edit_affiche', affiche_id=affiche.id) }}" class="admin-button btn-sm">Bewerken</a>
+                        <form action="{{ url_for('admin.toggle_affiche_active', affiche_id=affiche.id) }}" method="post" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="{{ 'btn btn-secondary' if affiche.is_active else 'admin-button' }} btn-sm">{{ 'Deactiveren' if affiche.is_active else 'Activeren' }}</button>
+                        </form>
+                        <form action="{{ url_for('admin.delete_affiche', affiche_id=affiche.id) }}" method="post" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Deze affiche definitief verwijderen?');">Verwijderen</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p>Er zijn nog geen affiches toegevoegd.</p>
+    {% endif %}
+</section>
+{% endblock %}

@@ -4,11 +4,13 @@ models.py
 Alle database-modellen, als SQLAlchemy ORM-klassen.
 
 Gegroepeerd in:
-1. Club (Team, NieuwsBericht)
+1. Club (Team, NieuwsBericht, Evenement, Sponsor, Affiche, ...)
 2. Gebruikers & authenticatie (User)
 3. Webshop (Product, ProductVariant, Order, OrderLine)
 4. Tickets (TicketWedstrijd, TicketType, TicketLijn) - via dezelfde
    winkelmand/Order als de webshop
+5. Acties met afhaling (Actie, ActieArtikel, ActieVariant, AfhaalMoment,
+   ActieLijn) - eveneens via dezelfde winkelmand/Order
 
 De webshop-modellen zijn gemigreerd vanuit de originele sqlite3-versie
 (model.py uit hello_flask) naar SQLAlchemy, met dezelfde velden/relaties,
@@ -119,6 +121,53 @@ class Sponsor(db.Model):
 
     def __repr__(self):
         return f"<Sponsor {self.naam}>"
+
+
+class Affiche(db.Model):
+    """Een liggende affiche bovenaan de homepage, bv. voor een actie of een
+    tornooi. Zichtbaar zolang ze actief is en binnen haar periode valt; zijn
+    er meerdere tegelijk zichtbaar, dan wisselen ze af in een slider (op
+    volgorde van position)."""
+    __tablename__ = "affiches"
+
+    id = db.Column(db.Integer, primary_key=True)
+    titel = db.Column(db.String(200), nullable=False)          # enkel voor de admin
+    afbeelding = db.Column(db.String(255), nullable=False)     # liggend, bestandsnaam in static/images/
+    # Optionele staande/vierkante versie voor smalle schermen - een liggende
+    # affiche wordt op een gsm zo klein dat de tekst onleesbaar wordt.
+    afbeelding_gsm = db.Column(db.String(255))
+    alt_tekst = db.Column(db.String(500), nullable=False)      # wat er op de affiche staat (schermlezers, Google)
+    link = db.Column(db.String(500))                           # optioneel: relatief pad of http(s)-URL
+    # Leeg = meteen zichtbaar / zichtbaar tot de admin ze deactiveert.
+    # Belgische lokale tijd, zoals de rest van de site.
+    toon_vanaf = db.Column(db.DateTime, nullable=True)
+    toon_tot = db.Column(db.DateTime, nullable=True)
+    position = db.Column(db.Integer, nullable=False, default=0)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def status(self):
+        """'Inactief', 'Gepland', 'Verlopen' of 'Zichtbaar'."""
+        nu = nu_belgisch()
+        if not self.is_active:
+            return "Inactief"
+        if self.toon_vanaf is not None and self.toon_vanaf > nu:
+            return "Gepland"
+        if self.toon_tot is not None and self.toon_tot <= nu:
+            return "Verlopen"
+        return "Zichtbaar"
+
+    @property
+    def is_zichtbaar(self):
+        return self.status == "Zichtbaar"
+
+    @property
+    def link_is_extern(self):
+        return bool(self.link) and not self.link.startswith("/")
+
+    def __repr__(self):
+        return f"<Affiche {self.titel}>"
 
 
 # Standaard-categorieën waarmee InschrijvingCategorie geseed wordt (zie utils/inschrijving.py)
@@ -238,6 +287,8 @@ class Inschrijving(db.Model):
     # ingeschreven bij de bond, ouders gecontacteerd, ...) - zelfde patroon
     # als VergeetMijVerzoek.verwerkt hieronder.
     verwerkt = db.Column(db.Boolean, nullable=False, default=False)
+    # Interne notitie, enkel zichtbaar voor admins (bv. "gebeld op 17/10")
+    notitie = db.Column(db.Text)
 
     aangemaakt_op = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -255,6 +306,7 @@ class VergeetMijVerzoek(db.Model):
     lidnummer = db.Column(db.String(50))
     opmerking = db.Column(db.Text)
     verwerkt = db.Column(db.Boolean, nullable=False, default=False)
+    notitie = db.Column(db.Text)   # interne notitie, enkel voor admins
     aangemaakt_op = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
@@ -513,23 +565,36 @@ class ProductVariant(db.Model):
 # Volgorde bepaalt de keuzemogelijkheden in het admin-statusveld
 ORDER_STATUSES = ["Ontvangen", "In behandeling", "Klaar voor verzending", "Verzonden", "Geannuleerd", "Terugbetaald"]
 
+# Order.payment_status zoals Stripe/de checkout ze zet, met hun weergavenaam in de admin
+BETAALSTATUS_LABELS = {"Pending": "Openstaand", "paid": "Betaald", "failed": "Mislukt"}
+
 
 class Order(db.Model):
     __tablename__ = "orders"
 
     order_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
-    total_price = db.Column(db.Numeric(10, 2), nullable=False)          # subtotaal producten + tickets, excl. verzending
+    total_price = db.Column(db.Numeric(10, 2), nullable=False)          # subtotaal producten + tickets + acties, excl. verzending
     shipping_cost = db.Column(db.Numeric(10, 2), nullable=False, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     payment_status = db.Column(db.String(20), default="Pending", nullable=False)
     order_status = db.Column(db.String(30), default="Ontvangen", nullable=False)
+    # Door Stripe gevraagd als de bestelling actieartikelen (afhaling) bevat,
+    # zodat de club kan bellen als er iets misloopt. Snapshot op de
+    # bestelling, niet op het account.
+    telefoon = db.Column(db.String(30), nullable=True)
+    # Uit de standaardlijst van bestellingen gehaald door een admin (bv.
+    # afgewerkt). Niets wordt verwijderd: met een filter blijven ze zichtbaar.
+    gearchiveerd = db.Column(db.Boolean, nullable=False, default=False)
 
     lines = db.relationship(
         "OrderLine", backref="order", lazy=True, cascade="all, delete-orphan"
     )
     ticket_lines = db.relationship(
         "TicketLijn", backref="order", lazy=True, cascade="all, delete-orphan"
+    )
+    actie_lines = db.relationship(
+        "ActieLijn", backref="order", lazy=True, cascade="all, delete-orphan"
     )
 
     @property
@@ -692,3 +757,282 @@ class TicketLijn(db.Model):
     @property
     def subtotal(self):
         return self.quantity * float(self.price)
+
+
+# ---------------------------------------------------------------------------
+# Acties: verkoop met afhaling (bv. afhaalgerechten, wafelverkoop) - via
+# dezelfde winkelmand/Order als de webshop
+# ---------------------------------------------------------------------------
+
+# De 14 allergenen die volgens de EU-regelgeving vermeld moeten worden.
+ALLERGENEN = [
+    ("gluten", "Gluten"),
+    ("schaaldieren", "Schaaldieren"),
+    ("eieren", "Eieren"),
+    ("vis", "Vis"),
+    ("pindas", "Pinda's"),
+    ("soja", "Soja"),
+    ("melk", "Melk"),
+    ("noten", "Noten"),
+    ("selder", "Selder"),
+    ("mosterd", "Mosterd"),
+    ("sesam", "Sesamzaad"),
+    ("sulfiet", "Sulfiet"),
+    ("lupine", "Lupine"),
+    ("weekdieren", "Weekdieren"),
+]
+ALLERGEEN_SLEUTELS = {sleutel for sleutel, _ in ALLERGENEN}
+
+WEEKDAGEN = ["maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag", "zondag"]
+
+
+class Actie(db.Model):
+    """Een verkoopactie met afhaling, bv. "Europese droom - afhaalgerechten".
+    Een actie heeft artikelen (met varianten) en afhaalmomenten; de koper
+    kiest per actie één afhaalmoment voor alles wat hij bij die actie
+    bestelt. Net als producten en wedstrijden nooit verwijderd zodra er
+    bestellingen aan hangen, enkel actief/inactief gezet."""
+    __tablename__ = "acties"
+
+    id = db.Column(db.Integer, primary_key=True)
+    titel = db.Column(db.String(200), nullable=False)
+    omschrijving = db.Column(db.Text)
+    afbeelding = db.Column(db.String(255))   # bestandsnaam in static/images/
+    # Wordt ingevuld als adres bij een nieuw afhaalmoment; elk moment heeft
+    # daarna zijn eigen adres.
+    standaard_adres = db.Column(db.String(255))
+    # Leeg = geen deadline voor de hele actie. Anders het moment (Belgische
+    # lokale tijd) waarop bestellen voor alle afhaalmomenten sluit. Een
+    # afhaalmoment kan daarbovenop een eigen, vroegere deadline hebben.
+    bestellen_tot = db.Column(db.DateTime, nullable=True)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    artikelen = db.relationship(
+        "ActieArtikel", backref="actie", lazy=True, cascade="all, delete-orphan",
+        order_by="(ActieArtikel.position, ActieArtikel.id)",
+    )
+    momenten = db.relationship(
+        "AfhaalMoment", backref="actie", lazy=True, cascade="all, delete-orphan",
+        order_by="AfhaalMoment.start",
+    )
+
+    @property
+    def actieve_artikelen(self):
+        """Artikelen die te koop zijn: actief en met minstens één actieve variant."""
+        return [a for a in self.artikelen if a.is_active and a.actieve_varianten]
+
+    @property
+    def actieve_momenten(self):
+        return [m for m in self.momenten if m.is_active]
+
+    @property
+    def bestelbare_momenten(self):
+        return [m for m in self.actieve_momenten if m.is_bestelbaar]
+
+    @property
+    def laatste_einde(self):
+        """Einde van het laatste actieve afhaalmoment, of None."""
+        return max((m.einde for m in self.actieve_momenten), default=None)
+
+    @property
+    def is_zichtbaar(self):
+        """Een actie staat in de shop tot het laatste afhaalmoment voorbij
+        is - ook als bestellen al gesloten is (dan met die melding)."""
+        return self.is_active and self.laatste_einde is not None and self.laatste_einde > nu_belgisch()
+
+    @property
+    def is_uitverkocht(self):
+        varianten = [v for a in self.actieve_artikelen for v in a.actieve_varianten]
+        return bool(varianten) and all(v.aantal_beschikbaar() == 0 for v in varianten)
+
+    @property
+    def is_bestelbaar(self):
+        return (
+            self.is_active and bool(self.actieve_artikelen) and bool(self.bestelbare_momenten)
+            and not self.is_uitverkocht
+        )
+
+    @property
+    def laagste_prijs(self):
+        return min((v.prijs for a in self.actieve_artikelen for v in a.actieve_varianten), default=None)
+
+    def heeft_bestellingen(self):
+        return (
+            ActieLijn.query.join(AfhaalMoment, ActieLijn.moment_id == AfhaalMoment.id)
+            .filter(AfhaalMoment.actie_id == self.id).first() is not None
+        )
+
+    def __repr__(self):
+        return f"<Actie {self.titel}>"
+
+
+class ActieArtikel(db.Model):
+    """Iets dat binnen een actie verkocht wordt, bv. een gerecht. Prijs en
+    voorraad zitten op de varianten (bv. klein/groot), zodat een artikel
+    met maar één soort gewoon één variant zonder naam heeft."""
+    __tablename__ = "actie_artikelen"
+
+    id = db.Column(db.Integer, primary_key=True)
+    actie_id = db.Column(db.Integer, db.ForeignKey("acties.id"), nullable=False)
+    naam = db.Column(db.String(200), nullable=False)
+    omschrijving = db.Column(db.Text)
+    afbeelding = db.Column(db.String(255))   # bestandsnaam in static/images/
+    allergenen = db.Column(db.JSON, nullable=False, default=list)   # sleutels uit ALLERGENEN
+    # Leeg = geen limiet. Anders het maximum aantal stuks (alle varianten
+    # samen) van dit artikel in één bestelling.
+    max_per_bestelling = db.Column(db.Integer, nullable=True)
+    position = db.Column(db.Integer, nullable=False, default=0)   # weergavevolgorde binnen de actie
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+
+    varianten = db.relationship(
+        "ActieVariant", backref="artikel", lazy=True, cascade="all, delete-orphan",
+        order_by="ActieVariant.id",
+    )
+
+    @property
+    def actieve_varianten(self):
+        return [v for v in self.varianten if v.is_active]
+
+    @property
+    def allergeen_labels(self):
+        """Labels in de vaste volgorde van ALLERGENEN."""
+        gekozen = set(self.allergenen or [])
+        return [label for sleutel, label in ALLERGENEN if sleutel in gekozen]
+
+    def heeft_bestellingen(self):
+        return (
+            ActieLijn.query.join(ActieVariant, ActieLijn.variant_id == ActieVariant.id)
+            .filter(ActieVariant.artikel_id == self.id).first() is not None
+        )
+
+    def __repr__(self):
+        return f"<ActieArtikel {self.naam} ({self.actie_id})>"
+
+
+class ActieVariant(db.Model):
+    """Variant van een artikel met eigen prijs en voorraad, bv. 'Groot' of
+    'Vegetarisch'. Zelfde principe als ProductVariant: nooit verwijderd
+    zodra er bestellingen naar verwijzen, enkel gedeactiveerd."""
+    __tablename__ = "actie_varianten"
+
+    id = db.Column(db.Integer, primary_key=True)
+    artikel_id = db.Column(db.Integer, db.ForeignKey("actie_artikelen.id"), nullable=False)
+    naam = db.Column(db.String(100))   # leeg bij een artikel met maar één variant
+    prijs = db.Column(db.Float, nullable=False)
+    # Leeg = onbeperkt. Anders het totaal aantal stuks dat over de hele
+    # actie verkocht kan worden. Geen teller die afgeschreven wordt: zie
+    # aantal_verkocht().
+    voorraad = db.Column(db.Integer, nullable=True)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+
+    @property
+    def volledige_naam(self):
+        return f"{self.artikel.naam} ({self.naam})" if self.naam else self.artikel.naam
+
+    def aantal_verkocht(self):
+        """Zelfde principe als TicketWedstrijd.aantal_verkocht(): regels in
+        bestellingen die niet mislukt/geannuleerd zijn, incl. bestellingen
+        die nog op betaling wachten. Mislukt of verloopt de betaling, of
+        wordt de bestelling geannuleerd, dan komt de voorraad vanzelf vrij."""
+        totaal = (
+            db.session.query(db.func.coalesce(db.func.sum(ActieLijn.quantity), 0))
+            .join(Order, ActieLijn.order_id == Order.order_id)
+            .filter(
+                ActieLijn.variant_id == self.id,
+                Order.payment_status != "failed",
+                Order.order_status.notin_(TICKET_ONGELDIGE_ORDER_STATUSSEN),
+            )
+            .scalar()
+        )
+        return int(totaal or 0)
+
+    def aantal_beschikbaar(self):
+        """None = onbeperkt."""
+        if self.voorraad is None:
+            return None
+        return max(0, self.voorraad - self.aantal_verkocht())
+
+    def heeft_bestellingen(self):
+        return ActieLijn.query.filter_by(variant_id=self.id).first() is not None
+
+    def __repr__(self):
+        return f"<ActieVariant {self.naam} ({self.artikel_id})>"
+
+
+class AfhaalMoment(db.Model):
+    """Een moment waarop bestellingen van een actie afgehaald worden: een
+    datum met tijdvenster en een adres. Tijden in Belgische lokale tijd,
+    zoals TicketWedstrijd.datum_tijd."""
+    __tablename__ = "afhaalmomenten"
+
+    id = db.Column(db.Integer, primary_key=True)
+    actie_id = db.Column(db.Integer, db.ForeignKey("acties.id"), nullable=False)
+    start = db.Column(db.DateTime, nullable=False)
+    einde = db.Column(db.DateTime, nullable=False)
+    adres = db.Column(db.String(255), nullable=False)
+    # Leeg = enkel de deadline van de actie (of anders de start van dit
+    # moment) geldt. Anders een eigen deadline voor dit moment.
+    bestellen_tot = db.Column(db.DateTime, nullable=True)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+
+    @property
+    def bestellen_sluit_op(self):
+        """De vroegste van: deadline van de actie, eigen deadline, start."""
+        return min(d for d in (self.actie.bestellen_tot, self.bestellen_tot, self.start) if d is not None)
+
+    @property
+    def is_bestelbaar(self):
+        return self.is_active and self.bestellen_sluit_op > nu_belgisch()
+
+    @property
+    def label(self):
+        """bv. 'zaterdag 14/11/2026 van 11:00 tot 14:00'"""
+        return (
+            f"{WEEKDAGEN[self.start.weekday()]} {self.start.strftime('%d/%m/%Y')} "
+            f"van {self.start.strftime('%H:%M')} tot {self.einde.strftime('%H:%M')}"
+        )
+
+    def heeft_bestellingen(self):
+        return ActieLijn.query.filter_by(moment_id=self.id).first() is not None
+
+    def __repr__(self):
+        return f"<AfhaalMoment {self.start} ({self.actie_id})>"
+
+
+class ActieLijn(db.Model):
+    """Actieregel in een bestelling - de tegenhanger van OrderLine/TicketLijn
+    voor acties. Het afhaalmoment staat per regel; alle regels van dezelfde
+    actie in één bestelling hebben hetzelfde moment (zie routes/shop.py en
+    admin.update_order_afhaalmoment)."""
+    __tablename__ = "order_actie_lines"
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey("orders.order_id"), nullable=False)
+    variant_id = db.Column(db.Integer, db.ForeignKey("actie_varianten.id"), nullable=False)
+    moment_id = db.Column(db.Integer, db.ForeignKey("afhaalmomenten.id"), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    price = db.Column(db.Numeric(10, 2), nullable=False)   # prijs per stuk, bevroren bij bestellen
+
+    variant = db.relationship("ActieVariant")
+    moment = db.relationship("AfhaalMoment")
+
+    @property
+    def actie(self):
+        return self.moment.actie
+
+    @property
+    def subtotal(self):
+        return self.quantity * float(self.price)
+
+
+def actie_lijnen_per_moment(lijnen):
+    """Groepeert actieregels per afhaalmoment (en dus per actie),
+    chronologisch, met de regels in de volgorde van de artikelen - zo tonen
+    bevestigingsmail, bedankpagina en admin ze."""
+    groepen = {}
+    for lijn in lijnen:
+        groepen.setdefault(lijn.moment, []).append(lijn)
+    for groep in groepen.values():
+        groep.sort(key=lambda l: (l.variant.artikel.position, l.variant.artikel_id, l.variant_id))
+    return [(moment, groepen[moment]) for moment in sorted(groepen, key=lambda m: m.start)]

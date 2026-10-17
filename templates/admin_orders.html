@@ -1,48 +1,133 @@
 {% extends "admin/_shell.html" %}
+{% import "admin/_lijst_macros.html" as lijst %}
 
 {% block title %}Adminpagina - Bestellingen{% endblock %}
 
 {% block admin_content %}
 <div class="admin-page-header">
-    <h1>Bestellingen beheren</h1>
-    <p>Op deze pagina kun je alle bestellingen bekijken en de status controleren. Bestellingen met tickets zijn gemarkeerd met 🎟️.</p>
+    <h1>Bestellingen</h1>
+    <p>Klik op een bestelling voor alle details. 🎟️ = met tickets, 🥡 = met een actie (afhalen). Afgewerkte bestellingen kan je aanvinken en archiveren: ze verdwijnen dan uit deze lijst, maar blijven bewaard en vind je terug via het filter "Archief".</p>
 </div>
 
 <section class="section">
+    {% call lijst.filterbalk(actief_filter) %}
+    <div class="admin-filterbalk-zoek">
+        <label for="q">Zoeken</label>
+        <input type="search" id="q" name="q" value="{{ f.q }}" placeholder="Bestelnummer, naam of e-mail">
+    </div>
+    <div>
+        <label for="status">Status</label>
+        <select id="status" name="status">
+            <option value="">Alle</option>
+            {% for s in order_statuses %}<option value="{{ s }}" {{ 'selected' if f.status == s }}>{{ s }}</option>{% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="betaling">Betaling</label>
+        <select id="betaling" name="betaling">
+            <option value="">Alle</option>
+            {% for waarde, label in betaalstatussen.items() %}<option value="{{ waarde }}" {{ 'selected' if f.betaling == waarde }}>{{ label }}</option>{% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="soort">Soort</label>
+        <select id="soort" name="soort">
+            <option value="">Alle</option>
+            {% for waarde, label in soorten.items() %}<option value="{{ waarde }}" {{ 'selected' if f.soort == waarde }}>{{ label }}</option>{% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="voor">Wedstrijd / actie</label>
+        <select id="voor" name="voor">
+            <option value="">Alle</option>
+            {% if acties %}
+            <optgroup label="Acties">
+                {% for a in acties %}<option value="a{{ a.id }}" {{ 'selected' if f.voor == 'a' ~ a.id }}>{{ a.titel }}</option>{% endfor %}
+            </optgroup>
+            {% endif %}
+            {% if wedstrijden %}
+            <optgroup label="Wedstrijden">
+                {% for w in wedstrijden %}<option value="w{{ w.id }}" {{ 'selected' if f.voor == 'w' ~ w.id }}>{{ w.datum_tijd.strftime('%d/%m/%Y') }} {{ w.titel }}</option>{% endfor %}
+            </optgroup>
+            {% endif %}
+        </select>
+    </div>
+    {% if gekozen_actie %}
+    <div>
+        <label for="moment">Afhaalmoment</label>
+        <select id="moment" name="moment">
+            <option value="">Alle</option>
+            {% for m in gekozen_actie.momenten %}<option value="{{ m.id }}" {{ 'selected' if f.moment == m.id|string }}>{{ m.start.strftime('%d/%m %H:%M') }}</option>{% endfor %}
+        </select>
+    </div>
+    {% endif %}
+    <div>
+        <label for="van">Besteld vanaf</label>
+        <input type="date" id="van" name="van" value="{{ f.van }}">
+    </div>
+    <div>
+        <label for="tot">t.e.m.</label>
+        <input type="date" id="tot" name="tot" value="{{ f.tot }}">
+    </div>
+    <div>
+        <label for="archief">Archief</label>
+        <select id="archief" name="archief">
+            {% for waarde, label in archief_filters.items() %}<option value="{{ waarde }}" {{ 'selected' if f.archief == waarde }}>{{ label }}</option>{% endfor %}
+        </select>
+    </div>
+    {% endcall %}
+
+    {{ lijst.paginering(pagination, 'bestelling', 'bestellingen') }}
 
     {% if orders %}
-    <div class="table-wrap">
-        <table class="admin-table">
-            <thead>
-                <tr>
-                    <th>Bestelling</th>
-                    <th>Klant</th>
-                    <th>Subtotaal</th>
-                    <th>Verzending</th>
-                    <th>Betaalstatus</th>
-                    <th>Status</th>
-                    <th>Datum</th>
-                    <th>Acties</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for order in orders %}
-                <tr>
-                    <td>{{ order.order_id }}{% if order.ticket_lines %} 🎟️{% endif %}</td>
-                    <td>{{ order.user.first_name }} {{ order.user.last_name }} - {{ order.user.email }}</td>
-                    <td>€{{ '%.2f'|format(order.total_price) }}</td>
-                    <td>{{ '—' if not order.lines else ('Gratis' if order.shipping_cost == 0 else '€' + '%.2f'|format(order.shipping_cost)) }}</td>
-                    <td>{{ order.payment_status }}</td>
-                    <td><span class="order-status-badge">{{ order.order_status }}</span></td>
-                    <td>{{ order.created_at.strftime('%d/%m/%Y') }}</td>
-                    <td><a href="{{ url_for('admin.view_order', order_id=order.order_id) }}" class="admin-button btn-sm">Bekijken</a></td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+    <form action="{{ url_for('admin.bulk_archiveer_orders') }}" method="post" data-bulk-form>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {{ lijst.terug_veld() }}
+        <div class="admin-bulkbalk">
+            <button type="submit" name="actie" value="archiveren" class="admin-button btn-sm" data-bulk-knop>Archiveren</button>
+            <button type="submit" name="actie" value="terugzetten" class="btn btn-secondary btn-sm" data-bulk-knop>Terugzetten uit archief</button>
+            <span data-bulk-teller></span>
+        </div>
+        <div class="table-wrap">
+            <table class="admin-table admin-lijst">
+                <thead>
+                    <tr>
+                        {{ lijst.vinkje_kop() }}
+                        <th>Bestelling</th>
+                        <th>Klant</th>
+                        <th>Totaal</th>
+                        <th>Betaling</th>
+                        <th>Status</th>
+                        <th class="lijst-optioneel">Datum</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr{% if order.gearchiveerd %} class="lijst-gedimd"{% endif %}>
+                        {{ lijst.vinkje(order.order_id, 'Bestelling ' ~ order.order_id ~ ' selecteren') }}
+                        <td>
+                            <a class="lijst-link" href="{{ lijst.fiche_url(url_for('admin.view_order', order_id=order.order_id)) }}">#{{ order.order_id }}</a>
+                            {% if order.ticket_lines %} 🎟️{% endif %}{% if order.actie_lines %} 🥡{% endif %}
+                            {% if order.gearchiveerd %}<span class="lijst-klein">(archief)</span>{% endif %}
+                        </td>
+                        <td class="lijst-afkap">{{ order.user.first_name }} {{ order.user.last_name }}</td>
+                        <td>€{{ '%.2f'|format(order.total_paid) }}</td>
+                        <td>{{ order.payment_status | betaalstatus }}</td>
+                        <td><span class="order-status-badge">{{ order.order_status }}</span></td>
+                        <td class="lijst-optioneel">{{ order.created_at.strftime('%d/%m/%Y') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </form>
+    {{ lijst.paginering(pagination, 'bestelling', 'bestellingen') }}
     {% else %}
-        <p>Er zijn nog geen bestellingen geplaatst.</p>
+        <p>{{ 'Geen bestellingen gevonden voor deze filters.' if actief_filter else 'Er zijn nog geen bestellingen (die niet gearchiveerd zijn).' }}</p>
     {% endif %}
 </section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/admin_lijsten.js') }}" defer></script>
 {% endblock %}

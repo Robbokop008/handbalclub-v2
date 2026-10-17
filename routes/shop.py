@@ -2,9 +2,9 @@
 routes/shop.py
 ---------------
 De webshop: productoverzicht, productdetail, tickets voor wedstrijden,
-winkelmandje (met optionele bedrukking per stuk), afrekenen via Stripe
-Checkout (incl. gratis verzending vanaf een drempelbedrag), en de Stripe
-webhook.
+acties met afhaling (bv. afhaalgerechten), winkelmandje (met optionele
+bedrukking per stuk), afrekenen via Stripe Checkout (incl. gratis verzending
+vanaf een drempelbedrag), en de Stripe webhook.
 
 Cart-structuur in de sessie:
     session["cart"] = {
@@ -15,15 +15,21 @@ Cart-structuur in de sessie:
         "<cart_item_id (uuid)>": {
             "ticket_type_id": int, "quantity": int,
         },
+        "<cart_item_id (uuid)>": {
+            "actie_variant_id": int, "moment_id": int, "quantity": int,
+        },
         ...
     }
 Elke combinatie van variant + bedrukking krijgt een eigen regel, zodat je
 bv. twee T-shirts met elk een andere opdruk apart kan bestellen. Tickets
-krijgen één regel per tickettype.
+krijgen één regel per tickettype, acties één regel per actievariant. Alle
+regels van dezelfde actie hebben hetzelfde afhaalmoment: het actieformulier
+vervangt telkens alles wat er voor die actie al in het mandje zat.
 
 Tickets en producten kunnen samen in één bestelling. Bevat de bestelling
-enkel tickets, dan vraagt Stripe geen verzendadres en zijn er geen
-verzendkosten; de drempel voor gratis verzending telt enkel producten.
+enkel tickets en/of acties, dan vraagt Stripe geen verzendadres en zijn er
+geen verzendkosten; de drempel voor gratis verzending telt enkel producten.
+Met acties in het mandje vraagt Stripe een telefoonnummer (Order.telefoon).
 """
 
 import time
@@ -35,6 +41,7 @@ import stripe
 from extensions import db, csrf
 from models import (
     Product, ProductVariant, Order, OrderLine, TicketWedstrijd, TicketType, TicketLijn, nu_belgisch,
+    Actie, ActieVariant, AfhaalMoment, ActieLijn,
 )
 from utils.auth import login_required
 from utils.mail import send_order_confirmation_mail, send_admin_cancellation_mail
@@ -88,12 +95,42 @@ def _stripe_order_id(stripe_object):
     return metadata["order_id"] if "order_id" in metadata else None
 
 
+def _stripe_telefoon(stripe_object):
+    """Het telefoonnummer dat de klant op de Stripe-betaalpagina invulde (enkel
+    gevraagd bij acties, zie checkout), of None."""
+    if "customer_details" not in stripe_object or not stripe_object["customer_details"]:
+        return None
+    details = stripe_object["customer_details"]
+    return details["phone"] if "phone" in details and details["phone"] else None
+
+
 def _get_cart_items():
     """Zet de sessie-cart om naar een lijst met volledige variant/product-info."""
     items = []
     cart = session.get("cart", {})
 
     for cart_item_id, line in cart.items():
+        if "actie_variant_id" in line:
+            variant = ActieVariant.query.get(line["actie_variant_id"])
+            moment = AfhaalMoment.query.get(line["moment_id"])
+            if variant is None or moment is None:
+                continue
+            items.append({
+                "cart_item_id": cart_item_id,
+                "type": "actie",
+                "actie_variant": variant,
+                "actie": moment.actie,
+                "moment": moment,
+                "product": None,
+                "variant": None,
+                "quantity": line["quantity"],
+                "price": variant.prijs,
+                "subtotal": variant.prijs * line["quantity"],
+                "print_front": None,
+                "print_back": None,
+            })
+            continue
+
         if "ticket_type_id" in line:
             ticket_type = TicketType.query.get(line["ticket_type_id"])
             if ticket_type is None:
@@ -161,12 +198,21 @@ def _komende_ticket_wedstrijden():
     return [w for w in wedstrijden if w.actieve_ticket_types and not w.verkoop_gesloten]
 
 
+def _zichtbare_acties():
+    """Actieve acties met artikelen, tot hun laatste afhaalmoment voorbij
+    is - ook als bestellen al gesloten of alles uitverkocht is (de pagina
+    toont dat dan). Chronologisch op het eerste afhaalmoment."""
+    acties = [a for a in Actie.query.filter_by(is_active=True).all() if a.is_zichtbaar and a.actieve_artikelen]
+    return sorted(acties, key=lambda a: a.actieve_momenten[0].start)
+
+
 @shop_bp.route("/producten")
 def products():
     all_products = Product.query.filter_by(is_active=True).all()
     return render_template(
         "shop/products.html", products=all_products,
         ticket_wedstrijden=_komende_ticket_wedstrijden(),
+        acties=_zichtbare_acties(),
     )
 
 
@@ -326,6 +372,132 @@ def add_tickets_to_cart():
     return redirect(url_for("shop.cart"))
 
 
+def _actie_regels_in_cart(cart, actie_id):
+    """[(cart_item_id, ActieVariant, regel)] voor de regels in de sessie-cart
+    die bij deze actie horen."""
+    regels = []
+    for key, line in cart.items():
+        if "actie_variant_id" not in line:
+            continue
+        variant = ActieVariant.query.get(line["actie_variant_id"])
+        if variant is not None and variant.artikel.actie_id == actie_id:
+            regels.append((key, variant, line))
+    return regels
+
+
+def _actie_fouten(actie, moment, aantallen):
+    """Controleert een (voorgenomen) bestelling voor één actie: het
+    afhaalmoment, de varianten, de voorraad en het maximum per bestelling.
+    aantallen = {ActieVariant: aantal}. Geeft een lijst foutmeldingen terug
+    (leeg = in orde)."""
+    if not actie.is_active:
+        return [f"{actie.titel} is niet meer beschikbaar."]
+
+    fouten = []
+    if moment is None or moment.actie_id != actie.id or not moment.is_bestelbaar:
+        fouten.append(f"Het gekozen afhaalmoment voor {actie.titel} is niet (meer) beschikbaar. Kies een ander moment.")
+
+    per_artikel = defaultdict(int)
+    for variant, aantal in aantallen.items():
+        artikel = variant.artikel
+        if not variant.is_active or not artikel.is_active or artikel.actie_id != actie.id:
+            fouten.append(f"{variant.volledige_naam} is niet meer beschikbaar.")
+            continue
+        beschikbaar = variant.aantal_beschikbaar()
+        if beschikbaar == 0:
+            fouten.append(f"{variant.volledige_naam} is uitverkocht.")
+        elif beschikbaar is not None and aantal > beschikbaar:
+            fouten.append(f"Van {variant.volledige_naam} zijn er nog maar {beschikbaar} beschikbaar.")
+        per_artikel[artikel] += aantal
+
+    for artikel, aantal in per_artikel.items():
+        if artikel.max_per_bestelling is not None and aantal > artikel.max_per_bestelling:
+            fouten.append(f"Je kan maximaal {artikel.max_per_bestelling} × {artikel.naam} per bestelling bestellen.")
+    return fouten
+
+
+@shop_bp.route("/acties")
+def acties():
+    """Acties met afhaling, bv. afhaalgerechten."""
+    return render_template("shop/acties.html", acties=_zichtbare_acties())
+
+
+def _render_actie_detail(actie, aantallen, moment_id, errors=None):
+    """aantallen = {variant_id: aantal}: wat er in het formulier ingevuld
+    staat (uit het winkelmandje, of wat de koper net verstuurde)."""
+    bestelbare_momenten = actie.bestelbare_momenten
+    if moment_id is None and len(bestelbare_momenten) == 1:
+        moment_id = bestelbare_momenten[0].id
+    return render_template(
+        "shop/actie_detail.html", actie=actie, aantallen=aantallen, gekozen_moment_id=moment_id,
+        beschikbaar={v.id: v.aantal_beschikbaar() for a in actie.actieve_artikelen for v in a.actieve_varianten},
+        in_mandje=bool(_actie_regels_in_cart(session.get("cart", {}), actie.id)),
+        errors=errors,
+    )
+
+
+@shop_bp.route("/acties/<int:actie_id>")
+def actie_detail(actie_id):
+    actie = Actie.query.get(actie_id)
+    if actie is None or not actie.is_active:
+        return redirect(url_for("shop.acties"))
+
+    # Staat deze actie al in het mandje, dan toont het formulier die keuze:
+    # opnieuw versturen vervangt ze (zie add_actie_to_cart).
+    in_mandje = _actie_regels_in_cart(session.get("cart", {}), actie.id)
+    return _render_actie_detail(
+        actie,
+        aantallen={variant.id: line["quantity"] for _, variant, line in in_mandje},
+        moment_id=in_mandje[0][2]["moment_id"] if in_mandje else None,
+    )
+
+
+@shop_bp.route("/add_actie_to_cart", methods=["POST"])
+def add_actie_to_cart():
+    """Het actieformulier: aantallen per variant (velden 'aantal_<variant_id>')
+    en één afhaalmoment ('moment_id'). Vervangt alles wat er voor deze actie
+    al in het mandje zat, zodat er per actie maar één moment in zit."""
+    actie = Actie.query.get(request.form.get("actie_id", type=int) or 0)
+    if actie is None or not actie.is_active:
+        return redirect(url_for("shop.acties"))
+
+    moment_id = request.form.get("moment_id", type=int)
+    moment = AfhaalMoment.query.get(moment_id) if moment_id else None
+
+    gekozen = {}
+    for artikel in actie.actieve_artikelen:
+        for variant in artikel.actieve_varianten:
+            aantal = request.form.get(f"aantal_{variant.id}", type=int) or 0
+            if aantal > 0:
+                gekozen[variant] = aantal
+    ingevuld = {variant.id: aantal for variant, aantal in gekozen.items()}
+
+    cart = session.get("cart", {})
+    in_mandje = _actie_regels_in_cart(cart, actie.id)
+
+    if not gekozen:
+        if in_mandje:
+            # Alles op 0 gezet voor een actie die al in het mandje zat: eruit halen
+            for key, _, _ in in_mandje:
+                del cart[key]
+            session["cart"] = cart
+            return redirect(url_for("shop.cart"))
+        return _render_actie_detail(actie, ingevuld, moment_id, ["Kies minstens één artikel."])
+    if moment is None:
+        return _render_actie_detail(actie, ingevuld, moment_id, ["Kies een afhaalmoment."])
+
+    fouten = _actie_fouten(actie, moment, gekozen)
+    if fouten:
+        return _render_actie_detail(actie, ingevuld, moment_id, fouten)
+
+    for key, _, _ in in_mandje:
+        del cart[key]
+    for variant, aantal in gekozen.items():
+        cart[uuid4().hex] = {"actie_variant_id": variant.id, "moment_id": moment.id, "quantity": aantal}
+    session["cart"] = cart
+    return redirect(url_for("shop.cart"))
+
+
 @shop_bp.route("/adjust_cart", methods=["POST"])
 def adjust_cart():
     cart_item_id = request.form["cart_item_id"]
@@ -334,6 +506,16 @@ def adjust_cart():
     cart = session.get("cart", {})
     if cart_item_id in cart:
         line = cart[cart_item_id]
+        actie_variant = ActieVariant.query.get(line["actie_variant_id"]) if "actie_variant_id" in line else None
+        if actie_variant is not None and delta > 0:
+            actie = actie_variant.artikel.actie
+            aantallen = defaultdict(int)
+            for _, variant, regel in _actie_regels_in_cart(cart, actie.id):
+                aantallen[variant] += regel["quantity"]
+            aantallen[actie_variant] += delta
+            fouten = _actie_fouten(actie, AfhaalMoment.query.get(line["moment_id"]), aantallen)
+            if fouten:
+                return redirect(url_for("shop.cart", error=fouten[0]))
         ticket_type = TicketType.query.get(line["ticket_type_id"]) if "ticket_type_id" in line else None
         if ticket_type is not None and delta > 0:
             limiet = ticket_type.wedstrijd.max_per_bestelling
@@ -406,6 +588,20 @@ def checkout():
         if beschikbaar is not None and aantal > beschikbaar:
             errors.append(f"Voor {wedstrijd.titel} zijn nog maar {beschikbaar} tickets beschikbaar")
 
+    actie_items = [item for item in items if item["type"] == "actie"]
+    per_actie = {}
+    for item in actie_items:
+        groep = per_actie.setdefault(item["actie"], {"momenten": set(), "aantallen": defaultdict(int)})
+        groep["momenten"].add(item["moment"])
+        groep["aantallen"][item["actie_variant"]] += item["quantity"]
+    for actie, groep in per_actie.items():
+        if len(groep["momenten"]) > 1:
+            # Kan normaal niet (het actieformulier vervangt de hele actie),
+            # maar één bestelling = één afhaalmoment per actie.
+            errors.append(f"Kies één afhaalmoment voor {actie.titel} via de actiepagina.")
+            continue
+        errors.extend(_actie_fouten(actie, next(iter(groep["momenten"])), groep["aantallen"]))
+
     subtotal = sum(item["subtotal"] for item in items)
     product_subtotal = sum(item["subtotal"] for item in product_items)
 
@@ -445,6 +641,14 @@ def checkout():
             quantity=item["quantity"],
             price=item["price"],
         ))
+    # Zelfde principe voor acties: ActieVariant.aantal_verkocht() telt deze regels.
+    for item in actie_items:
+        order.actie_lines.append(ActieLijn(
+            variant_id=item["actie_variant"].id,
+            moment_id=item["moment"].id,
+            quantity=item["quantity"],
+            price=item["price"],
+        ))
     db.session.add(order)
     db.session.commit()
 
@@ -456,6 +660,8 @@ def checkout():
     stripe.api_key = current_app.config["STRIPE_API_KEY"]
 
     def _line_item_naam(item):
+        if item["type"] == "actie":
+            return f"{item['actie_variant'].volledige_naam} - {item['actie'].titel} (afhalen {item['moment'].start.strftime('%d/%m/%Y')})"
         if item["type"] == "ticket":
             wedstrijd = item["wedstrijd"]
             return f"Ticket {wedstrijd.titel} ({wedstrijd.datum_tijd.strftime('%d/%m/%Y %H:%M')}) - {item['ticket_type'].naam}"
@@ -485,11 +691,14 @@ def checkout():
         checkout_session_params["shipping_address_collection"] = {"allowed_countries": ["BE", "NL", "LU"]}
     if shipping_rate:
         checkout_session_params["shipping_options"] = [{"shipping_rate": shipping_rate.id}]
-    if ticket_items:
-        # Een openstaande bestelling houdt haar tickets vast tot de betaling
-        # mislukt of de Stripe-sessie verloopt (standaard pas na 24u). Bij een
-        # beperkt aantal plaatsen zo snel mogelijk vrijgeven: 30 minuten is
-        # het minimum dat Stripe toelaat (+1 minuut marge voor klokverschil).
+    if actie_items:
+        # Om te kunnen bellen als er iets misloopt bij het afhalen
+        checkout_session_params["phone_number_collection"] = {"enabled": True}
+    if ticket_items or any(item["actie_variant"].voorraad is not None for item in actie_items):
+        # Een openstaande bestelling houdt haar tickets/actievoorraad vast tot
+        # de betaling mislukt of de Stripe-sessie verloopt (standaard pas na
+        # 24u). Bij een beperkt aantal zo snel mogelijk vrijgeven: 30 minuten
+        # is het minimum dat Stripe toelaat (+1 minuut marge voor klokverschil).
         checkout_session_params["expires_at"] = int(time.time()) + 31 * 60
 
     checkout_session = stripe.checkout.Session.create(**checkout_session_params)
@@ -539,6 +748,12 @@ def stripe_webhook():
     # Wordt er nooit betaald, dan komt checkout.session.expired vanzelf.
     newly_paid = False
     try:
+        if event_type.startswith("checkout.session.") and not order.telefoon:
+            telefoon = _stripe_telefoon(data_object)
+            if telefoon:
+                order.telefoon = telefoon[:30]
+                db.session.commit()
+
         # completed = betaalpagina afgerond. Bij trage methodes (bv. SEPA)
         # is het geld dan nog niet binnen (payment_status 'unpaid') en volgt
         # later async_payment_succeeded of async_payment_failed.
@@ -559,8 +774,9 @@ def stripe_webhook():
                 order.payment_status = "failed"
                 # Betaling mislukt/verlopen -> de bij checkout afgeschreven
                 # voorraad terugboeken (zelfde principe als bij handmatige
-                # annulatie in het adminpaneel). Tickets komen vanzelf vrij:
-                # een 'failed' bestelling telt niet mee in aantal_verkocht().
+                # annulatie in het adminpaneel). Tickets en actievoorraad
+                # komen vanzelf vrij: een 'failed' bestelling telt niet mee
+                # in aantal_verkocht().
                 for line in order.lines:
                     if line.variant:
                         line.variant.stock += line.quantity

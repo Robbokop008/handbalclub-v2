@@ -1,6 +1,6 @@
 # Adminhandleiding — website HB Sint-Truiden
 
-Deze handleiding legt uit hoe je als admin de website van HB Sint-Truiden beheert: pagina's, nieuws, evenementen, teams, sponsors, de webshop, ledeninschrijvingen en GDPR-verzoeken. Ze is geschreven voor wie geen technische achtergrond heeft — je hebt enkel een browser nodig.
+Deze handleiding legt uit hoe je als admin de website van HB Sint-Truiden beheert: pagina's, nieuws, evenementen, teams, sponsors, affiches, de webshop, ledeninschrijvingen en GDPR-verzoeken. Ze is geschreven voor wie geen technische achtergrond heeft — je hebt enkel een browser nodig.
 
 ## Inhoud
 
@@ -12,10 +12,11 @@ Deze handleiding legt uit hoe je als admin de website van HB Sint-Truiden beheer
 6. [Evenementen](#6-evenementen)
 7. [Teams](#7-teams)
 8. [Sponsors](#8-sponsors)
-9. [Webshop](#9-webshop)
-10. [Leden & inschrijvingen](#10-leden--inschrijvingen)
-11. [GDPR-verzoeken](#11-gdpr-verzoeken)
-12. [Veelgestelde vragen & tips](#12-veelgestelde-vragen--tips)
+9. [Affiches op de homepage](#9-affiches-op-de-homepage)
+10. [Webshop](#10-webshop)
+11. [Leden & inschrijvingen](#11-leden--inschrijvingen)
+12. [GDPR-verzoeken](#12-gdpr-verzoeken)
+13. [Veelgestelde vragen & tips](#13-veelgestelde-vragen--tips)
 
 ---
 
@@ -23,8 +24,14 @@ Deze handleiding legt uit hoe je als admin de website van HB Sint-Truiden beheer
 
 - **Opslaan gebeurt per pagina/formulier.** Er is geen automatisch opslaan: klik altijd op de knop onderaan (meestal **"Opslaan"** of **"Toevoegen"**) voor je weggaat, anders gaat je wijziging verloren.
 - **Rode knoppen zijn gevaarlijk.** Rode knoppen ("Verwijderen", "Deactiveren", "Site in onderhoud zetten"...) hebben impact op de live site of zijn niet ongedaan te maken De site vraagt bij de belangrijkste altijd eerst een bevestiging ("Weet je het zeker?").
-- **Producten en bestellingen worden nooit écht verwijderd**, enkel gedeactiveerd — zie [hoofdstuk 9](#9-webshop). Andere zaken (pagina's, nieuws, teams, sponsors evenementen...) verdwijnen wél definitief zodra je op "Verwijderen" klikt.
+- **Producten en bestellingen worden nooit écht verwijderd**, enkel gedeactiveerd — zie [hoofdstuk 10](#10-webshop). Andere zaken (pagina's, nieuws, teams, sponsors evenementen...) verdwijnen wél definitief zodra je op "Verwijderen" klikt.
 - **Afbeeldingen** uploaden kan overal via een "Bestand kiezen"-knop. Toegelaten formaten: JPG, PNG, GIF en WEBP.
+- **Overzichtslijsten** (bestellingen, inschrijvingen, gebruikers, GDPR-verzoeken) werken overal hetzelfde:
+  - Bovenaan staat een **filterbalk** met een zoekveld en keuzelijsten. Een keuzelijst wijzigen filtert meteen; voor het zoekveld druk je op Enter of **"Filteren"**. **"Wis filters"** zet alles terug.
+  - Elke rij past op één lijn. **Klik ergens op de rij** om de fiche met alle gegevens te openen. Met **"Terug naar de lijst"** kom je terug in dezelfde gefilterde lijst.
+  - Lange lijsten worden verdeeld over **pagina's van 50**, met "Vorige" en "Volgende".
+  - Met de **vinkjes** voor de rijen kan je meerdere items tegelijk afhandelen (bv. archiveren of als verwerkt markeren). Het vinkje in de kolomkop selecteert alles op de pagina.
+  - Een gefilterde lijst kan je als bladwijzer bewaren: de filters staan in het adres van de pagina.
 
 ---
 
@@ -55,9 +62,9 @@ De eerste pagina na het openen van het adminpaneel (`/admin`) toont:
 
 Via **Beheer → Mijn account** wijzig je je eigen wachtwoord: vul je huidig wachtwoord in, en tweemaal je nieuwe wachtwoord. Een nieuw wachtwoord moet minstens 8 tekens lang zijn en minstens 1 cijfer en 1 speciaal teken bevatten.
 
-Nieuwe admins voeg je toe via **Leden & inschrijvingen → Gebruikers** (zie [hoofdstuk 10](#10-leden--inschrijvingen)).
+Nieuwe admins voeg je toe via **Leden & inschrijvingen → Gebruikers** (zie [hoofdstuk 11](#11-leden--inschrijvingen)).
 
-> **Wachtwoord vergeten?** Er is geen "wachtwoord vergeten"-link, en ook een andere admin kan jouw wachtwoord niet resetten via het adminpaneel. Zorg dus dat je je wachtwoord ergens veilig bewaart (bv. een wachtwoordmanager). Kom je er toch niet meer in, dan is er technische tussenkomst nodig — zie [hoofdstuk 12](#12-veelgestelde-vragen--tips).
+> **Wachtwoord vergeten?** Er is geen "wachtwoord vergeten"-link, en ook een andere admin kan jouw wachtwoord niet resetten via het adminpaneel. Zorg dus dat je je wachtwoord ergens veilig bewaart (bv. een wachtwoordmanager). Kom je er toch niet meer in, dan is er technische tussenkomst nodig — zie [hoofdstuk 13](#13-veelgestelde-vragen--tips).
 
 ---
 
@@ -159,7 +166,7 @@ Tekst wordt bij opslaan automatisch opgeschoond: enkel eenvoudige, veilige opmaa
 
 Via **Content → Evenementen** beheer je de eventlijst. Toekomstige evenementen (op datum) verschijnen op de homepage bij "Volgende event". Verlopen evenementen blijven hier in het overzicht staan (met badge "Verlopen"), maar verdwijnen automatisch van de publieke site.
 
-Velden: **Titel**, **Datum**, **Locatie** (optioneel) en **Tekst** — allemaal eenvoudige tekst, geen aparte inschrijvingen per evenement (die lopen via het algemene inschrijvingsformulier, zie hoofdstuk 10).
+Velden: **Titel**, **Datum**, **Locatie** (optioneel) en **Tekst** — allemaal eenvoudige tekst, geen aparte inschrijvingen per evenement (die lopen via het algemene inschrijvingsformulier, zie hoofdstuk 11).
 
 ---
 
@@ -188,9 +195,27 @@ Voeg een sponsor toe met **Naam**, optioneel een **Website**, en een verplicht *
 
 ---
 
-## 9. Webshop
+## 9. Affiches op de homepage
 
-### 9.1 Producten & varianten
+Via **Content → Affiches** zet je een affiche bovenaan de homepage, bv. voor een actie of een tornooi. De affiche komt boven de teamfoto, in een band over de hele schermbreedte, en wordt **nooit bijgesneden**. De affiche zelf staat volledig in het midden en is hoogstens 640px hoog (op kleinere schermen 60% van de schermhoogte). Opzij vult een wazige, vergrote versie van dezelfde affiche de ruimte op. Vraag daarom altijd een **liggende** affiche: een staande of vierkante neemt bovenaan veel te veel plaats in. Kies je toch een afbeelding die niet liggend is, dan krijg je een waarschuwing, maar opslaan kan wel.
+
+Bij een affiche vul je in:
+
+- **Titel**: enkel voor jezelf in de admin.
+- **Affiche**: de liggende afbeelding. Beste formaat **2400 × 1200 px** (verhouding 2:1; 1920 × 1080 kan ook), minstens 1200 × 600 px, anders wordt de tekst wazig.
+- **Gsm-versie** (optioneel): een vierkante of licht staande versie. Op een gsm wordt een liggende affiche zo klein dat de tekst onleesbaar wordt. Laad je een gsm-versie op, dan zien smalle schermen die. Anders wordt de liggende verkleind. Beste formaat **1080 × 1080 px** (1080 × 1350 kan ook), minstens 800 × 800 px. Een Instagram-post past dus meteen; een story (9:16) is te hoog.
+- Gebruik **JPG of WEBP**, liefst onder 500 KB, zodat de homepage snel laadt.
+- **Wat staat er op de affiche?**: een korte samenvatting van de tekst op de affiche. Die wordt voorgelezen aan blinde en slechtziende bezoekers en gebruikt door Google.
+- **Link** (optioneel): waar je terechtkomt als je op de affiche klikt. Kies snel een actie of webshoppagina in de keuzelijst, of typ zelf een adres (een pagina op deze site begint met **/**, een andere website met **https://**). Een andere website opent in een nieuw tabblad.
+- **Zichtbaar vanaf / tot** (optioneel): de affiche verschijnt en verdwijnt dan vanzelf. Leeg = meteen zichtbaar, tot je ze deactiveert.
+
+Zijn er meerdere affiches tegelijk zichtbaar, dan wisselen ze elkaar automatisch af (met pijltjes en bolletjes), in de volgorde van de lijst. Die volgorde pas je aan met de pijltjes omhoog/omlaag. In de kolom **Status** zie je of een affiche nu **Zichtbaar**, **Gepland**, **Verlopen** of **Inactief** is. Een affiche kan je deactiveren of definitief verwijderen. Is er geen enkele affiche zichtbaar, dan ziet de homepage eruit zoals altijd.
+
+---
+
+## 10. Webshop
+
+### 10.1 Producten & varianten
 
 Via **Webshop → Producten** beheer je het aanbod.
 
@@ -200,7 +225,7 @@ Bij een product: **Naam**, **Beschrijving**, **Afbeelding**, of **bedrukking mog
 
 Per product beheer je ook de **varianten** (kleur + maat), elk met eigen **prijs**, **voorraad** en actief/inactief-status. Een actief product zonder enige koopbare variant (voorraad > 0) verschijnt als waarschuwing op het dashboard.
 
-### 9.2 Tickets voor wedstrijden
+### 10.2 Tickets voor wedstrijden
 
 Via **Webshop → Tickets** verkoop je tickets voor wedstrijden. Supporters kopen ze in de webshop (pagina **/tickets**, ook bereikbaar via een knop op de productpagina) en kunnen ze samen met kledij in hetzelfde winkelmandje afrekenen. Net als bij de webshop moeten ze daarvoor ingelogd zijn.
 
@@ -217,37 +242,69 @@ Goed om te weten:
 
 **Naamlijst voor aan de ingang:** klik bij een wedstrijd op **"Naamlijst"**. Je ziet alle kopers met een betaalde bestelling, alfabetisch op achternaam, met het aantal tickets per type. Wie op verschillende momenten bestelde, staat er één keer op: de tickets worden opgeteld en alle bestelnummers staan erbij. Met **"Afdrukken"** druk je een lijst af met een afvinkvakje per koper. Met **"Download als Excel (CSV)"** krijg je dezelfde lijst als bestand. De koper toont aan de ingang de bevestigingsmail (met naam en bestelnummer). Geannuleerde of terugbetaalde bestellingen verdwijnen automatisch van de lijst.
 
-### 9.3 Bestellingen
+### 10.3 Acties (verkoop met afhaling)
 
-Via **Webshop → Bestellingen** zie je alle geplaatste bestellingen: klant, bedrag, verzendkosten, betaalstatus en status. Bestellingen met tickets zijn gemarkeerd met 🎟️. Klik op **"Bekijken"** voor de volledige inhoud (producten, kleur/maat, bedrukkingstekst voor- en achterkant, tickets, aantallen en prijzen). Bestellingen met enkel tickets hoeven niet verzonden te worden en tellen niet mee bij "Bestellingen die actie nodig hebben" op het dashboard.
+Via **Webshop → Acties** verkoop je dingen die kopers op een vast moment komen afhalen, bv. afhaalgerechten van onze chefs, een wafelverkoop of kerstpakketten. Supporters bestellen in de webshop (pagina **/acties**, ook bereikbaar via een knop op de productpagina) via één formulier: ze vullen per artikel een aantal in en kiezen **één afhaalmoment** voor alles wat ze bij die actie bestellen. Afrekenen gebeurt samen met kledij en tickets in hetzelfde winkelmandje. Ook hier moeten ze ingelogd zijn. Stripe vraagt bij het betalen een **telefoonnummer**, zodat je de koper kan bellen als er iets misloopt.
+
+1. Klik op **"Nieuwe actie toevoegen"** en vul de **titel**, een **standaard afhaaladres**, optioneel een **uitleg**, een **afbeelding** en een datum **"bestellen kan tot"** in (die geldt voor alle afhaalmomenten).
+2. Voeg de **artikelen** toe: naam, prijs en voorraad (leeg = onbeperkt). Via **"Bewerken"** bij een artikel stel je daarna een **foto**, **omschrijving**, **allergenen** en een **maximum per bestelling** in, en voeg je **varianten** toe (bv. klein/groot of met vlees/vegetarisch), elk met een eigen prijs en voorraad. Met de pijltjes bepaal je de volgorde op de actiepagina.
+3. Voeg de **afhaalmomenten** toe: datum, van–tot, adres (leeg = het standaardadres) en optioneel een **eigen deadline**.
+
+Zonder minstens één actief artikel en één actief afhaalmoment verschijnt de actie niet in de webshop.
+
+Goed om te weten:
+
+- Bestellen voor een afhaalmoment sluit **automatisch** op de vroegste van: de deadline van de actie, de eigen deadline van het moment, of het begin van het moment. Is bestellen voor alle momenten gesloten, of is alles uitverkocht, dan blijft de actie zichtbaar met die melding tot het laatste afhaalmoment voorbij is. Daarna verdwijnt ze vanzelf.
+- De **voorraad** van een variant is het totaal over alle afhaalmomenten samen. Ze telt ook bestellingen die nog op betaling wachten: wordt een betaling niet afgerond, dan komt die voorraad na ongeveer een halfuur weer vrij. Bij een geannuleerde bestelling komt ze meteen vrij.
+- Het **maximum per bestelling** van een artikel geldt voor al zijn varianten samen (bv. max. 6 lasagnes, klein en groot samen).
+- Een prijswijziging geldt enkel voor nieuwe bestellingen. Artikelen, varianten, afhaalmomenten en acties verwijderen kan enkel zolang er nog niets voor besteld is. Daarna kan je ze enkel deactiveren.
+- Wil je de actie bovenaan in het menu, voeg dan via **Navigatie** een item toe naar de route **shop.acties**.
+
+**Keukenlijst:** klik bij een actie op **"Keukenlijst"**. Je ziet per artikel en per afhaalmoment hoeveel er klaargemaakt moet worden, met totalen. Afdrukken of downloaden als Excel (CSV) kan ook.
+
+**Afhaallijst:** klik bij een afhaalmoment op **"Afhaallijst"**. Je ziet alle kopers voor dat moment, alfabetisch op achternaam, met hun telefoonnummer, bestelnummers en wat ze komen halen. Ook deze lijst kan je afdrukken (met afvinkvakje) of downloaden. Op beide lijsten staan enkel betaalde, niet-geannuleerde bestellingen.
+
+**Een afhaalmoment wijzigt of gaat niet door?** Open het moment via **"Bewerken"**, pas uur of adres aan, of vink **"Actief"** uit als het niet doorgaat. Vink dan **"Kopers na het opslaan mailen"** aan en schrijf eventueel een uitleg. Elke koper met een betaalde bestelling voor dat moment krijgt een mail met het nieuwe moment en adres en wat er besteld werd, of de melding dat het moment niet doorgaat. Eén bestelling naar een ander moment verplaatsen doe je op de detailpagina van die bestelling (zie hieronder).
+
+### 10.4 Bestellingen
+
+Via **Webshop → Bestellingen** zie je de geplaatste bestellingen: bestelnummer, klant, totaal, betaling, status en datum. Bestellingen met tickets zijn gemarkeerd met 🎟️, bestellingen met een actie (afhalen) met 🥡. Klik op een bestelling voor de volledige inhoud (producten, kleur/maat, bedrukkingstekst voor- en achterkant, tickets, actieartikelen met hun afhaalmoment, aantallen en prijzen, e-mailadres, en het telefoonnummer bij acties). Bestellingen met enkel tickets en/of acties hoeven niet verzonden te worden en tellen niet mee bij "Bestellingen die actie nodig hebben" op het dashboard.
+
+**Filteren:** zoek op bestelnummer (bv. 42 of #42), naam of e-mail, en filter op **status**, **betaling** (openstaand, betaald, mislukt), **soort** (producten, tickets of acties), een bepaalde **wedstrijd of actie** (bij een actie ook op **afhaalmoment**) en een **periode** waarin besteld werd.
+
+**Archiveren:** afgewerkte bestellingen haal je uit de standaardlijst door ze aan te vinken en op **"Archiveren"** te klikken, of met de knop **"Archiveren"** bovenaan een bestelling. Er wordt niets verwijderd: met het filter **Archief → "Ook gearchiveerde"** of **"Enkel gearchiveerde"** zie je ze terug, en met **"Terugzetten uit archief"** komen ze weer in de gewone lijst. Gearchiveerde bestellingen tellen niet mee bij "Bestellingen die actie nodig hebben" op het dashboard. Op de keuken- en afhaallijsten van acties en de naamlijsten van tickets blijven ze gewoon staan.
+
+Bij een actie kan je via **"Ander afhaalmoment kiezen"** de bestelling naar een ander moment van dezelfde actie verplaatsen, bv. als de koper belt of als een moment niet doorgaat. Laat **"Koper mailen met het nieuwe moment"** aangevinkt om de koper meteen te verwittigen.
 
 Op de detailpagina wijzig je de **status** van de bestelling (bv. In verwerking → Verzonden). Zet je een bestelling op **"Geannuleerd"**, dan gebeurt automatisch twee dingen:
 
-1. De voorraad van elke bestelde variant wordt teruggeboekt, en eventuele tickets komen weer vrij.
+1. De voorraad van elke bestelde variant wordt teruggeboekt, en eventuele tickets en actievoorraad komen weer vrij.
 2. De klant krijgt automatisch een annulatiemail.
 
-### 9.4 Instellingen
+### 10.5 Instellingen
 
 Via **Webshop → Instellingen** kan je de **hele webshop tijdelijk sluiten**. Staat ze dicht, dan verdwijnt de FanShop-link en het winkelmandje-icoon
 overal van de site, en tonen alle webshop-pagina's een "tijdelijk gesloten"-melding voor bezoekers. Enkel ingelogde admins zien de webshop dan nog — de rest van de site blijft gewoon normaal bereikbaar.
 
 ---
 
-## 10. Leden & inschrijvingen
+## 11. Leden & inschrijvingen
 
-### 10.1 Gebruikers
+### 11.1 Gebruikers
 
-Via **Leden & inschrijvingen → Gebruikers** zie je alle geregistreerde accounts (naam, gebruikersnaam, e-mail, lid sinds, en of het een admin is).
+Via **Leden & inschrijvingen → Gebruikers** zie je alle geregistreerde accounts: naam, gebruikersnaam, e-mail, lid sinds, het aantal bestellingen, en of het een admin is. Zoek op naam, gebruikersnaam of e-mail, of filter op **rol** (admins of gewone gebruikers). Klik op een gebruiker voor zijn of haar gegevens en alle bestellingen (ook de gearchiveerde), elk klikbaar.
 
 Via **"Nieuwe admin aanmaken"** (bovenaan, inklapbaar) maak je een extra admin-account aan: voornaam, achternaam, gebruikersnaam, e-mail en wachtwoord (minstens 8 tekens, 1 cijfer, 1 speciaal teken) zijn allemaal verplicht. Let op: dit is de enige manier om een admin toe te voegen — een gewone gebruiker kan hier niet achteraf tot admin "bevorderd" worden via het scherm.
 
-### 10.2 Inschrijvingen
+### 11.2 Inschrijvingen
 
-Via **Leden & inschrijvingen → Inschrijvingen** zie je alle inschrijvingsaanvragen (Jeugd, G-Handbal, FIT-Handbal) met alle ingevulde gegevens: speler, geboortedatum/-plaats, adres, contactgegevens, hoe ze de club leerden kennen, school en opmerkingen.
+Via **Leden & inschrijvingen → Inschrijvingen** zie je alle inschrijvingsaanvragen (Jeugd, G-Handbal, FIT-Handbal): datum, speler, categorie en status. Zoek op de naam van de speler, het e-mailadres of het gsm-nummer, of filter op **categorie** en **status**. Standaard toont de lijst enkel wat nog **te verwerken** is; kies bij Status **"Verwerkt"** of **"Alle"** voor de rest.
 
-Standaard toont de lijst enkel de **onverwerkte** inschrijvingen. Klik **"Toon ook verwerkte inschrijvingen"** om alles te zien. Vink een inschrijving af met **"Markeer als verwerkt"** zodra je ze hebt opgevolgd (bv. het lid ingeschreven in je ledenadministratie) — dat vinkje is puur administratief, er gebeurt inhoudelijk niets automatisch.
+Klik op een inschrijving voor de **fiche** met alle ingevulde gegevens: speler, geboortedatum/-plaats, adres, contactgegevens (klik op het e-mailadres of gsm-nummer om te mailen of te bellen), hoe ze de club leerden kennen, school en opmerkingen. Onderaan staat een **interne notitie** die enkel admins zien, bv. "gebeld op 17/10, start volgende week". Inschrijvingen met een notitie krijgen 📝 in de lijst.
 
-### 10.3 Inschrijvingsformulier instellen
+Markeer een inschrijving als **verwerkt** zodra je ze hebt opgevolgd (bv. het lid ingeschreven in je ledenadministratie): op de fiche, of voor meerdere tegelijk via de vinkjes en **"Markeer als verwerkt"** in de lijst. Dat is puur administratief, er gebeurt inhoudelijk niets automatisch.
+
+### 11.3 Inschrijvingsformulier instellen
 
 Via **Leden & inschrijvingen → Inschrijvingsformulier** pas je het inschrijvingsformulier zelf aan (het formulier dat toekomstige leden invullen), via vier tabbladen:
 
@@ -260,17 +317,17 @@ Elk tabblad werkt als een simpel lijstje: naam invullen, **"Toevoegen"**, of **"
 
 ---
 
-## 11. GDPR-verzoeken
+## 12. GDPR-verzoeken
 
-Via **Beheer → GDPR-verzoeken** zie je alle "vergeet mij"-verzoeken die bezoekers via de site indienden: naam, e-mail, lidnummer en opmerking.
+Via **Beheer → GDPR-verzoeken** zie je alle "vergeet mij"-verzoeken die bezoekers via de site indienden. Zoek op naam, e-mail of lidnummer, of filter op status. Zoals bij inschrijvingen toont de lijst standaard enkel wat nog **te verwerken** is.
 
-Zoals bij inschrijvingen toont de lijst standaard enkel de **onverwerkte** verzoeken; klik **"Toon ook verwerkte verzoeken"** voor het volledige overzicht. Markeer een verzoek als **"verwerkt"** zodra je het effectief hebt afgehandeld (de betrokken gegevens verwijderd/aangepast in je systemen) — dit vinkje registreert enkel dat jij het verzoek hebt opgevolgd, de site verwijdert zelf niets automatisch.
+Klik op een verzoek voor de **fiche**: naam, e-mail, lidnummer en opmerking, het **account op de website** met hetzelfde e-mailadres (als dat er is, klikbaar), en een **interne notitie** om bij te houden wat je gedaan hebt. Markeer een verzoek als **"verwerkt"** zodra je het effectief hebt afgehandeld (de betrokken gegevens verwijderd/aangepast in je systemen), op de fiche of via de vinkjes in de lijst. Dit registreert enkel dat jij het verzoek hebt opgevolgd: de site verwijdert zelf niets automatisch.
 
 > GDPR-verzoeken vragen om tijdig én zorgvuldig opgevolgd te worden — dit is een wettelijke verplichting, geen "nice to have". Bekijk dit overzicht dus regelmatig (het dashboard toont ook het aantal onverwerkte verzoeken als actiepunt).
 
 ---
 
-## 12. Veelgestelde vragen & tips
+## 13. Veelgestelde vragen & tips
 
 **Ik zie mijn wijziging niet op de live site staan.**
 Controleer of de pagina op **"Gepubliceerd"** staat (contentpagina's) en of je écht op "Opslaan" geklikt hebt. Gebruik bij twijfel de knop "Bekijk pagina"/"Voorbeeld bekijken" rechtstreeks vanuit het bewerkscherm.

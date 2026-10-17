@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}{{ actie.titel }} - Handbal Sint-Truiden{% endblock %}
+{% block meta_description %}Bestel online bij {{ actie.titel }} en haal je bestelling af op een moment naar keuze.{% endblock %}
+
+{% block content %}
+<section class="section">
+<div class="product-detail actie-detail">
+    <div class="details">
+        {% if actie.afbeelding %}
+        <img class="actie-afbeelding" src="{{ url_for('static', filename='images/' + actie.afbeelding) }}" alt="{{ actie.titel }}">
+        {% endif %}
+        <div class="product-name">{{ actie.titel }}</div>
+        {% if actie.omschrijving %}
+        <div class="product-description" style="white-space:pre-line;">{{ actie.omschrijving }}</div>
+        {% endif %}
+
+        {% if errors %}
+        <div class="alert alert-error">
+            {% for err in errors %}<p style="margin:0;">{{ err }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        {% set bestelbaar = actie.is_bestelbaar %}
+        {% if not actie.actieve_artikelen %}
+            <p class="stock-note">Er is (nog) niets te koop bij deze actie.</p>
+        {% elif actie.is_uitverkocht %}
+            <p class="stock-note">Deze actie is uitverkocht.</p>
+        {% elif not actie.bestelbare_momenten %}
+            <p class="stock-note">Bestellen voor deze actie is gesloten.</p>
+        {% endif %}
+
+        <form action="{{ url_for('shop.add_actie_to_cart') }}" method="POST" class="actie-form" data-actie-form>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="actie_id" value="{{ actie.id }}">
+
+            <h2 class="actie-stap">1. Wat wil je bestellen?</h2>
+            {% for artikel in actie.actieve_artikelen %}
+            <div class="actie-artikel">
+                <div class="actie-artikel-kop">
+                {% if artikel.afbeelding %}
+                <img src="{{ url_for('static', filename='images/' + artikel.afbeelding) }}" alt="{{ artikel.naam }}" loading="lazy">
+                {% endif %}
+                <div>
+                    <h3>{{ artikel.naam }}</h3>
+                    {% if artikel.omschrijving %}<p style="white-space:pre-line;">{{ artikel.omschrijving }}</p>{% endif %}
+                    {% if artikel.allergeen_labels %}
+                    <p class="actie-allergenen"><strong>Allergenen:</strong> {{ artikel.allergeen_labels | join(', ') }}</p>
+                    {% endif %}
+                    {% if artikel.max_per_bestelling %}
+                    <p class="actie-allergenen">Maximaal {{ artikel.max_per_bestelling }} per bestelling.</p>
+                    {% endif %}
+                </div>
+                </div>
+                <div class="ticket-types">
+                    {% for variant in artikel.actieve_varianten %}
+                    {% set rest = beschikbaar[variant.id] %}
+                    {% set limieten = [rest, artikel.max_per_bestelling] | reject('none') | list %}
+                    <div class="ticket-type-row">
+                        <label for="aantal_{{ variant.id }}">
+                            <span class="ticket-type-naam">{{ variant.naam or artikel.naam }}</span>
+                            <span class="ticket-type-prijs">€{{ '%.2f'|format(variant.prijs) }}</span>
+                            {% if rest == 0 %}<span class="stock-note" style="margin:0;">Uitverkocht</span>
+                            {% elif rest is not none and rest <= 20 %}<span class="stock-note" style="margin:0;">Nog {{ rest }} beschikbaar</span>{% endif %}
+                        </label>
+                        <input type="number" class="qty" name="aantal_{{ variant.id }}" id="aantal_{{ variant.id }}"
+                               value="{{ aantallen.get(variant.id, 0) }}" min="0" data-prijs="{{ variant.prijs }}"
+                               {% if limieten %}max="{{ limieten | min }}"{% endif %}
+                               {% if not bestelbaar or rest == 0 %}disabled{% endif %}>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <h2 class="actie-stap">2. Wanneer kom je het afhalen?</h2>
+            <div class="actie-momenten">
+                {% for moment in actie.actieve_momenten %}
+                {% set open = moment.is_bestelbaar and bestelbaar %}
+                <label class="actie-moment{{ ' gesloten' if not open else '' }}">
+                    <input type="radio" name="moment_id" value="{{ moment.id }}" required
+                           {% if moment.id == gekozen_moment_id and open %}checked{% endif %}
+                           {% if not open %}disabled{% endif %}>
+                    <span>
+                        <strong>{{ moment.label | capitalize }}</strong><br>
+                        📍 {{ moment.adres }}<br>
+                        <small>
+                            {% if moment.is_bestelbaar %}Bestellen tot {{ moment.bestellen_sluit_op.strftime('%d/%m/%Y') }} om {{ moment.bestellen_sluit_op.strftime('%H:%M') }}
+                            {% else %}Bestellen gesloten{% endif %}
+                        </small>
+                    </span>
+                </label>
+                {% endfor %}
+            </div>
+
+            {% if bestelbaar %}
+            <p class="actie-totaal">Totaal: <strong data-actie-totaal>€0.00</strong></p>
+            <button type="submit" class="add-to-cart">{{ 'Winkelmandje bijwerken' if in_mandje else 'Toevoegen aan winkelmandje' }}</button>
+            {% if in_mandje %}
+            <p class="muted" style="margin-top:12px;font-size:13px;">Deze actie zit al in je winkelmandje. Wat je hier aanpast, vervangt je vorige keuze. Zet alles op 0 om de actie uit je winkelmandje te halen.</p>
+            {% endif %}
+            {% endif %}
+        </form>
+        {% if bestelbaar %}
+        <p class="muted" style="margin-top:16px;font-size:13px;">
+            Je kiest één afhaalmoment voor alles wat je bij deze actie bestelt. Na betaling ontvang je een bevestigingsmail met je afhaalmoment en het adres.
+        </p>
+        {% endif %}
+
+        <p style="margin-top:20px;"><a href="{{ url_for('shop.acties') }}">&larr; Alle acties</a></p>
+    </div>
+</div>
+</section>
+
+<script>
+    // Totaalprijs live bijwerken terwijl de koper aantallen invult
+    document.querySelectorAll('[data-actie-form]').forEach((form) => {
+        const totaal = form.querySelector('[data-actie-totaal]');
+        if (!totaal) return;
+        const bereken = () => {
+            let som = 0;
+            form.querySelectorAll('input[data-prijs]').forEach((input) => {
+                const aantal = parseInt(input.value, 10);
+                if (!input.disabled && aantal > 0) som += aantal * parseFloat(input.dataset.prijs);
+            });
+            totaal.textContent = '€' + som.toFixed(2);
+        };
+        form.addEventListener('input', bereken);
+        bereken();
+    });
+</script>
+{% endblock %}

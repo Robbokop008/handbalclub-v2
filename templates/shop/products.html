@@ -1,13 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %}Handbal Sint-Truiden | Producten{% endblock %}
+{% block title %}Handbal Sint-Truiden | Fanshop{% endblock %}
 
 {% block content %}
 <section class="club-hero">
     <h1>{{ site_teksten.shop_hero_titel }}</h1>
+    {% if site_teksten.shop_hero_subtitel %}<p class="club-hero-subtitel-breed">{{ site_teksten.shop_hero_subtitel }}</p>{% endif %}
+    {# Eén knop per onderdeel van de webshop dat nu iets te koop heeft #}
     <p>
-        {% if products %}<a href="#products" class="profile-action-button">Bekijk onze producten</a>{% endif %}
-        {% if ticket_wedstrijden %}<a href="{{ url_for('shop.tickets') }}" class="profile-action-button">Tickets voor wedstrijden</a>{% endif %}
+        {% if products %}<a href="#products" class="profile-action-button">Producten</a>{% endif %}
+        {% if ticket_wedstrijden %}<a href="{{ url_for('shop.tickets') }}" class="profile-action-button">Tickets</a>{% endif %}
+        {% if acties %}<a href="{{ url_for('shop.acties') }}" class="profile-action-button">Acties</a>{% endif %}
     </p>
 </section>
 
@@ -35,6 +38,11 @@
 <section class="section" id="tickets">
     <p style="text-align:center;color:rgba(255,255,255,0.8);margin:0 0 24px;">Koop hier je tickets voor onze Europese thuiswedstrijd</p>
     {% with wedstrijden = ticket_wedstrijden %}{% include "shop/_ticket_kaarten.html" %}{% endwith %}
+</section>
+{% elif acties %}
+{# Idem voor acties als er geen producten of tickets zijn #}
+<section class="section" id="acties">
+    {% include "shop/_actie_kaarten.html" %}
 </section>
 {% else %}
 <section class="section">

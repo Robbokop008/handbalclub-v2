@@ -1,0 +1,64 @@
+{% extends "admin/_shell.html" %}
+{% import "admin/_lijst_macros.html" as lijst %}
+
+{% block title %}Gebruiker - {{ gebruiker.first_name }} {{ gebruiker.last_name }}{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>{{ gebruiker.first_name }} {{ gebruiker.last_name }}</h1>
+    <p>{{ 'Admin' if gebruiker.is_admin else 'Gebruiker' }}{% if gebruiker.created_at %} · lid sinds {{ gebruiker.created_at.strftime('%d/%m/%Y') }}{% endif %}</p>
+</div>
+
+<section class="section">
+    <div class="admin-fiche-acties">
+        <a href="{{ terug }}" class="btn btn-secondary btn-sm">&larr; Terug naar de lijst</a>
+    </div>
+
+    <div class="admin-fiche">
+        <div class="admin-fiche-blok">
+            <h2>Gegevens</h2>
+            <dl>
+                <dt>Naam</dt><dd>{{ gebruiker.first_name }} {{ gebruiker.last_name }}</dd>
+                <dt>Gebruikersnaam</dt><dd>{{ gebruiker.username }}</dd>
+                <dt>E-mail</dt><dd>{% if gebruiker.email %}<a href="mailto:{{ gebruiker.email }}">{{ gebruiker.email }}</a>{% else %}—{% endif %}</dd>
+                <dt>Lid sinds</dt><dd>{{ gebruiker.created_at.strftime('%d/%m/%Y') if gebruiker.created_at else '—' }}</dd>
+                <dt>Rol</dt><dd>{{ 'Admin' if gebruiker.is_admin else 'Gebruiker' }}</dd>
+            </dl>
+        </div>
+    </div>
+
+    <h2 class="section-title">Bestellingen ({{ bestellingen | length }})</h2>
+    {% if bestellingen %}
+    <div class="table-wrap">
+        <table class="admin-table admin-lijst">
+            <thead>
+                <tr>
+                    <th>Bestelling</th>
+                    <th>Totaal</th>
+                    <th>Betaling</th>
+                    <th>Status</th>
+                    <th class="lijst-optioneel">Datum</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in bestellingen %}
+                <tr{% if order.gearchiveerd %} class="lijst-gedimd"{% endif %}>
+                    <td>
+                        <a class="lijst-link" href="{{ lijst.fiche_url(url_for('admin.view_order', order_id=order.order_id)) }}">#{{ order.order_id }}</a>
+                        {% if order.ticket_lines %} 🎟️{% endif %}{% if order.actie_lines %} 🥡{% endif %}
+                        {% if order.gearchiveerd %}<span class="lijst-klein">(archief)</span>{% endif %}
+                    </td>
+                    <td>€{{ '%.2f'|format(order.total_paid) }}</td>
+                    <td>{{ order.payment_status | betaalstatus }}</td>
+                    <td><span class="order-status-badge">{{ order.order_status }}</span></td>
+                    <td class="lijst-optioneel">{{ order.created_at.strftime('%d/%m/%Y') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p>Deze gebruiker heeft nog niets besteld.</p>
+    {% endif %}
+</section>
+{% endblock %}

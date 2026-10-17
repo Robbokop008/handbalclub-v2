@@ -1,0 +1,59 @@
+{# Gedeelde bouwstenen voor de overzichtslijsten in de admin (bestellingen,
+   inschrijvingen, gebruikers, GDPR-verzoeken) - zie utils/admin_lijsten.py
+   en static/js/admin_lijsten.js. #}
+
+{# De huidige lijst-URL met filters, om na een fiche/bulkactie naar terug te keren #}
+{% macro huidige_url() -%}
+{{ request.full_path.rstrip('?') }}
+{%- endmacro %}
+
+{# Link naar een fiche, met de huidige lijst als 'terug' #}
+{% macro fiche_url(url) -%}
+{{ url }}{{ '&' if '?' in url else '?' }}terug={{ huidige_url() | urlencode }}
+{%- endmacro %}
+
+{# Verborgen veld 'terug' voor formulieren op een lijst of fiche #}
+{% macro terug_veld(url=none) -%}
+<input type="hidden" name="terug" value="{{ url or huidige_url() }}">
+{%- endmacro %}
+
+{# Filterbalk: een GET-formulier rond de filtervelden van de lijst. Een
+   keuzelijst wijzigen filtert meteen; het zoekveld met Enter of de knop. #}
+{% macro filterbalk(actief_filter) -%}
+<form method="get" class="admin-filterbalk" data-filter-auto role="search">
+    {{ caller() }}
+    <div class="admin-filterbalk-knoppen">
+        <button type="submit" class="admin-button btn-sm">Filteren</button>
+        {% if actief_filter %}<a href="{{ url_for(request.endpoint) }}" class="btn btn-secondary btn-sm">Wis filters</a>{% endif %}
+    </div>
+</form>
+{%- endmacro %}
+
+{# "x resultaten" + vorige/volgende, met behoud van alle filters #}
+{% macro paginering(pagination, enkelvoud, meervoud) -%}
+<div class="admin-paginering">
+    <span>{{ pagination.total }} {{ enkelvoud if pagination.total == 1 else meervoud }}{% if pagination.pages > 1 %} · pagina {{ pagination.page }} van {{ pagination.pages }}{% endif %}</span>
+    {% if pagination.pages > 1 %}
+    {% set args = request.args.to_dict() %}
+    <span class="admin-paginering-knoppen">
+        {% if pagination.has_prev %}
+        {% set _ = args.update({'pagina': pagination.prev_num}) %}
+        <a href="{{ url_for(request.endpoint, **args) }}" class="btn btn-secondary btn-sm">&larr; Vorige</a>
+        {% endif %}
+        {% if pagination.has_next %}
+        {% set _ = args.update({'pagina': pagination.next_num}) %}
+        <a href="{{ url_for(request.endpoint, **args) }}" class="btn btn-secondary btn-sm">Volgende &rarr;</a>
+        {% endif %}
+    </span>
+    {% endif %}
+</div>
+{%- endmacro %}
+
+{# Kolomkop met een vinkje om alle rijen van deze pagina te selecteren #}
+{% macro vinkje_kop() -%}
+<th class="lijst-vinkje"><input type="checkbox" data-alles-selecteren aria-label="Alles op deze pagina selecteren"></th>
+{%- endmacro %}
+
+{% macro vinkje(id, label) -%}
+<td class="lijst-vinkje"><input type="checkbox" name="ids" value="{{ id }}" aria-label="{{ label }}"></td>
+{%- endmacro %}

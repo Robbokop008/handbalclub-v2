@@ -1,0 +1,124 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - {{ 'Affiche bewerken' if affiche else 'Nieuwe affiche' }}{% endblock %}
+
+{# Bij een validatiefout tonen we wat de admin net ingevuld had (form), anders de opgeslagen waarden #}
+{% macro waarde(veld, opgeslagen) -%}
+{{ form.get(veld, '') if form else (opgeslagen if opgeslagen is not none else '') }}
+{%- endmacro %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>{{ 'Affiche bewerken' if affiche else 'Nieuwe affiche toevoegen' }}</h1>
+    <p>De affiche verschijnt in een band over de volle breedte bovenaan de homepage en wordt nooit bijgesneden. Gebruik dus een <strong>liggende</strong> afbeelding.</p>
+</div>
+
+<section class="section">
+    {% if error %}
+    <p class="alert alert-error" style="margin-bottom:20px;">{{ error }}{% if form and not affiche %} Kies de afbeelding(en) opnieuw.{% endif %}</p>
+    {% endif %}
+
+    <form action="{{ url_for('admin.edit_affiche', affiche_id=affiche.id) if affiche else url_for('admin.add_affiche') }}" method="post" class="admin-form" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div style="grid-column:1/-1;">
+            <label for="titel">Titel (enkel zichtbaar in de admin)</label>
+            <input type="text" id="titel" name="titel" placeholder="bv. Europese droom - afhaalgerechten" value="{{ waarde('titel', affiche.titel if affiche else none) }}" required>
+        </div>
+
+        <div style="grid-column:1/-1;">
+            <label for="afbeelding">Affiche (liggend)</label>
+            {% if affiche %}
+            <img src="{{ url_for('static', filename='images/' + affiche.afbeelding) }}" alt="" class="affiche-preview" data-formaat-controle="huidige">
+            <p class="muted" style="font-size:13px;">Kies enkel een bestand als je de affiche wil vervangen.</p>
+            {% endif %}
+            <input type="file" id="afbeelding" name="afbeelding" accept="image/*" {% if not affiche %}required{% endif %} data-formaat-controle="nieuwe">
+            <p class="muted" style="font-size:13px;">Beste formaat: <strong>2400 × 1200 px</strong> (verhouding 2:1; 1920 × 1080 kan ook), minstens 1200 × 600 px, anders wordt de tekst wazig. JPG of WEBP, liefst onder 500 KB. Ze staat volledig in het midden van een band over de hele schermbreedte (hoogstens 640px hoog); opzij vult een wazige versie van dezelfde affiche de ruimte op.</p>
+            <p class="alert alert-info affiche-formaat-waarschuwing" hidden data-formaat-waarschuwing></p>
+        </div>
+
+        <div style="grid-column:1/-1;">
+            <label for="afbeelding_gsm">Gsm-versie (optioneel, staand of vierkant)</label>
+            {% if affiche and affiche.afbeelding_gsm %}
+            <img src="{{ url_for('static', filename='images/' + affiche.afbeelding_gsm) }}" alt="" class="affiche-preview affiche-preview-gsm">
+            <p class="muted">
+                <label class="checkbox-inline" style="display:inline-flex;"><input type="checkbox" name="verwijder_afbeelding_gsm" value="1"> gsm-versie verwijderen</label>
+            </p>
+            {% endif %}
+            <input type="file" id="afbeelding_gsm" name="afbeelding_gsm" accept="image/*">
+            <p class="muted" style="font-size:13px;">Op een gsm wordt een liggende affiche erg klein. Laad je hier een staande of vierkante versie op, dan krijgen smalle schermen die te zien. Zonder gsm-versie wordt de liggende verkleind. Beste formaat: <strong>1080 × 1080 px</strong> (vierkant; 1080 × 1350 kan ook), minstens 800 × 800 px. Een Instagram-post van de actie past dus meteen, een story (9:16) is te hoog.</p>
+        </div>
+
+        <div style="grid-column:1/-1;">
+            <label for="alt_tekst">Wat staat er op de affiche?</label>
+            <textarea id="alt_tekst" name="alt_tekst" rows="2" required placeholder="bv. Europese droom: bestel afhaalgerechten van onze chefs, af te halen op 14 en 15 november in sporthal Kortenbos.">{{ waarde('alt_tekst', affiche.alt_tekst if affiche else none) }}</textarea>
+            <p class="muted" style="font-size:13px;">Wordt voorgelezen aan blinde en slechtziende bezoekers en gebruikt door Google. Vat de belangrijkste tekst van de affiche samen.</p>
+        </div>
+
+        <div style="grid-column:1/-1;">
+            <label for="link">Link bij klikken (optioneel)</label>
+            <input type="text" id="link" name="link" placeholder="bv. /acties/1 of https://..." value="{{ waarde('link', affiche.link if affiche else none) }}">
+            <select aria-label="Snel een link kiezen" data-link-kiezer style="margin-top:8px;">
+                <option value="">Of kies snel een pagina…</option>
+                {% for label, url in link_suggesties %}
+                <option value="{{ url }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label for="toon_vanaf">Zichtbaar vanaf (leeg = meteen)</label>
+            <input type="datetime-local" id="toon_vanaf" name="toon_vanaf" value="{{ waarde('toon_vanaf', affiche.toon_vanaf.strftime('%Y-%m-%dT%H:%M') if affiche and affiche.toon_vanaf else none) }}">
+        </div>
+        <div>
+            <label for="toon_tot">Zichtbaar tot (leeg = tot je ze deactiveert)</label>
+            <input type="datetime-local" id="toon_tot" name="toon_tot" value="{{ waarde('toon_tot', affiche.toon_tot.strftime('%Y-%m-%dT%H:%M') if affiche and affiche.toon_tot else none) }}">
+        </div>
+        <div class="checkbox-field">
+            {% set actief = (form.get('is_active') if form else (affiche.is_active if affiche else true)) %}
+            <label for="is_active"><input type="checkbox" id="is_active" name="is_active" {{ 'checked' if actief else '' }}> Actief</label>
+        </div>
+
+        <div class="form-actions" style="grid-column:1/-1;">
+            <button type="submit" class="admin-button">Opslaan</button>
+            <a href="{{ url_for('admin.affiches') }}" class="btn btn-secondary">Terug</a>
+        </div>
+    </form>
+</section>
+
+<script>
+    // Snelkeuze vult het (vrije) linkveld in
+    document.querySelector('[data-link-kiezer]').addEventListener('change', (e) => {
+        if (e.target.value) document.getElementById('link').value = e.target.value;
+        e.target.value = '';
+    });
+
+    // Waarschuwing (geen blokkering) als de affiche niet liggend is: ze wordt
+    // dan volledig getoond, maar neemt op de homepage veel hoogte in.
+    const waarschuwing = document.querySelector('[data-formaat-waarschuwing]');
+    function controleerFormaat(breedte, hoogte, welke) {
+        if (breedte > hoogte) {
+            waarschuwing.hidden = true;
+            return;
+        }
+        waarschuwing.textContent = `De ${welke} affiche is niet liggend (${breedte} × ${hoogte} px). `
+            + 'Ze wordt volledig getoond, maar neemt bovenaan de homepage dan veel plaats in. Vraag liefst een liggende versie.';
+        waarschuwing.hidden = false;
+    }
+    const huidige = document.querySelector('img[data-formaat-controle="huidige"]');
+    if (huidige) {
+        const check = () => controleerFormaat(huidige.naturalWidth, huidige.naturalHeight, 'huidige');
+        huidige.complete ? check() : huidige.addEventListener('load', check);
+    }
+    document.querySelector('input[data-formaat-controle="nieuwe"]').addEventListener('change', (e) => {
+        const bestand = e.target.files[0];
+        if (!bestand) return;
+        const img = new Image();
+        img.onload = () => {
+            controleerFormaat(img.naturalWidth, img.naturalHeight, 'gekozen');
+            URL.revokeObjectURL(img.src);
+        };
+        img.src = URL.createObjectURL(bestand);
+    });
+</script>
+{% endblock %}

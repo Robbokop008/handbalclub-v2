@@ -28,6 +28,16 @@
             <div class="item-details">
                 <div class="item-name">🎟️ Ticket: {{ item.wedstrijd.titel }}</div>
                 <div class="item-variant">{{ item.ticket_type.naam }} — {{ item.wedstrijd.datum_tijd.strftime('%d/%m/%Y %H:%M') }}</div>
+            {% elif item.type == 'actie' %}
+            {% if item.actie_variant.artikel.afbeelding %}
+                <img src="{{ url_for('static', filename='images/' + item.actie_variant.artikel.afbeelding) }}" alt="{{ item.actie_variant.artikel.naam }}" loading="lazy">
+            {% endif %}
+            <div class="item-details">
+                <div class="item-name">{{ item.actie_variant.volledige_naam }}</div>
+                <div class="item-variant">
+                    {{ item.actie.titel }} — afhalen {{ item.moment.label }}
+                    (<a href="{{ url_for('shop.actie_detail', actie_id=item.actie.id) }}">wijzigen</a>)
+                </div>
             {% else %}
             {% if item.product.image_url %}
                 <img src="{{ url_for('static', filename='images/' + item.product.image_url) }}" alt="{{ item.product.product_name }}" loading="lazy">
@@ -108,6 +118,7 @@
     <p>
         <a href="{{ url_for('shop.products') }}#products" class="profile-action-button">Bekijk producten</a>
         <a href="{{ url_for('shop.tickets') }}" class="profile-action-button">Bekijk tickets</a>
+        <a href="{{ url_for('shop.acties') }}" class="profile-action-button">Bekijk acties</a>
     </p>
 </section>
 {% endif %}

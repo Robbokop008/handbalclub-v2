@@ -21,7 +21,7 @@ from datetime import date
 from flask import Blueprint, render_template, request, current_app, abort, redirect, url_for, Response
 
 from extensions import db, limiter
-from models import NieuwsBericht, Evenement, VergeetMijVerzoek, Page, Product, Team
+from models import NieuwsBericht, Evenement, VergeetMijVerzoek, Page, Product, Team, Affiche
 from utils.mail import send_contact_mail, send_vergeet_mij_notification
 from utils.sanitize import korte_omschrijving
 
@@ -37,8 +37,13 @@ def home():
         Evenement.query.filter(Evenement.datum >= date.today())
         .order_by(Evenement.datum.asc()).limit(5).all()
     )
+    # Affiches bovenaan: actief en binnen hun periode, op handmatige volgorde
+    affiches = [
+        a for a in Affiche.query.filter_by(is_active=True).order_by(Affiche.position, Affiche.id).all()
+        if a.is_zichtbaar
+    ]
     return render_template(
-        "index.html", nieuwsberichten=laatste_nieuws, evenementen=volgende_evenementen,
+        "index.html", nieuwsberichten=laatste_nieuws, evenementen=volgende_evenementen, affiches=affiches,
         spond_embed_url=current_app.config["SPOND_EMBED_URL"],
         flanders_trophy_website_url=current_app.config["FLANDERS_TROPHY_WEBSITE_URL"],
         flanders_trophy_instagram_url=current_app.config["FLANDERS_TROPHY_INSTAGRAM_URL"],
@@ -177,6 +182,7 @@ STATISCHE_SITEMAP_ENDPOINTS = [
 WEBSHOP_SITEMAP_ENDPOINTS = [
     ("shop.products", 0.7, "weekly"),
     ("shop.tickets", 0.6, "weekly"),
+    ("shop.acties", 0.6, "weekly"),
 ]
 
 

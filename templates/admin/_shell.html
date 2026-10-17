@@ -22,9 +22,12 @@
 
     <div class="admin-layout">
         <nav class="admin-sidebar">
-            {% set content_active = 'page' in ep or 'site_tekst' in ep or 'nieuws' in ep or 'evenement' in ep or 'sponsor' in ep or 'team' in ep or 'nav' in ep %}
-            {% set leden_active = ep == 'admin.users' or ep == 'admin.inschrijvingen' or 'inschrijvingsformulier' in ep or 'school' in ep %}
-            {% set webshop_active = 'product' in ep or 'variant' in ep or 'order' in ep or 'webshop' in ep or 'ticket' in ep %}
+            {% set content_active = 'page' in ep or 'site_tekst' in ep or 'nieuws' in ep or 'evenement' in ep or 'sponsor' in ep or 'team' in ep or 'nav' in ep or 'affiche' in ep %}
+            {% set gebruikers_active = ep in ('admin.users', 'admin.view_user') %}
+            {% set inschrijvingen_active = ep in ('admin.inschrijvingen', 'admin.view_inschrijving') %}
+            {% set leden_active = gebruikers_active or inschrijvingen_active or 'inschrijvingsformulier' in ep or 'school' in ep %}
+            {% set acties_active = 'actie' in ep or 'afhaal' in ep %}
+            {% set webshop_active = 'product' in ep or 'variant' in ep or 'order' in ep or 'webshop' in ep or 'ticket' in ep or acties_active %}
             {% set beheer_active = 'gdpr' in ep or ep == 'admin.account' %}
 
             <a class="admin-sidebar-link{{ ' active' if ep == 'admin.dashboard' else '' }}" href="{{ url_for('admin.dashboard') }}">Dashboard</a>
@@ -34,6 +37,7 @@
                 <div class="admin-sidebar-group-links">
                     <a class="admin-sidebar-link{{ ' active' if 'page' in ep or 'site_tekst' in ep else '' }}" href="{{ url_for('admin.pages') }}">Pagina's</a>
                     <a class="admin-sidebar-link{{ ' active' if 'nieuws' in ep else '' }}" href="{{ url_for('admin.nieuws') }}">Nieuws</a>
+                    <a class="admin-sidebar-link{{ ' active' if 'affiche' in ep else '' }}" href="{{ url_for('admin.affiches') }}">Affiches</a>
                     <a class="admin-sidebar-link{{ ' active' if 'evenement' in ep else '' }}" href="{{ url_for('admin.evenementen') }}">Evenementen</a>
                     <a class="admin-sidebar-link{{ ' active' if 'sponsor' in ep else '' }}" href="{{ url_for('admin.sponsors') }}">Sponsors</a>
                     <a class="admin-sidebar-link{{ ' active' if 'team' in ep else '' }}" href="{{ url_for('admin.teams') }}">Teams</a>
@@ -44,8 +48,8 @@
             <details class="admin-sidebar-group"{{ ' open' if leden_active else '' }}>
                 <summary>Leden &amp; inschrijvingen</summary>
                 <div class="admin-sidebar-group-links">
-                    <a class="admin-sidebar-link{{ ' active' if ep == 'admin.users' else '' }}" href="{{ url_for('admin.users') }}">Gebruikers</a>
-                    <a class="admin-sidebar-link{{ ' active' if ep == 'admin.inschrijvingen' else '' }}" href="{{ url_for('admin.inschrijvingen') }}">Inschrijvingen</a>
+                    <a class="admin-sidebar-link{{ ' active' if gebruikers_active else '' }}" href="{{ url_for('admin.users') }}">Gebruikers</a>
+                    <a class="admin-sidebar-link{{ ' active' if inschrijvingen_active else '' }}" href="{{ url_for('admin.inschrijvingen') }}">Inschrijvingen</a>
                     <a class="admin-sidebar-link{{ ' active' if 'inschrijvingsformulier' in ep or 'school' in ep else '' }}" href="{{ url_for('admin.inschrijvingsformulier') }}">Inschrijvingsformulier</a>
                 </div>
             </details>
@@ -53,8 +57,9 @@
             <details class="admin-sidebar-group"{{ ' open' if webshop_active else '' }}>
                 <summary>Webshop</summary>
                 <div class="admin-sidebar-group-links">
-                    <a class="admin-sidebar-link{{ ' active' if 'product' in ep or 'variant' in ep else '' }}" href="{{ url_for('admin.products') }}">Producten</a>
+                    <a class="admin-sidebar-link{{ ' active' if ('product' in ep or 'variant' in ep) and not acties_active else '' }}" href="{{ url_for('admin.products') }}">Producten</a>
                     <a class="admin-sidebar-link{{ ' active' if 'ticket' in ep else '' }}" href="{{ url_for('admin.tickets') }}">Tickets</a>
+                    <a class="admin-sidebar-link{{ ' active' if acties_active and 'order' not in ep else '' }}" href="{{ url_for('admin.acties') }}">Acties</a>
                     <a class="admin-sidebar-link{{ ' active' if 'order' in ep else '' }}" href="{{ url_for('admin.orders') }}">Bestellingen</a>
                     <a class="admin-sidebar-link{{ ' active' if 'webshop' in ep else '' }}" href="{{ url_for('admin.webshop_instellingen') }}">Instellingen</a>
                 </div>

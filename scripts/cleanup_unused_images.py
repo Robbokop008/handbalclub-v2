@@ -8,7 +8,8 @@ en verwijdert die.
 
 Houdt rekening met:
   - de directe afbeeldingsvelden (Page.hero_image, NieuwsBericht.afbeelding,
-    Team.foto_url, Sponsor.logo, Product.image_url)
+    Team.foto_url, Sponsor.logo, Product.image_url, Actie.afbeelding,
+    ActieArtikel.afbeelding, Affiche.afbeelding, Affiche.afbeelding_gsm)
   - inline afbeeldingen die via de rich-text-editor in Page.body_html of
     NieuwsBericht.inhoud terechtgekomen zijn (<img src="/static/images/...">)
     - body_html is legacy sinds de page-builder (zie models.PageBlock), maar
@@ -36,7 +37,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from models import Page, NieuwsBericht, Team, Sponsor, Product
+from models import Page, NieuwsBericht, Team, Sponsor, Product, Actie, ActieArtikel, Affiche
 from scripts._common import get_app
 from utils.page_blocks import block_afbeeldingsbestanden
 
@@ -97,6 +98,17 @@ def run(effectief_verwijderen):
         for product in Product.query.all():
             if product.image_url:
                 gebruikt.add(product.image_url)
+
+        for actie in Actie.query.all():
+            if actie.afbeelding:
+                gebruikt.add(actie.afbeelding)
+
+        for artikel in ActieArtikel.query.all():
+            if artikel.afbeelding:
+                gebruikt.add(artikel.afbeelding)
+
+        for affiche in Affiche.query.all():
+            gebruikt |= {f for f in (affiche.afbeelding, affiche.afbeelding_gsm) if f}
 
         upload_folder = Path(app.config["UPLOAD_FOLDER"])
         aanwezig = {p.name for p in upload_folder.iterdir() if p.is_file()}

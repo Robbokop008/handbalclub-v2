@@ -1,4 +1,5 @@
 {% extends "admin/_shell.html" %}
+{% import "admin/_lijst_macros.html" as lijst %}
 
 {% block title %}Adminpagina - Gebruikers{% endblock %}
 
@@ -54,39 +55,58 @@
 <section class="section">
     <h2 class="section-title">Alle gebruikers</h2>
 
+    {% call lijst.filterbalk(actief_filter) %}
+    <div class="admin-filterbalk-zoek">
+        <label for="q">Zoeken</label>
+        <input type="search" id="q" name="q" value="{{ f.q }}" placeholder="Naam, gebruikersnaam of e-mail">
+    </div>
+    <div>
+        <label for="rol">Rol</label>
+        <select id="rol" name="rol">
+            <option value="">Alle</option>
+            <option value="admin" {{ 'selected' if f.rol == 'admin' }}>Admins</option>
+            <option value="gebruiker" {{ 'selected' if f.rol == 'gebruiker' }}>Gewone gebruikers</option>
+        </select>
+    </div>
+    {% endcall %}
+
+    {{ lijst.paginering(pagination, 'gebruiker', 'gebruikers') }}
+
     {% if users %}
     <div class="table-wrap">
-        <table class="admin-table">
+        <table class="admin-table admin-lijst">
             <thead>
                 <tr>
-                    <th>ID</th>
                     <th>Naam</th>
-                    <th>Gebruikersnaam</th>
-                    <th>Email</th>
-                    <th>Lid sinds</th>
-                    <th>Admin</th>
+                    <th class="lijst-optioneel">Gebruikersnaam</th>
+                    <th>E-mail</th>
+                    <th class="lijst-optioneel">Lid sinds</th>
+                    <th>Bestellingen</th>
+                    <th>Rol</th>
                 </tr>
             </thead>
             <tbody>
                 {% for u in users %}
                 <tr>
-                    <td>{{ u.user_id }}</td>
-                    <td>{{ u.first_name }} {{ u.last_name }}</td>
-                    <td>{{ u.username }}</td>
-                    <td>{{ u.email }}</td>
-                    <td>{{ u.created_at.strftime('%d/%m/%Y') }}</td>
-                    <td>{{ 'Ja' if u.is_admin else 'Nee' }}</td>
+                    <td class="lijst-afkap"><a class="lijst-link" href="{{ lijst.fiche_url(url_for('admin.view_user', user_id=u.user_id)) }}">{{ u.last_name }} {{ u.first_name }}</a></td>
+                    <td class="lijst-afkap lijst-optioneel">{{ u.username }}</td>
+                    <td class="lijst-afkap">{{ u.email or '—' }}</td>
+                    <td class="lijst-optioneel">{{ u.created_at.strftime('%d/%m/%Y') if u.created_at else '—' }}</td>
+                    <td>{{ u.orders | length }}</td>
+                    <td>{% if u.is_admin %}<span class="order-status-badge">Admin</span>{% else %}Gebruiker{% endif %}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+    {{ lijst.paginering(pagination, 'gebruiker', 'gebruikers') }}
     {% else %}
-        <p>Er zijn nog geen gebruikers geregistreerd.</p>
+        <p>{{ 'Geen gebruikers gevonden voor deze filters.' if actief_filter else 'Er zijn nog geen gebruikers geregistreerd.' }}</p>
     {% endif %}
 </section>
 {% endblock %}
 
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/password_toggle.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/admin_lijsten.js') }}" defer></script>
 {% endblock %}

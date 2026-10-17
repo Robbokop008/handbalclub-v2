@@ -2,8 +2,9 @@
 utils/mail.py
 --------------
 Helperfuncties om e-mails te versturen via de mailserver van Hetzner: het
-contactformulier, de orderbevestiging na een geslaagde betaling, en de
-meldingen aan de club (inschrijvingen, GDPR-verzoeken, annuleringen).
+contactformulier, de orderbevestiging na een geslaagde betaling, een
+wijziging van een afhaalmoment (acties), en de meldingen aan de club
+(inschrijvingen, GDPR-verzoeken, annuleringen).
 """
 
 import smtplib
@@ -11,6 +12,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.utils import formataddr, formatdate, make_msgid
 from flask import current_app
+
+from models import actie_lijnen_per_moment
 
 
 def _veilige_header_waarde(waarde):
@@ -97,6 +100,13 @@ Bestelnummer: {order.order_id}
             for line in per_wedstrijd[wedstrijd]:
                 body += f"  - {line.ticket_type.naam} x {line.quantity} (€{float(line.price):.2f})\n"
 
+    if order.actie_lines:
+        if order.lines or order.ticket_lines:
+            body += "\n"
+        body += "Afhalen:\n"
+        for moment, lijnen in actie_lijnen_per_moment(order.actie_lines):
+            body += _afhaal_blok(moment, lijnen)
+
     body += f"\nSubtotaal: €{float(order.total_price):.2f}\n"
     if order.lines:
         body += f"Verzendkosten: {'Gratis' if not order.shipping_cost else '€' + f'{float(order.shipping_cost):.2f}'}\n"
@@ -109,13 +119,60 @@ Bestelnummer: {order.order_id}
             f"(bestelnummer {order.order_id}). Toon deze e-mail aan de ingang van de sporthal "
             "om binnen te gaan of je tickets op te halen. Je hoeft niets af te drukken.\n\n"
         )
+    if order.actie_lines:
+        body += (
+            "AFHALEN\n"
+            "Kom je bestelling afhalen op het gekozen moment en adres. Vermeld daar je naam "
+            f"({order.user.first_name} {order.user.last_name}) of bestelnummer {order.order_id}.\n\n"
+        )
     if order.lines:
         body += "We gaan meteen met je bestelling aan de slag."
+    elif order.actie_lines:
+        body += "Tot bij het afhalen!"
     else:
         body += "Tot in de sporthal!"
 
+    enkel_tickets = order.ticket_lines and not order.lines and not order.actie_lines
     msg = MIMEText(body, "plain", "utf-8")
-    msg["Subject"] = f"{'Ticketbevestiging' if order.ticket_lines and not order.lines else 'Bestelbevestiging'} #{order.order_id}"
+    msg["Subject"] = f"{'Ticketbevestiging' if enkel_tickets else 'Bestelbevestiging'} #{order.order_id}"
+    msg["To"] = order.user.email
+    _send(msg)
+
+
+def _afhaal_blok(moment, lijnen):
+    """Tekstblok met één actie, haar afhaalmoment en de bestelde artikelen."""
+    blok = f"\n{moment.actie.titel}\n"
+    blok += f"  Afhalen: {moment.label}\n"
+    blok += f"  Adres: {moment.adres}\n"
+    for line in lijnen:
+        blok += f"  - {line.variant.volledige_naam} x {line.quantity} (€{float(line.price):.2f})\n"
+    return blok
+
+
+def send_afhaalmoment_wijziging_mail(order, moment, bericht):
+    """Meldt een koper dat er iets veranderd is aan zijn afhaalmoment: het
+    moment zelf werd verplaatst/gewijzigd of geschrapt, of de admin zette de
+    bestelling op een ander moment. 'bericht' is de uitleg van de admin."""
+    lijnen = [line for line in order.actie_lines if line.moment_id == moment.id]
+    body = f"""Beste {order.user.first_name} {order.user.last_name},
+
+Er is iets gewijzigd aan het afhalen van je bestelling #{order.order_id} bij {moment.actie.titel}.
+
+"""
+    if bericht:
+        body += f"{bericht}\n\n"
+    if moment.is_active:
+        body += "Je afhaalmoment is nu:\n"
+        body += _afhaal_blok(moment, lijnen)
+    else:
+        body += (
+            f"Het afhaalmoment {moment.label} op {moment.adres} gaat niet door. "
+            "De club neemt contact met je op over het verdere verloop.\n"
+        )
+    body += "\nVragen? Antwoord gerust op deze e-mail.\n"
+
+    msg = MIMEText(body, "plain", "utf-8")
+    msg["Subject"] = _veilige_header_waarde(f"Wijziging afhaalmoment - {moment.actie.titel} (bestelling #{order.order_id})")
     msg["To"] = order.user.email
     _send(msg)
 

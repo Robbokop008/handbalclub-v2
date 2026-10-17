@@ -31,6 +31,50 @@
 
 {% block content %}
 <h1 class="sr-only">Handbal Sint-Truiden</h1>
+{% if affiches %}
+{# Affiches (admin: Content -> Affiches): volle breedte boven de hero, nooit
+   bijgesneden. Op smalle schermen de gsm-versie als die er is. #}
+<section class="home-affiches" aria-label="In de kijker">
+    <div class="nieuws-slider affiche-slider" data-nieuws-slider>
+        <div class="nieuws-slider-viewport">
+            <div class="nieuws-slider-track">
+                {% for affiche in affiches %}
+                <div class="nieuws-slide affiche-slide">
+                    {# Twee keer dezelfde afbeelding (de browser laadt ze maar één
+                       keer): vergroot en wazig als achtergrond over de volle
+                       breedte, en scherp en volledig in het midden. #}
+                    {% macro beeld(alt, klasse) %}
+                    <picture class="{{ klasse }}">
+                        {% if affiche.afbeelding_gsm %}
+                        <source media="(max-width: 640px)" srcset="{{ url_for('static', filename='images/' + affiche.afbeelding_gsm) }}">
+                        {% endif %}
+                        <img src="{{ url_for('static', filename='images/' + affiche.afbeelding) }}" alt="{{ alt }}">
+                    </picture>
+                    {% endmacro %}
+                    {% set inhoud %}{{ beeld('', 'affiche-achtergrond') }}{{ beeld(affiche.alt_tekst, 'affiche-voorgrond') }}{% endset %}
+                    {% if affiche.link %}
+                    <a class="affiche-band" href="{{ affiche.link }}"{% if affiche.link_is_extern %} target="_blank" rel="noopener"{% endif %}>{{ inhoud }}</a>
+                    {% else %}
+                    <div class="affiche-band">{{ inhoud }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% if affiches|length > 1 %}
+            <button type="button" class="slider-pijl slider-pijl-vorige" data-slider-vorige aria-label="Vorige affiche">&lsaquo;</button>
+            <button type="button" class="slider-pijl slider-pijl-volgende" data-slider-volgende aria-label="Volgende affiche">&rsaquo;</button>
+            {% endif %}
+        </div>
+        {% if affiches|length > 1 %}
+        <div class="nieuws-slider-dots">
+            {% for affiche in affiches %}
+            <button type="button" class="nieuws-slider-dot" data-index="{{ loop.index0 }}" aria-label="Affiche {{ loop.index }}"></button>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endif %}
 <section class="home-hero">
     <div class="home-hero-photo-placeholder" style="background-image:url('{{ url_for('static', filename='images/home-hero-team-photo.jpg') }}');"></div>
 

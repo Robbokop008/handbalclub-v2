@@ -1,0 +1,57 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - Afhaalmoment bewerken{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>Afhaalmoment bewerken</h1>
+    <p>{{ actie.titel }} — {{ moment.label }}</p>
+</div>
+
+<section class="section">
+    {% if error %}
+    <p class="alert alert-error" style="margin-bottom:20px;">{{ error }}</p>
+    {% endif %}
+    {% if gemaild is not none %}
+    <p class="alert alert-success" style="margin-bottom:20px;">Opgeslagen. {{ gemaild }} koper{{ '' if gemaild == 1 else 's' }} gemaild{% if gemaild < aantal_kopers %} — {{ aantal_kopers - gemaild }} mail(s) konden niet verstuurd worden{% endif %}.</p>
+    {% endif %}
+
+    <form action="{{ url_for('admin.edit_afhaalmoment', moment_id=moment.id) }}" method="post" class="admin-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% include "admin/_afhaalmoment_velden.html" %}
+
+        <div style="grid-column:1/-1;">
+            <p class="muted" style="margin:8px 0;">
+                {% if aantal_kopers %}
+                Er {{ 'is' if aantal_kopers == 1 else 'zijn' }} <strong>{{ aantal_kopers }}</strong> betaalde bestelling{{ '' if aantal_kopers == 1 else 'en' }} voor dit moment.
+                Verplaats je het moment, wijzig je het adres of zet je het op inactief (gaat niet door)? Verwittig de kopers dan hieronder.
+                Wil je bestellingen naar een ander moment verplaatsen, doe dat dan per bestelling via de afhaallijst.
+                {% else %}
+                Er zijn nog geen betaalde bestellingen voor dit moment.
+                {% endif %}
+            </p>
+        </div>
+        {% if aantal_kopers %}
+        <div class="checkbox-field">
+            <label for="verwittigen"><input type="checkbox" id="verwittigen" name="verwittigen" value="1"> Kopers na het opslaan mailen</label>
+        </div>
+        <div style="grid-column:1/-1;">
+            <label for="bericht">Uitleg in de mail (optioneel)</label>
+            <textarea id="bericht" name="bericht" rows="3" placeholder="bv. Door een wedstrijd in de sporthal verschuift het afhalen naar de cafetaria."></textarea>
+            <p class="muted" style="font-size:13px;">De mail bevat ook automatisch het (nieuwe) moment, het adres en wat de koper besteld heeft. Staat het moment op inactief, dan meldt de mail dat het niet doorgaat.</p>
+        </div>
+        {% endif %}
+
+        <div class="form-actions" style="grid-column:1/-1;">
+            <button type="submit" class="admin-button">Opslaan</button>
+            <a href="{{ url_for('admin.afhaallijst', moment_id=moment.id) }}" class="admin-button">Afhaallijst</a>
+            <a href="{{ url_for('admin.edit_actie', actie_id=actie.id) }}" class="btn btn-secondary">Terug</a>
+        </div>
+    </form>
+
+    <form action="{{ url_for('admin.delete_afhaalmoment', moment_id=moment.id) }}" method="post" style="margin-top:24px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Dit afhaalmoment definitief verwijderen? Dit kan enkel zolang er nog niets voor besteld is.');">Afhaalmoment verwijderen</button>
+    </form>
+</section>
+{% endblock %}

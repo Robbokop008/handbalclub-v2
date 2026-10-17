@@ -305,7 +305,8 @@ SITE_TEXT_PAGINAS = [
         "label": "Webshop — productoverzicht",
         "endpoint": "shop.products",
         "velden": [
-            _tekst("shop_hero_titel", "Hero-titel", "Ontdek onze collectie"),
+            _tekst("shop_hero_titel", "Hero-titel", "Fanshop"),
+            _tekst("shop_hero_subtitel", "Hero-subtekst", "Clubkledij, tickets voor onze wedstrijden en acties: met elke aankoop steun je Handbal Sint-Truiden."),
         ],
     },
     {

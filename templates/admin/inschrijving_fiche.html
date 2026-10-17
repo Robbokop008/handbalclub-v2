@@ -1,0 +1,76 @@
+{% extends "admin/_shell.html" %}
+
+{% set naam = ((i.voornaam_speler or '') ~ ' ' ~ (i.achternaam_speler or '')).strip() or '(geen naam)' %}
+
+{% block title %}Inschrijving - {{ naam }}{% endblock %}
+
+{# Eén gegeven: label uit de formulierinstellingen, of '—' als het leeg is #}
+{% macro gegeven(sleutel, waarde, standaard_label) -%}
+<dt>{{ labels.get(sleutel, standaard_label) }}</dt>
+<dd>{{ waarde if waarde else '—' }}</dd>
+{%- endmacro %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>{{ naam }}</h1>
+    <p>Inschrijving van {{ i.aangemaakt_op.strftime('%d/%m/%Y om %H:%M') }}{% if i.categorie %} · {{ i.categorie }}{% endif %}</p>
+</div>
+
+<section class="section">
+    <div class="admin-fiche-acties">
+        <a href="{{ terug }}" class="btn btn-secondary btn-sm">&larr; Terug naar de lijst</a>
+        <span class="order-status-badge{{ ' order-status-badge-verwerkt' if i.verwerkt else '' }}">{{ 'Verwerkt' if i.verwerkt else 'Nog te verwerken' }}</span>
+        <form action="{{ url_for('admin.toggle_inschrijving_verwerkt', inschrijving_id=i.id) }}" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="terug" value="{{ terug }}">
+            <button type="submit" class="{{ 'btn btn-secondary' if i.verwerkt else 'admin-button' }} btn-sm">{{ 'Markeer als niet verwerkt' if i.verwerkt else 'Markeer als verwerkt' }}</button>
+        </form>
+    </div>
+
+    <div class="admin-fiche">
+        <div class="admin-fiche-blok">
+            <h2>Speler</h2>
+            <dl>
+                {{ gegeven('voornaam_speler', i.voornaam_speler, 'Voornaam') }}
+                {{ gegeven('achternaam_speler', i.achternaam_speler, 'Achternaam') }}
+                {{ gegeven('geboortedatum', i.geboortedatum.strftime('%d/%m/%Y') if i.geboortedatum else none, 'Geboortedatum') }}
+                {{ gegeven('geboorteplaats', i.geboorteplaats, 'Geboorteplaats') }}
+                {{ gegeven('categorie', i.categorie, 'Categorie') }}
+            </dl>
+        </div>
+        <div class="admin-fiche-blok">
+            <h2>Contact</h2>
+            <dl>
+                <dt>{{ labels.get('email', 'E-mail') }}</dt>
+                <dd>{% if i.email %}<a href="mailto:{{ i.email }}">{{ i.email }}</a>{% else %}—{% endif %}</dd>
+                <dt>{{ labels.get('telefoon', 'Gsm') }}</dt>
+                <dd>{% if i.telefoon %}<a href="tel:{{ i.telefoon | replace(' ', '') }}">{{ i.telefoon }}</a>{% else %}—{% endif %}</dd>
+                {{ gegeven('straat_nr', i.straat_nr, 'Straat en nr') }}
+                <dt>Postcode en gemeente</dt>
+                <dd>{{ ((i.postcode or '') ~ ' ' ~ (i.gemeente or '')).strip() or '—' }}</dd>
+            </dl>
+        </div>
+        <div class="admin-fiche-blok admin-fiche-blok-breed">
+            <h2>Overige</h2>
+            <dl class="gestapeld">
+                {{ gegeven('hoe_gehoord', i.hoe_gehoord, 'Hoe leren kennen') }}
+                {{ gegeven('school', i.school, 'School') }}
+                {{ gegeven('opmerkingen', i.opmerkingen, 'Opmerkingen') }}
+            </dl>
+        </div>
+    </div>
+
+    <form action="{{ url_for('admin.update_inschrijving_notitie', inschrijving_id=i.id) }}" method="post" class="admin-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="terug" value="{{ terug }}">
+        <div style="grid-column:1/-1;">
+            <label for="notitie">Interne notitie (enkel zichtbaar voor admins)</label>
+            <textarea id="notitie" name="notitie" rows="4" placeholder="bv. Gebeld op 17/10, start volgende week op proef.">{{ i.notitie or '' }}</textarea>
+        </div>
+        <div class="form-actions" style="grid-column:1/-1;">
+            <button type="submit" class="admin-button">Notitie opslaan</button>
+            {% if opgeslagen %}<span class="muted" style="align-self:center;">Opgeslagen.</span>{% endif %}
+        </div>
+    </form>
+</section>
+{% endblock %}

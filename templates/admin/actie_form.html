@@ -1,0 +1,191 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Adminpagina - {{ 'Actie bewerken' if actie else 'Nieuwe actie' }}{% endblock %}
+
+{# Bij een validatiefout tonen we wat de admin net ingevuld had (form), anders de opgeslagen waarden #}
+{% macro waarde(veld, opgeslagen) -%}
+{{ form.get(veld, '') if form else (opgeslagen if opgeslagen is not none else '') }}
+{%- endmacro %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>{{ 'Actie bewerken' if actie else 'Nieuwe actie toevoegen' }}</h1>
+    {% if actie %}
+    <p>
+        <a href="{{ url_for('shop.actie_detail', actie_id=actie.id) }}" target="_blank" rel="noopener">Bekijk in de webshop</a> ·
+        <a href="{{ url_for('admin.actie_keukenlijst', actie_id=actie.id) }}">Keukenlijst</a>
+    </p>
+    {% else %}
+    <p>Na het opslaan voeg je de artikelen (bv. gerechten) en de afhaalmomenten toe.</p>
+    {% endif %}
+</div>
+
+<section class="section">
+    {% if error %}
+    <p class="alert alert-error" style="margin-bottom:20px;">{{ error }}</p>
+    {% endif %}
+
+    <form action="{{ url_for('admin.edit_actie', actie_id=actie.id) if actie else url_for('admin.add_actie') }}" method="post" class="admin-form" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div>
+            <label for="titel">Titel</label>
+            <input type="text" id="titel" name="titel" placeholder="bv. Europese droom - afhaalgerechten" value="{{ waarde('titel', actie.titel if actie else none) }}" required>
+        </div>
+        <div>
+            <label for="bestellen_tot">Bestellen kan tot (optioneel, voor alle momenten)</label>
+            <input type="datetime-local" id="bestellen_tot" name="bestellen_tot" value="{{ waarde('bestellen_tot', actie.bestellen_tot.strftime('%Y-%m-%dT%H:%M') if actie and actie.bestellen_tot else none) }}">
+        </div>
+        <div style="grid-column:1/-1;">
+            <label for="standaard_adres">Standaard afhaaladres</label>
+            <input type="text" id="standaard_adres" name="standaard_adres" placeholder="bv. Sporthal Kortenbos, Kortenbosstraat 58, Sint-Truiden" value="{{ waarde('standaard_adres', actie.standaard_adres if actie else none) }}">
+        </div>
+        <div style="grid-column:1/-1;">
+            <label for="omschrijving">Uitleg voor de koper (optioneel)</label>
+            <textarea id="omschrijving" name="omschrijving" rows="4" placeholder="bv. Onze chefs koken voor de Europese droom van Heren 1. Alle gerechten worden gekoeld meegegeven.">{{ waarde('omschrijving', actie.omschrijving if actie else none) }}</textarea>
+        </div>
+        <div style="grid-column:1/-1;">
+            <label for="afbeelding">Afbeelding (optioneel)</label>
+            {% if actie and actie.afbeelding %}
+            <p class="muted">
+                Huidige afbeelding: {{ actie.afbeelding }} —
+                <label class="checkbox-inline" style="display:inline-flex;"><input type="checkbox" name="verwijder_afbeelding" value="1"> verwijderen</label>
+            </p>
+            {% endif %}
+            <input type="file" id="afbeelding" name="afbeelding" accept="image/*">
+        </div>
+        <div class="checkbox-field">
+            {% set actief = (form.get('is_active') if form else (actie.is_active if actie else true)) %}
+            <label for="is_active"><input type="checkbox" id="is_active" name="is_active" {{ 'checked' if actief else '' }}> Actief (zichtbaar in de webshop tot het laatste afhaalmoment voorbij is)</label>
+        </div>
+
+        <div class="form-actions" style="grid-column:1/-1;">
+            <button type="submit" class="admin-button">Opslaan</button>
+            <a href="{{ url_for('admin.acties') }}" class="btn btn-secondary">Terug</a>
+        </div>
+    </form>
+
+    {% if actie %}
+    {# ---------------- Artikelen ---------------- #}
+    <h2 class="section-title" style="margin-top:40px;">Artikelen</h2>
+    <p>Wat de koper kan bestellen, bv. de gerechten. Een artikel kan varianten hebben (bv. klein/groot) met elk een eigen prijs en voorraad. Foto, allergenen en varianten stel je in via "Bewerken".</p>
+
+    {% if actie.artikelen %}
+    <div class="table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Volgorde</th>
+                    <th>Artikel</th>
+                    <th>Varianten (prijs · verkocht / voorraad)</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for artikel in actie.artikelen %}
+                <tr>
+                    <td style="white-space:nowrap;">
+                        <form action="{{ url_for('admin.move_actie_artikel', artikel_id=artikel.id) }}" method="post" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="direction" value="up">
+                            <button type="submit" class="btn btn-secondary btn-sm" title="Omhoog">&uarr;</button>
+                        </form>
+                        <form action="{{ url_for('admin.move_actie_artikel', artikel_id=artikel.id) }}" method="post" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="direction" value="down">
+                            <button type="submit" class="btn btn-secondary btn-sm" title="Omlaag">&darr;</button>
+                        </form>
+                    </td>
+                    <td>{{ artikel.naam }}</td>
+                    <td>
+                        {% for variant in artikel.varianten %}
+                        <div{% if not variant.is_active %} class="muted"{% endif %}>
+                            {{ variant.naam or 'Standaard' }}: €{{ '%.2f'|format(variant.prijs) }} · {{ variant.aantal_verkocht() }}{% if variant.voorraad is not none %} / {{ variant.voorraad }}{% endif %}
+                            {% if not variant.is_active %}(inactief){% endif %}
+                        </div>
+                        {% endfor %}
+                    </td>
+                    <td><span class="order-status-badge">{{ 'Actief' if artikel.is_active else 'Inactief' }}</span></td>
+                    <td><a href="{{ url_for('admin.edit_actie_artikel', artikel_id=artikel.id) }}" class="admin-button btn-sm">Bewerken</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p><strong>Nog geen artikelen</strong>: voeg er minstens één toe, anders verschijnt deze actie niet in de webshop.</p>
+    {% endif %}
+
+    <form action="{{ url_for('admin.add_actie_artikel', actie_id=actie.id) }}" method="post" class="admin-form" style="margin-top:24px;">
+        <h3>Nieuw artikel toevoegen</h3>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+            <label for="artikel_naam">Naam</label>
+            <input type="text" id="artikel_naam" name="naam" placeholder="bv. Lasagne" required>
+        </div>
+        <div>
+            <label for="artikel_prijs">Prijs (€)</label>
+            <input type="number" id="artikel_prijs" name="prijs" step="0.01" min="0" required>
+        </div>
+        <div>
+            <label for="artikel_voorraad">Voorraad (leeg = onbeperkt)</label>
+            <input type="number" id="artikel_voorraad" name="voorraad" min="0">
+        </div>
+        <button type="submit" class="admin-button">Artikel toevoegen</button>
+    </form>
+
+    {# ---------------- Afhaalmomenten ---------------- #}
+    <h2 class="section-title" style="margin-top:40px;">Afhaalmomenten</h2>
+    <p>De koper kiest één van de actieve momenten. Bestellen voor een moment sluit op de vroegste van: de deadline van de actie, de eigen deadline van het moment, of het begin van het moment.</p>
+
+    {% if actie.momenten %}
+    <div class="table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Moment</th>
+                    <th>Adres</th>
+                    <th>Bestellen tot</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for moment in actie.momenten %}
+                <tr>
+                    <td>{{ moment.label | capitalize }}</td>
+                    <td>{{ moment.adres }}</td>
+                    <td>{{ moment.bestellen_sluit_op.strftime('%d/%m/%Y %H:%M') }}</td>
+                    <td>
+                        <span class="order-status-badge">
+                            {% if not moment.is_active %}Inactief{% elif moment.is_bestelbaar %}Open{% else %}Bestellen gesloten{% endif %}
+                        </span>
+                    </td>
+                    <td style="white-space:nowrap;">
+                        <a href="{{ url_for('admin.afhaallijst', moment_id=moment.id) }}" class="admin-button btn-sm">Afhaallijst</a>
+                        <a href="{{ url_for('admin.edit_afhaalmoment', moment_id=moment.id) }}" class="admin-button btn-sm">Bewerken</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p><strong>Nog geen afhaalmomenten</strong>: voeg er minstens één toe, anders verschijnt deze actie niet in de webshop.</p>
+    {% endif %}
+
+    <form action="{{ url_for('admin.add_afhaalmoment', actie_id=actie.id) }}" method="post" class="admin-form" style="margin-top:24px;">
+        <h3>Nieuw afhaalmoment toevoegen</h3>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% include "admin/_afhaalmoment_velden.html" %}
+        <button type="submit" class="admin-button">Afhaalmoment toevoegen</button>
+    </form>
+
+    <form action="{{ url_for('admin.delete_actie', actie_id=actie.id) }}" method="post" style="margin-top:24px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Deze actie definitief verwijderen, met al haar artikelen en afhaalmomenten? Dit kan enkel zolang er nog niets besteld is.');">Actie verwijderen</button>
+    </form>
+    {% endif %}
+</section>
+{% endblock %}

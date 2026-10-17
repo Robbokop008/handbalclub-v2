@@ -1,0 +1,60 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}GDPR-verzoek - {{ verzoek.naam }}{% endblock %}
+
+{% block admin_content %}
+<div class="admin-page-header">
+    <h1>GDPR-verzoek: {{ verzoek.naam }}</h1>
+    <p>Ingediend op {{ verzoek.aangemaakt_op.strftime('%d/%m/%Y om %H:%M') }}</p>
+</div>
+
+<section class="section">
+    <div class="admin-fiche-acties">
+        <a href="{{ terug }}" class="btn btn-secondary btn-sm">&larr; Terug naar de lijst</a>
+        <span class="order-status-badge{{ ' order-status-badge-verwerkt' if verzoek.verwerkt else '' }}">{{ 'Verwerkt' if verzoek.verwerkt else 'Nog te verwerken' }}</span>
+        <form action="{{ url_for('admin.toggle_gdpr_verwerkt', verzoek_id=verzoek.id) }}" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="terug" value="{{ terug }}">
+            <button type="submit" class="{{ 'btn btn-secondary' if verzoek.verwerkt else 'admin-button' }} btn-sm">{{ 'Markeer als niet verwerkt' if verzoek.verwerkt else 'Markeer als verwerkt' }}</button>
+        </form>
+    </div>
+
+    <div class="admin-fiche">
+        <div class="admin-fiche-blok">
+            <h2>Verzoek</h2>
+            <dl>
+                <dt>Naam</dt><dd>{{ verzoek.naam }}</dd>
+                <dt>E-mail</dt><dd><a href="mailto:{{ verzoek.email }}">{{ verzoek.email }}</a></dd>
+                <dt>Lidnummer</dt><dd>{{ verzoek.lidnummer or '—' }}</dd>
+                <dt>Opmerking</dt><dd>{{ verzoek.opmerking or '—' }}</dd>
+            </dl>
+        </div>
+        <div class="admin-fiche-blok">
+            <h2>Account op de website</h2>
+            {% if accounts %}
+            <dl>
+                {% for account in accounts %}
+                <dt>Account</dt>
+                <dd><a href="{{ url_for('admin.view_user', user_id=account.user_id) }}">{{ account.first_name }} {{ account.last_name }} ({{ account.username }})</a> · {{ account.orders | length }} bestelling(en)</dd>
+                {% endfor %}
+            </dl>
+            {% else %}
+            <p class="muted" style="margin:0;font-size:14px;">Geen account gevonden met dit e-mailadres.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <form action="{{ url_for('admin.update_gdpr_notitie', verzoek_id=verzoek.id) }}" method="post" class="admin-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="terug" value="{{ terug }}">
+        <div style="grid-column:1/-1;">
+            <label for="notitie">Interne notitie (enkel zichtbaar voor admins)</label>
+            <textarea id="notitie" name="notitie" rows="4" placeholder="bv. Account en inschrijving verwijderd op 17/10, bevestiging gemaild.">{{ verzoek.notitie or '' }}</textarea>
+        </div>
+        <div class="form-actions" style="grid-column:1/-1;">
+            <button type="submit" class="admin-button">Notitie opslaan</button>
+            {% if opgeslagen %}<span class="muted" style="align-self:center;">Opgeslagen.</span>{% endif %}
+        </div>
+    </form>
+</section>
+{% endblock %}

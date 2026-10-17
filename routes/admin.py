@@ -2,7 +2,8 @@
 routes/admin.py
 ----------------
 Adminpaneel: producten (+ varianten), tickets voor wedstrijden (+ tickettypes
-en naamlijst), gebruikers en bestellingen beheren.
+en naamlijst), acties met afhaling (+ artikelen, afhaalmomenten, keuken- en
+afhaallijst), gebruikers en bestellingen beheren.
 
 Belangrijk principe: producten en varianten worden nooit verwijderd, enkel
 actief/inactief gezet. Bestaande orderregels verwijzen naar hun product_id/
@@ -13,6 +14,7 @@ zouden anders naar niets meer verwijzen.
 import csv
 import io
 import re
+from collections import defaultdict
 from pathlib import Path
 from uuid import uuid4
 
@@ -21,20 +23,24 @@ from werkzeug.utils import secure_filename
 
 from werkzeug.routing import BuildError
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
+
+from sqlalchemy import or_
 
 from extensions import db
 from models import (
-    Product, ProductVariant, User, Order, ORDER_STATUSES, Inschrijving, VergeetMijVerzoek,
+    Product, ProductVariant, User, Order, ORDER_STATUSES, BETAALSTATUS_LABELS, Inschrijving, VergeetMijVerzoek,
     Page, PageBlock, PAGE_BLOCK_TYPES, NavItem, NAV_ITEM_TYPES, NieuwsBericht, NIEUWS_CATEGORIEEN, Evenement, Sponsor, Team,
     TEAM_SECTIES, TEAM_SECTIE_LABELS, School, SiteText,
     InschrijvingCategorie, HoeGehoordOptie, InschrijvingVeldConfig, INSCHRIJVING_VELD_DEFINITIES,
     AuditLog, ChangelogEntry, TicketWedstrijd, TicketType, TicketLijn, TICKET_ONGELDIGE_ORDER_STATUSSEN,
+    Actie, ActieArtikel, ActieVariant, AfhaalMoment, ActieLijn, ALLERGENEN, ALLERGEEN_SLEUTELS, Affiche,
 )
 from utils.auth import admin_required, hoofdadmin_required, HOOFDADMIN_USERNAME
 from utils.audit import log_action
-from utils.mail import send_admin_cancellation_mail
+from utils.admin_lijsten import zoekterm, zoek_filter, pagineer, geselecteerde_ids, terug_url
+from utils.mail import send_admin_cancellation_mail, send_afhaalmoment_wijziging_mail
 from utils.sanitize import sanitize_html
 from utils.site_text import SITE_TEXT_PAGINAS, vind_pagina, get_site_teksten
 from utils.site_settings import (
@@ -341,6 +347,7 @@ def _dashboard_acties():
             "aantal": Order.query.filter(
                 Order.order_status.notin_(["Verzonden", "Geannuleerd", "Terugbetaald"]),
                 Order.lines.any(),
+                Order.gearchiveerd.is_(False),
             ).count(),
             "url": url_for("admin.orders"),
         },
@@ -722,8 +729,41 @@ def toggle_variant_active(variant_id):
 @admin_bp.route("/users")
 @admin_required
 def users():
-    all_users = User.query.order_by(User.user_id).all()
-    return render_template("admin_users.html", user=g.user, users=all_users)
+    return _render_users()
+
+
+def _render_users(**extra):
+    """De gebruikerslijst met zoekveld/rolfilter (ook gebruikt om het
+    formulier 'nieuwe admin' met een foutmelding opnieuw te tonen)."""
+    f = {k: (request.args.get(k) or "").strip() for k in ("q", "rol")}
+    query = User.query
+    term = zoekterm()
+    if term:
+        query = query.filter(zoek_filter(
+            term, User.first_name, User.last_name, User.first_name + " " + User.last_name, User.username, User.email,
+        ))
+    if f["rol"] == "admin":
+        query = query.filter(User.is_admin.is_(True))
+    elif f["rol"] == "gebruiker":
+        query = query.filter(User.is_admin.is_(False))
+    pagination = pagineer(query.order_by(User.last_name, User.first_name, User.user_id))
+    return render_template(
+        "admin_users.html", user=g.user, pagination=pagination, users=pagination.items,
+        f=f, actief_filter=any(f.values()), **extra,
+    )
+
+
+@admin_bp.route("/users/<int:user_id>")
+@admin_required
+def view_user(user_id):
+    gebruiker = User.query.get(user_id)
+    if gebruiker is None:
+        return redirect(url_for("admin.users"))
+    bestellingen = Order.query.filter_by(user_id=gebruiker.user_id).order_by(Order.created_at.desc()).all()
+    return render_template(
+        "admin/gebruiker_fiche.html", user=g.user, gebruiker=gebruiker, bestellingen=bestellingen,
+        terug=terug_url(url_for("admin.users")),
+    )
 
 
 @admin_bp.route("/users/add_admin", methods=["POST"])
@@ -748,9 +788,8 @@ def add_admin():
         error = "Emailadres is al geregistreerd."
 
     if error:
-        all_users = User.query.order_by(User.user_id).all()
-        return render_template(
-            "admin_users.html", user=g.user, users=all_users, error=error,
+        return _render_users(
+            error=error,
             nieuwe_admin={"firstname": firstname, "lastname": lastname, "username": username, "email": email},
         )
 
@@ -764,11 +803,111 @@ def add_admin():
     return redirect(url_for("admin.users"))
 
 
+ORDER_SOORTEN = {"producten": "Producten (te verzenden)", "tickets": "Tickets", "acties": "Acties (afhalen)"}
+ORDER_ARCHIEF_FILTERS = {"": "Niet gearchiveerd", "ook": "Ook gearchiveerde", "enkel": "Enkel gearchiveerde"}
+
+
+def _parse_filter_datum(value):
+    """Datum uit een <input type="date"> in de filterbalk, of None."""
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date() if value else None
+    except ValueError:
+        return None
+
+
+def _belgische_dag_in_utc(dag):
+    """Begin van deze dag (Belgische tijd) als naive UTC - Order.created_at
+    wordt in UTC opgeslagen (datetime.utcnow)."""
+    begin = datetime(dag.year, dag.month, dag.day, tzinfo=ZoneInfo("Europe/Brussels"))
+    return begin.astimezone(timezone.utc).replace(tzinfo=None)
+
+
 @admin_bp.route("/orders")
 @admin_required
 def orders():
-    all_orders = Order.query.order_by(Order.created_at.desc()).all()
-    return render_template("admin_orders.html", user=g.user, orders=all_orders)
+    """Bestellingen met zoekveld en filters (allemaal in de URL), standaard
+    zonder de gearchiveerde. 'voor' is een wedstrijd ('w<id>') of actie
+    ('a<id>'); bij een actie kan je ook op afhaalmoment filteren."""
+    f = {k: (request.args.get(k) or "").strip() for k in ("q", "status", "betaling", "soort", "voor", "moment", "van", "tot", "archief")}
+    query = Order.query.join(User, Order.user_id == User.user_id)
+
+    term = zoekterm()
+    if term:
+        voorwaarde = zoek_filter(term, User.first_name, User.last_name, User.email, User.first_name + " " + User.last_name)
+        if term.lstrip("#").isdigit():
+            voorwaarde = or_(voorwaarde, Order.order_id == int(term.lstrip("#")))
+        query = query.filter(voorwaarde)
+    if f["status"] in ORDER_STATUSES:
+        query = query.filter(Order.order_status == f["status"])
+    if f["betaling"] in BETAALSTATUS_LABELS:
+        query = query.filter(Order.payment_status == f["betaling"])
+    if f["soort"] == "producten":
+        query = query.filter(Order.lines.any())
+    elif f["soort"] == "tickets":
+        query = query.filter(Order.ticket_lines.any())
+    elif f["soort"] == "acties":
+        query = query.filter(Order.actie_lines.any())
+
+    gekozen_actie = None
+    if f["voor"][:1] == "w" and f["voor"][1:].isdigit():
+        query = query.filter(Order.ticket_lines.any(TicketLijn.ticket_type.has(TicketType.wedstrijd_id == int(f["voor"][1:]))))
+    elif f["voor"][:1] == "a" and f["voor"][1:].isdigit():
+        gekozen_actie = Actie.query.get(int(f["voor"][1:]))
+        if gekozen_actie is not None:
+            query = query.filter(Order.actie_lines.any(ActieLijn.moment.has(AfhaalMoment.actie_id == gekozen_actie.id)))
+            # Enkel een moment van deze actie (na het wisselen van actie kan
+            # er nog een moment van de vorige in de URL staan)
+            if f["moment"].isdigit() and any(m.id == int(f["moment"]) for m in gekozen_actie.momenten):
+                query = query.filter(Order.actie_lines.any(ActieLijn.moment_id == int(f["moment"])))
+
+    van, tot = _parse_filter_datum(f["van"]), _parse_filter_datum(f["tot"])
+    if van:
+        query = query.filter(Order.created_at >= _belgische_dag_in_utc(van))
+    if tot:
+        query = query.filter(Order.created_at < _belgische_dag_in_utc(tot + timedelta(days=1)))
+
+    if f["archief"] == "enkel":
+        query = query.filter(Order.gearchiveerd.is_(True))
+    elif f["archief"] != "ook":
+        query = query.filter(Order.gearchiveerd.is_(False))
+
+    pagination = pagineer(query.order_by(Order.created_at.desc(), Order.order_id.desc()))
+    return render_template(
+        "admin_orders.html", user=g.user, pagination=pagination, orders=pagination.items, f=f,
+        actief_filter=any(f.values()),
+        order_statuses=ORDER_STATUSES, betaalstatussen=BETAALSTATUS_LABELS, soorten=ORDER_SOORTEN,
+        archief_filters=ORDER_ARCHIEF_FILTERS,
+        wedstrijden=TicketWedstrijd.query.order_by(TicketWedstrijd.datum_tijd.desc()).all(),
+        acties=Actie.query.order_by(Actie.created_at.desc()).all(),
+        gekozen_actie=gekozen_actie,
+    )
+
+
+@admin_bp.route("/orders/archief", methods=["POST"])
+@admin_required
+def bulk_archiveer_orders():
+    """Archiveert de aangevinkte bestellingen (of zet ze terug). Er wordt
+    niets verwijderd: gearchiveerde bestellingen vind je via het filter."""
+    archiveren = request.form.get("actie") == "archiveren"
+    orders_ = Order.query.filter(Order.order_id.in_(geselecteerde_ids())).all()
+    for order in orders_:
+        order.gearchiveerd = archiveren
+    if orders_:
+        nummers = ", ".join(f"#{o.order_id}" for o in orders_)
+        log_action("order.archief", f"Bestelling(en) {nummers} {'gearchiveerd' if archiveren else 'teruggezet uit het archief'}")
+        db.session.commit()
+    return redirect(terug_url(url_for("admin.orders")))
+
+
+@admin_bp.route("/orders/<int:order_id>/archief", methods=["POST"])
+@admin_required
+def toggle_order_archief(order_id):
+    order = Order.query.get(order_id)
+    if order is not None:
+        order.gearchiveerd = not order.gearchiveerd
+        log_action("order.archief", f"Bestelling #{order.order_id} {'gearchiveerd' if order.gearchiveerd else 'teruggezet uit het archief'}")
+        db.session.commit()
+    return redirect(_view_order_url(order_id))
 
 
 @admin_bp.route("/orders/<int:order_id>")
@@ -777,7 +916,16 @@ def view_order(order_id):
     order = Order.query.get(order_id)
     if order is None:
         return redirect(url_for("admin.orders"))
-    return render_template("view_order.html", user=g.user, order=order, order_statuses=ORDER_STATUSES)
+    return render_template(
+        "view_order.html", user=g.user, order=order, order_statuses=ORDER_STATUSES,
+        error=request.args.get("error"), terug=terug_url(url_for("admin.orders")),
+    )
+
+
+def _view_order_url(order_id, **extra):
+    """Terug naar de bestelling na een formulier op die pagina, met behoud van
+    de 'terug naar de lijst'-link (formulierveld 'terug')."""
+    return url_for("admin.view_order", order_id=order_id, terug=request.form.get("terug") or None, **extra)
 
 
 @admin_bp.route("/orders/<int:order_id>/status", methods=["POST"])
@@ -789,7 +937,7 @@ def update_order_status(order_id):
 
     status = (request.form.get("order_status") or "").strip()
     if status not in ORDER_STATUSES:
-        return redirect(url_for("admin.view_order", order_id=order_id))
+        return redirect(_view_order_url(order_id))
 
     was_cancelled_now = status == "Geannuleerd" and order.order_status != "Geannuleerd"
     oude_status = order.order_status
@@ -810,7 +958,7 @@ def update_order_status(order_id):
         except Exception:
             current_app.logger.exception(f"Annulatiemail versturen voor order {order_id} is mislukt")
 
-    return redirect(url_for("admin.view_order", order_id=order_id))
+    return redirect(_view_order_url(order_id))
 
 
 # ---------------------------------------------------------------------------
@@ -1069,18 +1217,640 @@ def ticket_naamlijst(wedstrijd_id):
     )
 
 
+# ---------------------------------------------------------------------------
+# Acties met afhaling (artikelen + varianten, afhaalmomenten, lijsten)
+# ---------------------------------------------------------------------------
+
+def _parse_optioneel_aantal(raw, minimum, omschrijving):
+    """Optioneel geheel getal (bv. voorraad, maximum per bestelling): lege
+    invoer -> None (= onbeperkt). Geeft (waarde, fout) terug."""
+    raw = (raw or "").strip()
+    if not raw:
+        return None, None
+    try:
+        getal = int(raw)
+    except ValueError:
+        getal = minimum - 1
+    if getal < minimum:
+        return None, f"{omschrijving} moet een geheel getal van {minimum} of meer zijn (of leeg voor onbeperkt)."
+    return getal, None
+
+
+def _actie_form_data():
+    """Leest en valideert het actieformulier. Geeft (data, error) terug."""
+    data = {
+        "titel": (request.form.get("titel") or "").strip(),
+        "omschrijving": (request.form.get("omschrijving") or "").strip() or None,
+        "standaard_adres": (request.form.get("standaard_adres") or "").strip() or None,
+        "bestellen_tot": _parse_datetime_local(request.form.get("bestellen_tot")),
+        "is_active": bool(request.form.get("is_active")),
+    }
+    error = None
+    if request.form.get("bestellen_tot") and not data["bestellen_tot"]:
+        error = "Ongeldige datum voor 'bestellen tot'."
+    if not data["titel"]:
+        error = "Een titel is verplicht."
+    return data, error
+
+
+def _actie_edit_url(actie_id, error=None):
+    return url_for("admin.edit_actie", actie_id=actie_id, error=error)
+
+
+@admin_bp.route("/acties")
+@admin_required
+def acties():
+    alle_acties = Actie.query.order_by(Actie.created_at.desc()).all()
+    return render_template("admin/acties_list.html", user=g.user, acties=alle_acties)
+
+
+@admin_bp.route("/acties/add", methods=["GET", "POST"])
+@admin_required
+def add_actie():
+    if request.method == "GET":
+        return render_template("admin/actie_form.html", user=g.user, actie=None, form=None)
+
+    data, error = _actie_form_data()
+    if error:
+        return render_template("admin/actie_form.html", user=g.user, actie=None, error=error, form=request.form)
+
+    actie = Actie(**data)
+    actie.afbeelding = _save_uploaded_image(request.files.get("afbeelding"))
+    db.session.add(actie)
+    log_action("actie.add", f"Actie '{actie.titel}' toegevoegd")
+    db.session.commit()
+    # Meteen naar de bewerkpagina: daar voeg je artikelen en afhaalmomenten toe
+    return redirect(url_for("admin.edit_actie", actie_id=actie.id))
+
+
+@admin_bp.route("/acties/<int:actie_id>/edit", methods=["GET", "POST"])
+@admin_required
+def edit_actie(actie_id):
+    actie = Actie.query.get(actie_id)
+    if actie is None:
+        return redirect(url_for("admin.acties"))
+
+    if request.method == "GET":
+        return render_template(
+            "admin/actie_form.html", user=g.user, actie=actie, form=None,
+            error=request.args.get("error"),
+        )
+
+    data, error = _actie_form_data()
+    if error:
+        return render_template("admin/actie_form.html", user=g.user, actie=actie, error=error, form=request.form)
+
+    for veld, waarde in data.items():
+        setattr(actie, veld, waarde)
+    new_image = _save_uploaded_image(request.files.get("afbeelding"))
+    if new_image:
+        _delete_uploaded_image(actie.afbeelding)
+        actie.afbeelding = new_image
+    elif request.form.get("verwijder_afbeelding"):
+        _delete_uploaded_image(actie.afbeelding)
+        actie.afbeelding = None
+
+    log_action("actie.edit", f"Actie '{actie.titel}' bewerkt")
+    db.session.commit()
+    return redirect(url_for("admin.edit_actie", actie_id=actie.id))
+
+
+@admin_bp.route("/acties/<int:actie_id>/toggle_active", methods=["POST"])
+@admin_required
+def toggle_actie_active(actie_id):
+    actie = Actie.query.get(actie_id)
+    if actie is not None:
+        actie.is_active = not actie.is_active
+        log_action("actie.toggle_active", f"Actie '{actie.titel}' {'geactiveerd' if actie.is_active else 'gedeactiveerd'}")
+        db.session.commit()
+    return redirect(url_for("admin.acties"))
+
+
+@admin_bp.route("/acties/<int:actie_id>/delete", methods=["POST"])
+@admin_required
+def delete_actie(actie_id):
+    """Enkel voor acties zonder enige bestelling (bv. een vergissing) -
+    zelfde principe als bij wedstrijden. Anders enkel deactiveren."""
+    actie = Actie.query.get(actie_id)
+    if actie is None:
+        return redirect(url_for("admin.acties"))
+    if actie.heeft_bestellingen():
+        return redirect(_actie_edit_url(
+            actie.id, "Er is al besteld bij deze actie - deactiveer ze in plaats van ze te verwijderen.",
+        ))
+
+    afbeeldingen = [actie.afbeelding] + [a.afbeelding for a in actie.artikelen]
+    log_action("actie.delete", f"Actie '{actie.titel}' verwijderd")
+    db.session.delete(actie)
+    db.session.commit()
+    for afbeelding in afbeeldingen:
+        _delete_uploaded_image(afbeelding)
+    return redirect(url_for("admin.acties"))
+
+
+@admin_bp.route("/acties/<int:actie_id>/artikelen/add", methods=["POST"])
+@admin_required
+def add_actie_artikel(actie_id):
+    """Maakt een artikel met meteen een eerste variant (zonder naam) aan:
+    voor een artikel met één prijs is dat alles. Foto, allergenen en
+    extra varianten volgen op de bewerkpagina van het artikel."""
+    actie = Actie.query.get(actie_id)
+    if actie is None:
+        return redirect(url_for("admin.acties"))
+
+    naam = (request.form.get("naam") or "").strip()
+    prijs = _parse_ticket_prijs(request.form.get("prijs"))
+    voorraad, error = _parse_optioneel_aantal(request.form.get("voorraad"), 0, "Voorraad")
+    if not naam or prijs is None:
+        error = "Naam en een geldige prijs (0 of meer) zijn verplicht voor een artikel."
+    if error:
+        return redirect(_actie_edit_url(actie.id, error))
+
+    artikel = ActieArtikel(
+        actie=actie, naam=naam, allergenen=[],
+        position=max((a.position for a in actie.artikelen), default=0) + 1,
+    )
+    artikel.varianten.append(ActieVariant(prijs=prijs, voorraad=voorraad))
+    db.session.add(artikel)
+    log_action("actie_artikel.add", f"Artikel '{naam}' toegevoegd aan actie '{actie.titel}'")
+    db.session.commit()
+    return redirect(url_for("admin.edit_actie_artikel", artikel_id=artikel.id))
+
+
+@admin_bp.route("/actie_artikelen/<int:artikel_id>/edit", methods=["GET", "POST"])
+@admin_required
+def edit_actie_artikel(artikel_id):
+    artikel = ActieArtikel.query.get(artikel_id)
+    if artikel is None:
+        return redirect(url_for("admin.acties"))
+
+    if request.method == "GET":
+        return render_template(
+            "admin/actie_artikel_form.html", user=g.user, artikel=artikel, allergenen=ALLERGENEN,
+            error=request.args.get("error"),
+        )
+
+    naam = (request.form.get("naam") or "").strip()
+    max_per_bestelling, error = _parse_optioneel_aantal(
+        request.form.get("max_per_bestelling"), 1, "Maximum per bestelling",
+    )
+    if not naam:
+        error = "Een naam is verplicht."
+    if error:
+        return redirect(url_for("admin.edit_actie_artikel", artikel_id=artikel.id, error=error))
+
+    artikel.naam = naam
+    artikel.omschrijving = (request.form.get("omschrijving") or "").strip() or None
+    artikel.allergenen = [a for a in request.form.getlist("allergenen") if a in ALLERGEEN_SLEUTELS]
+    artikel.max_per_bestelling = max_per_bestelling
+    artikel.is_active = bool(request.form.get("is_active"))
+    new_image = _save_uploaded_image(request.files.get("afbeelding"))
+    if new_image:
+        _delete_uploaded_image(artikel.afbeelding)
+        artikel.afbeelding = new_image
+    elif request.form.get("verwijder_afbeelding"):
+        _delete_uploaded_image(artikel.afbeelding)
+        artikel.afbeelding = None
+
+    log_action("actie_artikel.edit", f"Artikel '{artikel.naam}' van actie '{artikel.actie.titel}' bewerkt")
+    db.session.commit()
+    return redirect(url_for("admin.edit_actie", actie_id=artikel.actie_id))
+
+
+@admin_bp.route("/actie_artikelen/<int:artikel_id>/move", methods=["POST"])
+@admin_required
+def move_actie_artikel(artikel_id):
+    """Wisselt de positie van dit artikel met het vorige/volgende binnen de actie."""
+    artikel = ActieArtikel.query.get(artikel_id)
+    if artikel is None:
+        return redirect(url_for("admin.acties"))
+
+    artikelen = list(artikel.actie.artikelen)
+    # Posities eerst uniek maken, zodat wisselen altijd een effect heeft
+    for i, a in enumerate(artikelen):
+        a.position = i
+    index = artikelen.index(artikel)
+    swap_index = index - 1 if request.form.get("direction") == "up" else index + 1
+    if 0 <= swap_index < len(artikelen):
+        other = artikelen[swap_index]
+        artikel.position, other.position = other.position, artikel.position
+    db.session.commit()
+    return redirect(url_for("admin.edit_actie", actie_id=artikel.actie_id))
+
+
+@admin_bp.route("/actie_artikelen/<int:artikel_id>/delete", methods=["POST"])
+@admin_required
+def delete_actie_artikel(artikel_id):
+    artikel = ActieArtikel.query.get(artikel_id)
+    if artikel is None:
+        return redirect(url_for("admin.acties"))
+    if artikel.heeft_bestellingen():
+        return redirect(url_for(
+            "admin.edit_actie_artikel", artikel_id=artikel.id,
+            error="Dit artikel is al besteld - deactiveer het in plaats van het te verwijderen.",
+        ))
+
+    actie_id = artikel.actie_id
+    afbeelding = artikel.afbeelding
+    log_action("actie_artikel.delete", f"Artikel '{artikel.naam}' van actie '{artikel.actie.titel}' verwijderd")
+    db.session.delete(artikel)
+    db.session.commit()
+    _delete_uploaded_image(afbeelding)
+    return redirect(url_for("admin.edit_actie", actie_id=actie_id))
+
+
+def _actie_variant_form_data():
+    """Leest en valideert een variant (naam, prijs, voorraad). Geeft (data, error) terug."""
+    data = {
+        "naam": (request.form.get("naam") or "").strip() or None,
+        "prijs": _parse_ticket_prijs(request.form.get("prijs")),
+        "is_active": bool(request.form.get("is_active")),
+    }
+    data["voorraad"], error = _parse_optioneel_aantal(request.form.get("voorraad"), 0, "Voorraad")
+    if data["prijs"] is None:
+        error = "Een geldige prijs (0 of meer) is verplicht."
+    return data, error
+
+
+@admin_bp.route("/actie_artikelen/<int:artikel_id>/varianten/add", methods=["POST"])
+@admin_required
+def add_actie_variant(artikel_id):
+    artikel = ActieArtikel.query.get(artikel_id)
+    if artikel is None:
+        return redirect(url_for("admin.acties"))
+
+    data, error = _actie_variant_form_data()
+    if not error and not data["naam"]:
+        error = "Geef de nieuwe variant een naam (bv. 'Groot' of 'Vegetarisch')."
+    if not error and any(not v.naam for v in artikel.varianten):
+        error = "Geef eerst de bestaande variant een naam (bv. 'Klein') voor je een tweede toevoegt."
+    if error:
+        return redirect(url_for("admin.edit_actie_artikel", artikel_id=artikel.id, error=error))
+
+    db.session.add(ActieVariant(artikel=artikel, **data))
+    log_action("actie_variant.add", f"Variant '{data['naam']}' toegevoegd aan '{artikel.naam}' ({artikel.actie.titel})")
+    db.session.commit()
+    return redirect(url_for("admin.edit_actie_artikel", artikel_id=artikel.id))
+
+
+@admin_bp.route("/actie_varianten/<int:variant_id>/edit", methods=["POST"])
+@admin_required
+def edit_actie_variant(variant_id):
+    """Een prijswijziging geldt enkel voor nieuwe bestellingen: bestaande
+    regels hebben hun prijs bevroren (ActieLijn.price)."""
+    variant = ActieVariant.query.get(variant_id)
+    if variant is None:
+        return redirect(url_for("admin.acties"))
+
+    data, error = _actie_variant_form_data()
+    if not error and not data["naam"] and len(variant.artikel.varianten) > 1:
+        error = "Bij een artikel met meerdere varianten heeft elke variant een naam nodig."
+    if error:
+        return redirect(url_for("admin.edit_actie_artikel", artikel_id=variant.artikel_id, error=error))
+
+    for veld, waarde in data.items():
+        setattr(variant, veld, waarde)
+    log_action("actie_variant.edit", f"Variant van '{variant.artikel.naam}' ({variant.artikel.actie.titel}) bewerkt")
+    db.session.commit()
+    return redirect(url_for("admin.edit_actie_artikel", artikel_id=variant.artikel_id))
+
+
+def _afhaalmoment_form_data(actie):
+    """Leest en valideert een afhaalmoment (datum, van, tot, adres, eigen
+    deadline). Geeft (data, error) terug."""
+    datum = (request.form.get("datum") or "").strip()
+    try:
+        start = datetime.strptime(f"{datum} {request.form.get('van') or ''}", "%Y-%m-%d %H:%M")
+        einde = datetime.strptime(f"{datum} {request.form.get('tot') or ''}", "%Y-%m-%d %H:%M")
+    except ValueError:
+        return None, "Vul een geldige datum en een begin- en einduur in."
+    data = {
+        "start": start,
+        "einde": einde,
+        "adres": (request.form.get("adres") or "").strip() or actie.standaard_adres,
+        "bestellen_tot": _parse_datetime_local(request.form.get("bestellen_tot")),
+        "is_active": bool(request.form.get("is_active")),
+    }
+    if einde <= start:
+        return None, "Het einduur moet na het beginuur liggen."
+    if not data["adres"]:
+        return None, "Vul een afhaaladres in (of stel een standaardadres in bij de actie)."
+    if request.form.get("bestellen_tot") and not data["bestellen_tot"]:
+        return None, "Ongeldige datum voor 'bestellen tot'."
+    if data["bestellen_tot"] and data["bestellen_tot"] > start:
+        return None, "Bestellen moet sluiten vóór (of bij) het begin van het afhaalmoment."
+    return data, None
+
+
+@admin_bp.route("/acties/<int:actie_id>/momenten/add", methods=["POST"])
+@admin_required
+def add_afhaalmoment(actie_id):
+    actie = Actie.query.get(actie_id)
+    if actie is None:
+        return redirect(url_for("admin.acties"))
+
+    data, error = _afhaalmoment_form_data(actie)
+    if error:
+        return redirect(_actie_edit_url(actie.id, error))
+
+    moment = AfhaalMoment(actie=actie, **data)
+    db.session.add(moment)
+    log_action("afhaalmoment.add", f"Afhaalmoment {moment.label} toegevoegd aan actie '{actie.titel}'")
+    db.session.commit()
+    return redirect(url_for("admin.edit_actie", actie_id=actie.id))
+
+
+def _betaalde_actie_orders(moment):
+    """Betaalde, niet-geannuleerde bestellingen met regels voor dit moment."""
+    return (
+        Order.query.join(ActieLijn, ActieLijn.order_id == Order.order_id)
+        .filter(
+            ActieLijn.moment_id == moment.id,
+            Order.payment_status == "paid",
+            Order.order_status.notin_(TICKET_ONGELDIGE_ORDER_STATUSSEN),
+        )
+        .distinct().all()
+    )
+
+
+def _mail_afhaalmoment_wijziging(orders, moment, bericht):
+    """Mailt elke bestelling apart; geeft het aantal geslaagde mails terug.
+    Een mislukte mail stopt de rest niet."""
+    gelukt = 0
+    for order in orders:
+        try:
+            send_afhaalmoment_wijziging_mail(order, moment, bericht)
+            gelukt += 1
+        except Exception:
+            current_app.logger.exception(f"Wijzigingsmail afhaalmoment voor order {order.order_id} is mislukt")
+    return gelukt
+
+
+@admin_bp.route("/afhaalmomenten/<int:moment_id>/edit", methods=["GET", "POST"])
+@admin_required
+def edit_afhaalmoment(moment_id):
+    moment = AfhaalMoment.query.get(moment_id)
+    if moment is None:
+        return redirect(url_for("admin.acties"))
+
+    kopers = _betaalde_actie_orders(moment)
+    if request.method == "GET":
+        return render_template(
+            "admin/afhaalmoment_form.html", user=g.user, moment=moment, actie=moment.actie, aantal_kopers=len(kopers),
+            error=request.args.get("error"), gemaild=request.args.get("gemaild", type=int),
+        )
+
+    data, error = _afhaalmoment_form_data(moment.actie)
+    if error:
+        return redirect(url_for("admin.edit_afhaalmoment", moment_id=moment.id, error=error))
+
+    for veld, waarde in data.items():
+        setattr(moment, veld, waarde)
+    log_action("afhaalmoment.edit", f"Afhaalmoment {moment.label} van actie '{moment.actie.titel}' bewerkt")
+    db.session.commit()
+
+    gemaild = None
+    if request.form.get("verwittigen"):
+        bericht = (request.form.get("bericht") or "").strip()
+        gemaild = _mail_afhaalmoment_wijziging(kopers, moment, bericht)
+        log_action("afhaalmoment.mail", f"{gemaild} koper(s) van afhaalmoment {moment.label} ({moment.actie.titel}) gemaild")
+        db.session.commit()
+    return redirect(url_for("admin.edit_afhaalmoment", moment_id=moment.id, gemaild=gemaild))
+
+
+@admin_bp.route("/afhaalmomenten/<int:moment_id>/delete", methods=["POST"])
+@admin_required
+def delete_afhaalmoment(moment_id):
+    moment = AfhaalMoment.query.get(moment_id)
+    if moment is None:
+        return redirect(url_for("admin.acties"))
+    if moment.heeft_bestellingen():
+        return redirect(url_for(
+            "admin.edit_afhaalmoment", moment_id=moment.id,
+            error="Er zijn al bestellingen voor dit moment - deactiveer het in plaats van het te verwijderen.",
+        ))
+
+    actie_id = moment.actie_id
+    log_action("afhaalmoment.delete", f"Afhaalmoment {moment.label} van actie '{moment.actie.titel}' verwijderd")
+    db.session.delete(moment)
+    db.session.commit()
+    return redirect(url_for("admin.edit_actie", actie_id=actie_id))
+
+
+def _betaalde_actie_lijnen(actie):
+    """Regels van betaalde, niet-geannuleerde bestellingen voor deze actie.
+    Openstaande betalingen tellen (nog) niet mee: die hebben geen
+    bevestigingsmail gekregen en vervallen na 31 minuten."""
+    return (
+        ActieLijn.query
+        .join(Order, ActieLijn.order_id == Order.order_id)
+        .join(AfhaalMoment, ActieLijn.moment_id == AfhaalMoment.id)
+        .filter(
+            AfhaalMoment.actie_id == actie.id,
+            Order.payment_status == "paid",
+            Order.order_status.notin_(TICKET_ONGELDIGE_ORDER_STATUSSEN),
+        )
+        .all()
+    )
+
+
+def _csv_response(rijen, bestandsnaam):
+    buffer = io.StringIO()
+    # Puntkomma + BOM: zie ticket_naamlijst
+    writer = csv.writer(buffer, delimiter=";")
+    writer.writerows(rijen)
+    return Response(
+        buffer.getvalue().encode("utf-8-sig"), mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={bestandsnaam}"},
+    )
+
+
+@admin_bp.route("/acties/<int:actie_id>/keukenlijst")
+@admin_required
+def actie_keukenlijst(actie_id):
+    """Hoeveel er van elke variant per afhaalmoment klaargemaakt moet worden."""
+    actie = Actie.query.get(actie_id)
+    if actie is None:
+        return redirect(url_for("admin.acties"))
+
+    aantallen = defaultdict(int)   # (variant_id, moment_id) -> aantal
+    for lijn in _betaalde_actie_lijnen(actie):
+        aantallen[(lijn.variant_id, lijn.moment_id)] += lijn.quantity
+    # Ook inactieve varianten/momenten tonen als er al voor besteld is
+    varianten = [
+        v for a in actie.artikelen for v in a.varianten
+        if (v.is_active and a.is_active) or any(k[0] == v.id for k in aantallen)
+    ]
+    momenten = [m for m in actie.momenten if m.is_active or any(k[1] == m.id for k in aantallen)]
+    totaal_per_variant = {v.id: sum(aantallen[(v.id, m.id)] for m in momenten) for v in varianten}
+    totaal_per_moment = {m.id: sum(aantallen[(v.id, m.id)] for v in varianten) for m in momenten}
+
+    if request.args.get("format") == "csv":
+        rijen = [["Artikel"] + [m.start.strftime("%d/%m/%Y %H:%M") for m in momenten] + ["Totaal"]]
+        for v in varianten:
+            rijen.append([v.volledige_naam] + [aantallen[(v.id, m.id)] for m in momenten] + [totaal_per_variant[v.id]])
+        rijen.append(["Totaal"] + [totaal_per_moment[m.id] for m in momenten] + [sum(totaal_per_moment.values())])
+        return _csv_response(rijen, f"keukenlijst-actie-{actie.id}.csv")
+
+    return render_template(
+        "admin/actie_keukenlijst.html", user=g.user, actie=actie, varianten=varianten, momenten=momenten,
+        aantallen=aantallen, totaal_per_variant=totaal_per_variant, totaal_per_moment=totaal_per_moment,
+    )
+
+
+@admin_bp.route("/afhaalmomenten/<int:moment_id>/afhaallijst")
+@admin_required
+def afhaallijst(moment_id):
+    """Eén rij per koper die op dit moment iets komt afhalen, alfabetisch op
+    achternaam - zelfde principe als de ticket-naamlijst: wie meerdere keren
+    bestelde, staat er één keer op met alles opgeteld."""
+    moment = AfhaalMoment.query.get(moment_id)
+    if moment is None:
+        return redirect(url_for("admin.acties"))
+
+    per_klant = {}
+    for lijn in _betaalde_actie_lijnen(moment.actie):
+        if lijn.moment_id != moment.id:
+            continue
+        rij = per_klant.setdefault(lijn.order.user_id, {"klant": lijn.order.user, "orders": [], "aantallen": defaultdict(int)})
+        if lijn.order not in rij["orders"]:
+            rij["orders"].append(lijn.order)
+        rij["aantallen"][lijn.variant] += lijn.quantity
+    for rij in per_klant.values():
+        rij["orders"].sort(key=lambda o: o.order_id)
+        rij["telefoons"] = sorted({o.telefoon for o in rij["orders"] if o.telefoon})
+        rij["totaal"] = sum(rij["aantallen"].values())
+    rijen = sorted(
+        per_klant.values(),
+        key=lambda r: (r["klant"].last_name.lower(), r["klant"].first_name.lower(), r["orders"][0].order_id),
+    )
+    varianten = [v for a in moment.actie.artikelen for v in a.varianten if any(v in r["aantallen"] for r in rijen)]
+
+    if request.args.get("format") == "csv":
+        csv_rijen = [["Achternaam", "Voornaam", "Telefoon", "E-mail", "Bestelnummers"] + [v.volledige_naam for v in varianten] + ["Totaal"]]
+        for rij in rijen:
+            klant = rij["klant"]
+            csv_rijen.append(
+                [klant.last_name, klant.first_name, ", ".join(rij["telefoons"]), klant.email or "",
+                 ", ".join(str(o.order_id) for o in rij["orders"])]
+                + [rij["aantallen"].get(v, 0) for v in varianten] + [rij["totaal"]]
+            )
+        return _csv_response(csv_rijen, f"afhaallijst-{moment.start.strftime('%Y-%m-%d-%H%M')}-{moment.id}.csv")
+
+    return render_template(
+        "admin/afhaallijst.html", user=g.user, moment=moment, rijen=rijen, varianten=varianten,
+        totaal_stuks=sum(r["totaal"] for r in rijen),
+        totalen_per_variant={v.id: sum(r["aantallen"].get(v, 0) for r in rijen) for v in varianten},
+    )
+
+
+@admin_bp.route("/orders/<int:order_id>/afhaalmoment", methods=["POST"])
+@admin_required
+def update_order_afhaalmoment(order_id):
+    """Zet alle regels van één actie in deze bestelling op een ander
+    afhaalmoment (van dezelfde actie), bv. als een moment geschrapt wordt.
+    Optioneel wordt de koper meteen gemaild."""
+    order = Order.query.get(order_id)
+    moment = AfhaalMoment.query.get(request.form.get("moment_id", type=int) or 0)
+    if order is None or moment is None:
+        return redirect(url_for("admin.orders"))
+
+    lijnen = [lijn for lijn in order.actie_lines if lijn.actie.id == moment.actie_id]
+    oud = lijnen[0].moment if lijnen else None
+    if oud is None or oud.id == moment.id:
+        return redirect(_view_order_url(order.order_id))
+
+    for lijn in lijnen:
+        lijn.moment = moment
+    log_action(
+        "order.afhaalmoment",
+        f"Bestelling #{order.order_id}: afhaalmoment voor '{moment.actie.titel}' gewijzigd van {oud.label} naar {moment.label}",
+    )
+    db.session.commit()
+
+    if request.form.get("verwittigen"):
+        if _mail_afhaalmoment_wijziging([order], moment, (request.form.get("bericht") or "").strip()) == 0:
+            return redirect(_view_order_url(
+                order.order_id, error="Het afhaalmoment is gewijzigd, maar de mail naar de koper kon niet verstuurd worden.",
+            ))
+    return redirect(_view_order_url(order.order_id))
+
+
+# Statusfilter van de lijsten met een 'verwerkt'-vlag (inschrijvingen, GDPR):
+# standaard enkel wat nog te verwerken is.
+VERWERKT_FILTERS = {"": "Nog te verwerken", "verwerkt": "Verwerkt", "alle": "Alle"}
+
+
+def _filter_verwerkt(query, model, status):
+    if status == "verwerkt":
+        return query.filter(model.verwerkt.is_(True))
+    if status != "alle":
+        return query.filter(model.verwerkt.is_(False))
+    return query
+
+
 @admin_bp.route("/inschrijvingen")
 @admin_required
 def inschrijvingen():
-    toon_verwerkte = request.args.get("toon_verwerkte") == "1"
-    query = Inschrijving.query.order_by(Inschrijving.aangemaakt_op.desc())
-    if not toon_verwerkte:
-        query = query.filter_by(verwerkt=False)
+    f = {k: (request.args.get(k) or "").strip() for k in ("q", "categorie", "status")}
+    # Oude link "toon ook verwerkte" blijft werken
+    if request.args.get("toon_verwerkte") == "1" and not f["status"]:
+        f["status"] = "alle"
+
+    query = _filter_verwerkt(Inschrijving.query, Inschrijving, f["status"])
+    term = zoekterm()
+    if term:
+        query = query.filter(zoek_filter(
+            term, Inschrijving.voornaam_speler, Inschrijving.achternaam_speler,
+            Inschrijving.voornaam_speler + " " + Inschrijving.achternaam_speler,
+            Inschrijving.email, Inschrijving.telefoon,
+        ))
+    if f["categorie"]:
+        query = query.filter(Inschrijving.categorie == f["categorie"])
+
+    # Ook categorieën die intussen uit het formulier verdwenen, maar nog in oude inschrijvingen staan
+    categorieen = list(get_inschrijving_categorieen())
+    for (categorie,) in db.session.query(Inschrijving.categorie).distinct():
+        if categorie and categorie not in categorieen:
+            categorieen.append(categorie)
+
+    pagination = pagineer(query.order_by(Inschrijving.aangemaakt_op.desc(), Inschrijving.id.desc()))
     return render_template(
-        "admin_inschrijvingen.html", user=g.user,
-        inschrijvingen=query.all(), toon_verwerkte=toon_verwerkte,
+        "admin_inschrijvingen.html", user=g.user, pagination=pagination, inschrijvingen=pagination.items,
+        f=f, actief_filter=any(f.values()), categorieen=categorieen, status_filters=VERWERKT_FILTERS,
         aantal_onverwerkt=Inschrijving.query.filter_by(verwerkt=False).count(),
     )
+
+
+@admin_bp.route("/inschrijvingen/<int:inschrijving_id>")
+@admin_required
+def view_inschrijving(inschrijving_id):
+    inschrijving = Inschrijving.query.get(inschrijving_id)
+    if inschrijving is None:
+        return redirect(url_for("admin.inschrijvingen"))
+    return render_template(
+        "admin/inschrijving_fiche.html", user=g.user, i=inschrijving,
+        labels={sleutel: config.label for sleutel, config in get_inschrijving_veld_config().items()},
+        terug=terug_url(url_for("admin.inschrijvingen")), opgeslagen=request.args.get("opgeslagen"),
+    )
+
+
+def _fiche_url(endpoint, **kwargs):
+    """Terug naar een fiche na een formulier op die fiche, met behoud van de
+    'terug naar de lijst'-link (formulierveld 'terug')."""
+    return url_for(endpoint, terug=request.form.get("terug") or None, **kwargs)
+
+
+@admin_bp.route("/inschrijvingen/<int:inschrijving_id>/notitie", methods=["POST"])
+@admin_required
+def update_inschrijving_notitie(inschrijving_id):
+    inschrijving = Inschrijving.query.get(inschrijving_id)
+    if inschrijving is None:
+        return redirect(url_for("admin.inschrijvingen"))
+    inschrijving.notitie = (request.form.get("notitie") or "").strip() or None
+    log_action("inschrijving.notitie", f"Notitie bij inschrijving van {inschrijving.voornaam_speler} {inschrijving.achternaam_speler} bijgewerkt")
+    db.session.commit()
+    return redirect(_fiche_url("admin.view_inschrijving", inschrijving_id=inschrijving.id, opgeslagen=1))
 
 
 @admin_bp.route("/inschrijvingen/<int:inschrijving_id>/verwerkt", methods=["POST"])
@@ -1092,7 +1862,20 @@ def toggle_inschrijving_verwerkt(inschrijving_id):
         status = "verwerkt" if inschrijving.verwerkt else "opnieuw geopend"
         log_action("inschrijving.toggle", f"Inschrijving van {inschrijving.voornaam_speler} {inschrijving.achternaam_speler} gemarkeerd als {status}")
         db.session.commit()
-    return redirect(url_for("admin.inschrijvingen", toon_verwerkte=request.args.get("toon_verwerkte")))
+    return redirect(_fiche_url("admin.view_inschrijving", inschrijving_id=inschrijving_id))
+
+
+@admin_bp.route("/inschrijvingen/bulk", methods=["POST"])
+@admin_required
+def bulk_inschrijvingen_verwerkt():
+    verwerkt = request.form.get("actie") == "verwerkt"
+    rijen = Inschrijving.query.filter(Inschrijving.id.in_(geselecteerde_ids())).all()
+    for inschrijving in rijen:
+        inschrijving.verwerkt = verwerkt
+    if rijen:
+        log_action("inschrijving.toggle", f"{len(rijen)} inschrijving(en) gemarkeerd als {'verwerkt' if verwerkt else 'niet verwerkt'}")
+        db.session.commit()
+    return redirect(terug_url(url_for("admin.inschrijvingen")))
 
 
 @admin_bp.route("/scholen")
@@ -1255,15 +2038,46 @@ def edit_site_tekst(slug):
 @admin_bp.route("/gdpr-verzoeken")
 @admin_required
 def gdpr_verzoeken():
-    toon_verwerkte = request.args.get("toon_verwerkte") == "1"
-    query = VergeetMijVerzoek.query.order_by(VergeetMijVerzoek.aangemaakt_op.desc())
-    if not toon_verwerkte:
-        query = query.filter_by(verwerkt=False)
+    f = {k: (request.args.get(k) or "").strip() for k in ("q", "status")}
+    if request.args.get("toon_verwerkte") == "1" and not f["status"]:
+        f["status"] = "alle"
+
+    query = _filter_verwerkt(VergeetMijVerzoek.query, VergeetMijVerzoek, f["status"])
+    term = zoekterm()
+    if term:
+        query = query.filter(zoek_filter(term, VergeetMijVerzoek.naam, VergeetMijVerzoek.email, VergeetMijVerzoek.lidnummer))
+    pagination = pagineer(query.order_by(VergeetMijVerzoek.aangemaakt_op.desc(), VergeetMijVerzoek.id.desc()))
     return render_template(
-        "admin_gdpr.html", user=g.user,
-        verzoeken=query.all(), toon_verwerkte=toon_verwerkte,
+        "admin_gdpr.html", user=g.user, pagination=pagination, verzoeken=pagination.items,
+        f=f, actief_filter=any(f.values()), status_filters=VERWERKT_FILTERS,
         aantal_onverwerkt=VergeetMijVerzoek.query.filter_by(verwerkt=False).count(),
     )
+
+
+@admin_bp.route("/gdpr-verzoeken/<int:verzoek_id>")
+@admin_required
+def view_gdpr_verzoek(verzoek_id):
+    verzoek = VergeetMijVerzoek.query.get(verzoek_id)
+    if verzoek is None:
+        return redirect(url_for("admin.gdpr_verzoeken"))
+    # Account(s) met hetzelfde e-mailadres, als hulp bij het verwijderen
+    accounts = User.query.filter(db.func.lower(User.email) == verzoek.email.lower()).all() if verzoek.email else []
+    return render_template(
+        "admin/gdpr_fiche.html", user=g.user, verzoek=verzoek, accounts=accounts,
+        terug=terug_url(url_for("admin.gdpr_verzoeken")), opgeslagen=request.args.get("opgeslagen"),
+    )
+
+
+@admin_bp.route("/gdpr-verzoeken/<int:verzoek_id>/notitie", methods=["POST"])
+@admin_required
+def update_gdpr_notitie(verzoek_id):
+    verzoek = VergeetMijVerzoek.query.get(verzoek_id)
+    if verzoek is None:
+        return redirect(url_for("admin.gdpr_verzoeken"))
+    verzoek.notitie = (request.form.get("notitie") or "").strip() or None
+    log_action("gdpr.notitie", f"Notitie bij GDPR-verzoek van {verzoek.naam} bijgewerkt")
+    db.session.commit()
+    return redirect(_fiche_url("admin.view_gdpr_verzoek", verzoek_id=verzoek.id, opgeslagen=1))
 
 
 @admin_bp.route("/gdpr-verzoeken/<int:verzoek_id>/verwerkt", methods=["POST"])
@@ -1275,7 +2089,20 @@ def toggle_gdpr_verwerkt(verzoek_id):
         status = "verwerkt" if verzoek.verwerkt else "opnieuw geopend"
         log_action("gdpr.toggle", f"GDPR-verzoek van {verzoek.naam} gemarkeerd als {status}")
         db.session.commit()
-    return redirect(url_for("admin.gdpr_verzoeken", toon_verwerkte=request.args.get("toon_verwerkte")))
+    return redirect(_fiche_url("admin.view_gdpr_verzoek", verzoek_id=verzoek_id))
+
+
+@admin_bp.route("/gdpr-verzoeken/bulk", methods=["POST"])
+@admin_required
+def bulk_gdpr_verwerkt():
+    verwerkt = request.form.get("actie") == "verwerkt"
+    rijen = VergeetMijVerzoek.query.filter(VergeetMijVerzoek.id.in_(geselecteerde_ids())).all()
+    for verzoek in rijen:
+        verzoek.verwerkt = verwerkt
+    if rijen:
+        log_action("gdpr.toggle", f"{len(rijen)} GDPR-verzoek(en) gemarkeerd als {'verwerkt' if verwerkt else 'niet verwerkt'}")
+        db.session.commit()
+    return redirect(terug_url(url_for("admin.gdpr_verzoeken")))
 
 
 def _vaste_pagina_rijen():
@@ -2084,6 +2911,166 @@ def delete_sponsor(sponsor_id):
         db.session.delete(sponsor)
         db.session.commit()
     return redirect(url_for("admin.sponsors"))
+
+
+# ---------------------------------------------------------------------------
+# Affiches bovenaan de homepage
+# ---------------------------------------------------------------------------
+
+def _affiche_link_suggesties():
+    """[(label, url)] voor de snelkeuze naast het linkveld: de webshop-
+    onderdelen en elke actieve actie. Het linkveld zelf blijft vrij."""
+    suggesties = [
+        ("Fanshop", url_for("shop.products")),
+        ("Tickets", url_for("shop.tickets")),
+        ("Acties (overzicht)", url_for("shop.acties")),
+    ]
+    for actie in Actie.query.filter_by(is_active=True).order_by(Actie.created_at.desc()).all():
+        suggesties.append((f"Actie: {actie.titel}", url_for("shop.actie_detail", actie_id=actie.id)))
+    return suggesties
+
+
+def _affiche_form_data():
+    """Leest en valideert de tekstvelden van het affiche-formulier (de
+    afbeeldingen worden apart verwerkt). Geeft (data, error) terug."""
+    data = {
+        "titel": (request.form.get("titel") or "").strip(),
+        "alt_tekst": (request.form.get("alt_tekst") or "").strip(),
+        "link": (request.form.get("link") or "").strip() or None,
+        "toon_vanaf": _parse_datetime_local(request.form.get("toon_vanaf")),
+        "toon_tot": _parse_datetime_local(request.form.get("toon_tot")),
+        "is_active": bool(request.form.get("is_active")),
+    }
+    error = None
+    if request.form.get("toon_vanaf") and not data["toon_vanaf"]:
+        error = "Ongeldige datum voor 'zichtbaar vanaf'."
+    elif request.form.get("toon_tot") and not data["toon_tot"]:
+        error = "Ongeldige datum voor 'zichtbaar tot'."
+    elif data["toon_vanaf"] and data["toon_tot"] and data["toon_tot"] <= data["toon_vanaf"]:
+        error = "'Zichtbaar tot' moet na 'zichtbaar vanaf' liggen."
+    elif data["link"] and not is_safe_target_url(data["link"]):
+        error = "De link moet beginnen met / (een pagina op deze site) of met http:// of https://."
+    if not data["titel"] or not data["alt_tekst"]:
+        error = "Titel en de tekst op de affiche (voor schermlezers) zijn verplicht."
+    return data, error
+
+
+def _render_affiche_form(affiche, error=None, form=None):
+    return render_template(
+        "admin/affiche_form.html", user=g.user, affiche=affiche, error=error, form=form,
+        link_suggesties=_affiche_link_suggesties(),
+    )
+
+
+@admin_bp.route("/affiches")
+@admin_required
+def affiches():
+    alle_affiches = Affiche.query.order_by(Affiche.position, Affiche.id).all()
+    return render_template("admin/affiches_list.html", user=g.user, affiches=alle_affiches)
+
+
+@admin_bp.route("/affiches/add", methods=["GET", "POST"])
+@admin_required
+def add_affiche():
+    if request.method == "GET":
+        return _render_affiche_form(None)
+
+    data, error = _affiche_form_data()
+    afbeelding = _save_uploaded_image(request.files.get("afbeelding"))
+    if not error and not afbeelding:
+        error = "Kies een afbeelding (JPG, PNG, GIF of WEBP)."
+    if error:
+        # Al opgeslagen afbeelding opruimen, zoals bij sponsors
+        _delete_uploaded_image(afbeelding)
+        return _render_affiche_form(None, error, request.form)
+
+    max_position = db.session.query(db.func.max(Affiche.position)).scalar() or 0
+    affiche = Affiche(
+        afbeelding=afbeelding, afbeelding_gsm=_save_uploaded_image(request.files.get("afbeelding_gsm")),
+        position=max_position + 1, **data,
+    )
+    db.session.add(affiche)
+    log_action("affiche.add", f"Affiche '{affiche.titel}' toegevoegd")
+    db.session.commit()
+    return redirect(url_for("admin.affiches"))
+
+
+@admin_bp.route("/affiches/<int:affiche_id>/edit", methods=["GET", "POST"])
+@admin_required
+def edit_affiche(affiche_id):
+    affiche = Affiche.query.get(affiche_id)
+    if affiche is None:
+        return redirect(url_for("admin.affiches"))
+
+    if request.method == "GET":
+        return _render_affiche_form(affiche)
+
+    data, error = _affiche_form_data()
+    if error:
+        return _render_affiche_form(affiche, error, request.form)
+
+    for veld, waarde in data.items():
+        setattr(affiche, veld, waarde)
+    nieuwe_afbeelding = _save_uploaded_image(request.files.get("afbeelding"))
+    if nieuwe_afbeelding:
+        _delete_uploaded_image(affiche.afbeelding)
+        affiche.afbeelding = nieuwe_afbeelding
+    nieuwe_gsm = _save_uploaded_image(request.files.get("afbeelding_gsm"))
+    if nieuwe_gsm:
+        _delete_uploaded_image(affiche.afbeelding_gsm)
+        affiche.afbeelding_gsm = nieuwe_gsm
+    elif request.form.get("verwijder_afbeelding_gsm"):
+        _delete_uploaded_image(affiche.afbeelding_gsm)
+        affiche.afbeelding_gsm = None
+
+    log_action("affiche.edit", f"Affiche '{affiche.titel}' bewerkt")
+    db.session.commit()
+    return redirect(url_for("admin.affiches"))
+
+
+@admin_bp.route("/affiches/<int:affiche_id>/toggle_active", methods=["POST"])
+@admin_required
+def toggle_affiche_active(affiche_id):
+    affiche = Affiche.query.get(affiche_id)
+    if affiche is not None:
+        affiche.is_active = not affiche.is_active
+        log_action("affiche.toggle_active", f"Affiche '{affiche.titel}' {'geactiveerd' if affiche.is_active else 'gedeactiveerd'}")
+        db.session.commit()
+    return redirect(url_for("admin.affiches"))
+
+
+@admin_bp.route("/affiches/<int:affiche_id>/move", methods=["POST"])
+@admin_required
+def move_affiche(affiche_id):
+    """Wisselt de positie van deze affiche met de vorige/volgende (volgorde in de slider)."""
+    affiche = Affiche.query.get(affiche_id)
+    if affiche is None:
+        return redirect(url_for("admin.affiches"))
+
+    alle_affiches = Affiche.query.order_by(Affiche.position, Affiche.id).all()
+    # Posities eerst uniek maken, zodat wisselen altijd een effect heeft
+    for i, a in enumerate(alle_affiches):
+        a.position = i
+    index = alle_affiches.index(affiche)
+    swap_index = index - 1 if request.form.get("direction") == "up" else index + 1
+    if 0 <= swap_index < len(alle_affiches):
+        other = alle_affiches[swap_index]
+        affiche.position, other.position = other.position, affiche.position
+    db.session.commit()
+    return redirect(url_for("admin.affiches"))
+
+
+@admin_bp.route("/affiches/<int:affiche_id>/delete", methods=["POST"])
+@admin_required
+def delete_affiche(affiche_id):
+    affiche = Affiche.query.get(affiche_id)
+    if affiche is not None:
+        _delete_uploaded_image(affiche.afbeelding)
+        _delete_uploaded_image(affiche.afbeelding_gsm)
+        log_action("affiche.delete", f"Affiche '{affiche.titel}' verwijderd")
+        db.session.delete(affiche)
+        db.session.commit()
+    return redirect(url_for("admin.affiches"))
 
 
 @admin_bp.route("/nieuws/<int:bericht_id>/delete", methods=["POST"])

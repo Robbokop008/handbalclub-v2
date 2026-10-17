@@ -1,61 +1,71 @@
 {% extends "admin/_shell.html" %}
+{% import "admin/_lijst_macros.html" as lijst %}
 
 {% block title %}Adminpagina - GDPR-verzoeken{% endblock %}
 
 {% block admin_content %}
 <div class="admin-page-header">
     <h1>GDPR-verzoeken</h1>
-    <p>Overzicht van alle "vergeet mij"-verzoeken.</p>
+    <p>"Vergeet mij"-verzoeken ({{ aantal_onverwerkt }} nog te verwerken). Klik op een verzoek voor alle gegevens en een interne notitie.</p>
 </div>
 
 <section class="section">
-    <p style="margin-bottom:16px;">
-        {{ aantal_onverwerkt }} onverwerkt &middot;
-        {% if toon_verwerkte %}
-        <a href="{{ url_for('admin.gdpr_verzoeken') }}">Toon enkel onverwerkte verzoeken</a>
-        {% else %}
-        <a href="{{ url_for('admin.gdpr_verzoeken', toon_verwerkte=1) }}">Toon ook verwerkte verzoeken</a>
-        {% endif %}
-    </p>
+    {% call lijst.filterbalk(actief_filter) %}
+    <div class="admin-filterbalk-zoek">
+        <label for="q">Zoeken</label>
+        <input type="search" id="q" name="q" value="{{ f.q }}" placeholder="Naam, e-mail of lidnummer">
+    </div>
+    <div>
+        <label for="status">Status</label>
+        <select id="status" name="status">
+            {% for waarde, label in status_filters.items() %}<option value="{{ waarde }}" {{ 'selected' if f.status == waarde }}>{{ label }}</option>{% endfor %}
+        </select>
+    </div>
+    {% endcall %}
+
+    {{ lijst.paginering(pagination, 'verzoek', 'verzoeken') }}
 
     {% if verzoeken %}
-    <div class="table-wrap">
-        <table class="admin-table">
-            <thead>
-                <tr>
-                    <th>Datum</th>
-                    <th>Naam</th>
-                    <th>E-mail</th>
-                    <th>Lidnummer</th>
-                    <th>Opmerking</th>
-                    <th>Status</th>
-                    <th>Acties</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for v in verzoeken %}
-                <tr>
-                    <td>{{ v.aangemaakt_op.strftime('%d/%m/%Y %H:%M') }}</td>
-                    <td>{{ v.naam }}</td>
-                    <td>{{ v.email }}</td>
-                    <td>{{ v.lidnummer or '—' }}</td>
-                    <td>{{ v.opmerking or '—' }}</td>
-                    <td><span class="order-status-badge{{ ' order-status-badge-verwerkt' if v.verwerkt else '' }}">{{ 'Verwerkt' if v.verwerkt else 'Nog te verwerken' }}</span></td>
-                    <td>
-                        <form action="{{ url_for('admin.toggle_gdpr_verwerkt', verzoek_id=v.id, toon_verwerkte=1 if toon_verwerkte else 0) }}" method="post">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="admin-button btn-sm">
-                                {{ 'Markeer als niet verwerkt' if v.verwerkt else 'Markeer als verwerkt' }}
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+    <form action="{{ url_for('admin.bulk_gdpr_verwerkt') }}" method="post" data-bulk-form>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {{ lijst.terug_veld() }}
+        <div class="admin-bulkbalk">
+            <button type="submit" name="actie" value="verwerkt" class="admin-button btn-sm" data-bulk-knop>Markeer als verwerkt</button>
+            <button type="submit" name="actie" value="onverwerkt" class="btn btn-secondary btn-sm" data-bulk-knop>Markeer als niet verwerkt</button>
+            <span data-bulk-teller></span>
+        </div>
+        <div class="table-wrap">
+            <table class="admin-table admin-lijst">
+                <thead>
+                    <tr>
+                        {{ lijst.vinkje_kop() }}
+                        <th>Datum</th>
+                        <th>Naam</th>
+                        <th class="lijst-optioneel">E-mail</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in verzoeken %}
+                    <tr>
+                        {{ lijst.vinkje(v.id, v.naam ~ ' selecteren') }}
+                        <td>{{ v.aangemaakt_op.strftime('%d/%m/%Y') }}</td>
+                        <td class="lijst-afkap"><a class="lijst-link" href="{{ lijst.fiche_url(url_for('admin.view_gdpr_verzoek', verzoek_id=v.id)) }}">{{ v.naam }}</a>{% if v.notitie %} <span class="lijst-klein" title="Heeft een notitie">📝</span>{% endif %}</td>
+                        <td class="lijst-afkap lijst-optioneel">{{ v.email }}</td>
+                        <td><span class="order-status-badge{{ ' order-status-badge-verwerkt' if v.verwerkt else '' }}">{{ 'Verwerkt' if v.verwerkt else 'Nog te verwerken' }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </form>
+    {{ lijst.paginering(pagination, 'verzoek', 'verzoeken') }}
     {% else %}
-        <p>{{ 'Er zijn nog geen GDPR-verzoeken binnengekomen.' if toon_verwerkte else 'Geen onverwerkte GDPR-verzoeken.' }}</p>
+        <p>{{ 'Geen verzoeken gevonden voor deze filters.' if actief_filter else 'Geen GDPR-verzoeken meer te verwerken.' }}</p>
     {% endif %}
 </section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/admin_lijsten.js') }}" defer></script>
 {% endblock %}

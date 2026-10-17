@@ -169,6 +169,8 @@ def create_app(config_name="development"):
         "shop.product_detail": "content-page",
         "shop.tickets": "content-page",
         "shop.ticket_detail": "content-page",
+        "shop.acties": "content-page",
+        "shop.actie_detail": "content-page",
         "shop.cart": "content-page",
         "shop.checkout_success": "content-page",
         "shop.gesloten": "content-page",
@@ -199,6 +201,17 @@ def create_app(config_name="development"):
     from utils.page_blocks import resolve_style
 
     app.add_template_global(resolve_style, name="resolve_style")
+
+    # Jinja-global om de actieregels van een bestelling per afhaalmoment te
+    # groeperen (bedankpagina, admin) - zie models.py.
+    from models import actie_lijnen_per_moment
+
+    app.add_template_global(actie_lijnen_per_moment, name="actie_lijnen_per_moment")
+
+    # Jinja-filter: Order.payment_status ('paid', 'Pending', ...) als leesbaar label
+    from models import BETAALSTATUS_LABELS
+
+    app.add_template_filter(lambda status: BETAALSTATUS_LABELS.get(status, status), name="betaalstatus")
 
     # Eigen foutpagina's i.p.v. Flask/Werkzeug's kale standaardpagina's:
     # 404 (onbestaande URL) en 429 (rate limit overschreden, bv. te vaak

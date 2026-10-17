@@ -1,0 +1,61 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Afhaallijst - {{ moment.actie.titel }}{% endblock %}
+
+{% block admin_content %}
+<div class="naamlijst">
+    <div class="admin-page-header">
+        <h1>Afhaallijst: {{ moment.actie.titel }}</h1>
+        <p>
+            {{ moment.label | capitalize }} — {{ moment.adres }}<br>
+            <strong>{{ totaal_stuks }}</strong> stuk{{ '' if totaal_stuks == 1 else 's' }} voor {{ rijen|length }} koper{{ '' if rijen|length == 1 else 's' }}
+            {%- if varianten %}: {% for v in varianten %}{{ v.volledige_naam }} {{ totalen_per_variant[v.id] }}{{ ', ' if not loop.last else '' }}{% endfor %}{% endif %}
+        </p>
+        <p class="naamlijst-geen-print muted">
+            Enkel betaalde, niet-geannuleerde bestellingen staan op deze lijst. Wie meerdere keren bestelde, staat er één keer op met alles opgeteld.
+            Een bestelling naar een ander moment verplaatsen doe je via het bestelnummer.
+        </p>
+    </div>
+
+    <p class="naamlijst-geen-print">
+        <button type="button" class="admin-button btn-sm" onclick="window.print()">Afdrukken</button>
+        <a href="{{ url_for('admin.afhaallijst', moment_id=moment.id, format='csv') }}" class="admin-button btn-sm">Download als Excel (CSV)</a>
+        <a href="{{ url_for('admin.edit_actie', actie_id=moment.actie_id) }}" class="btn btn-secondary btn-sm">Terug</a>
+    </p>
+
+    {% if rijen %}
+    <div class="table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th class="naamlijst-afvinken">✓</th>
+                    <th>Naam</th>
+                    <th>Bestelnrs.</th>
+                    <th>Telefoon</th>
+                    <th>Komt afhalen</th>
+                    <th>Totaal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rij in rijen %}
+                <tr>
+                    <td><span class="naamlijst-vakje"></span></td>
+                    <td><strong>{{ rij.klant.last_name }}</strong> {{ rij.klant.first_name }}</td>
+                    <td>{% for order in rij.orders %}<a href="{{ url_for('admin.view_order', order_id=order.order_id) }}">#{{ order.order_id }}</a>{{ ', ' if not loop.last else '' }}{% endfor %}</td>
+                    <td>{{ rij.telefoons | join(', ') }}</td>
+                    <td>
+                        {% for v in varianten if v in rij.aantallen %}
+                        {{ rij.aantallen[v] }} × {{ v.volledige_naam }}{% if not loop.last %}<br>{% endif %}
+                        {% endfor %}
+                    </td>
+                    <td><strong>{{ rij.totaal }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p>Er zijn nog geen (betaalde) bestellingen voor dit afhaalmoment.</p>
+    {% endif %}
+</div>
+{% endblock %}

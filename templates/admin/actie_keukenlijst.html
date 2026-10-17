@@ -1,0 +1,56 @@
+{% extends "admin/_shell.html" %}
+
+{% block title %}Keukenlijst - {{ actie.titel }}{% endblock %}
+
+{% block admin_content %}
+<div class="naamlijst">
+    <div class="admin-page-header">
+        <h1>Keukenlijst: {{ actie.titel }}</h1>
+        <p>Hoeveel er van elk artikel per afhaalmoment klaargemaakt moet worden.</p>
+        <p class="naamlijst-geen-print muted">
+            Enkel betaalde, niet-geannuleerde bestellingen tellen mee. Bestellingen die nog op betaling wachten, komen erbij zodra ze betaald zijn.
+        </p>
+    </div>
+
+    <p class="naamlijst-geen-print">
+        <button type="button" class="admin-button btn-sm" onclick="window.print()">Afdrukken</button>
+        <a href="{{ url_for('admin.actie_keukenlijst', actie_id=actie.id, format='csv') }}" class="admin-button btn-sm">Download als Excel (CSV)</a>
+        <a href="{{ url_for('admin.edit_actie', actie_id=actie.id) }}" class="btn btn-secondary btn-sm">Terug</a>
+    </p>
+
+    {% if varianten and momenten %}
+    <div class="table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Artikel</th>
+                    {% for m in momenten %}
+                    <th>
+                        <a href="{{ url_for('admin.afhaallijst', moment_id=m.id) }}">{{ m.start.strftime('%d/%m') }}<br>{{ m.start.strftime('%H:%M') }}–{{ m.einde.strftime('%H:%M') }}</a>
+                        {% if not m.is_active %}<br><small>(inactief)</small>{% endif %}
+                    </th>
+                    {% endfor %}
+                    <th>Totaal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in varianten %}
+                <tr>
+                    <td>{{ v.volledige_naam }}</td>
+                    {% for m in momenten %}<td>{{ aantallen.get((v.id, m.id), 0) or '' }}</td>{% endfor %}
+                    <td><strong>{{ totaal_per_variant[v.id] }}</strong></td>
+                </tr>
+                {% endfor %}
+                <tr class="keukenlijst-totaal">
+                    <td>Totaal</td>
+                    {% for m in momenten %}<td>{{ totaal_per_moment[m.id] }}</td>{% endfor %}
+                    <td>{{ totaal_per_moment.values() | sum }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p>Deze actie heeft nog geen artikelen of afhaalmomenten.</p>
+    {% endif %}
+</div>
+{% endblock %}

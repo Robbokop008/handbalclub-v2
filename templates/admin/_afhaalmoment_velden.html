@@ -1,0 +1,27 @@
+{# Velden van een afhaalmoment - gedeeld door het formulier "nieuw
+   afhaalmoment" (admin/actie_form.html, moment niet gezet) en de
+   bewerkpagina (admin/afhaalmoment_form.html). #}
+{% set m = moment if moment is defined and moment else none %}
+<div>
+    <label for="moment_datum">Datum</label>
+    <input type="date" id="moment_datum" name="datum" value="{{ m.start.strftime('%Y-%m-%d') if m else '' }}" required>
+</div>
+<div>
+    <label for="moment_van">Van</label>
+    <input type="time" id="moment_van" name="van" value="{{ m.start.strftime('%H:%M') if m else '' }}" required>
+</div>
+<div>
+    <label for="moment_tot">Tot</label>
+    <input type="time" id="moment_tot" name="tot" value="{{ m.einde.strftime('%H:%M') if m else '' }}" required>
+</div>
+<div>
+    <label for="moment_bestellen_tot">Eigen deadline (optioneel)</label>
+    <input type="datetime-local" id="moment_bestellen_tot" name="bestellen_tot" value="{{ m.bestellen_tot.strftime('%Y-%m-%dT%H:%M') if m and m.bestellen_tot else '' }}">
+</div>
+<div style="grid-column:1/-1;">
+    <label for="moment_adres">Afhaaladres</label>
+    <input type="text" id="moment_adres" name="adres" value="{{ m.adres if m else (actie.standaard_adres or '') }}" placeholder="Leeg = standaardadres van de actie" {% if not actie.standaard_adres %}required{% endif %}>
+</div>
+<div class="checkbox-field">
+    <label for="moment_is_active"><input type="checkbox" id="moment_is_active" name="is_active" {{ 'checked' if not m or m.is_active else '' }}> Actief (kan gekozen worden)</label>
+</div>
