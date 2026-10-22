@@ -26,6 +26,10 @@ krijgen één regel per tickettype, acties één regel per actievariant. Alle
 regels van dezelfde actie hebben hetzelfde afhaalmoment: het actieformulier
 vervangt telkens alles wat er voor die actie al in het mandje zat.
 
+Wat de koper in het opmerkingenveld van een actie invult, staat apart:
+    session["actie_opmerkingen"] = {"<actie_id>": str, ...}
+en wordt bij het afrekenen een ActieOpmerking op de bestelling.
+
 Tickets en producten kunnen samen in één bestelling. Bevat de bestelling
 enkel tickets en/of acties, dan vraagt Stripe geen verzendadres en zijn er
 geen verzendkosten; de drempel voor gratis verzending telt enkel producten.
@@ -41,7 +45,7 @@ import stripe
 from extensions import db, csrf
 from models import (
     Product, ProductVariant, Order, OrderLine, TicketWedstrijd, TicketType, TicketLijn, nu_belgisch,
-    Actie, ActieVariant, AfhaalMoment, ActieLijn,
+    Actie, ActieVariant, AfhaalMoment, ActieLijn, ActieOpmerking, ACTIE_OPMERKING_MAX,
 )
 from utils.auth import login_required
 from utils.mail import send_order_confirmation_mail, send_admin_cancellation_mail
@@ -422,14 +426,16 @@ def acties():
     return render_template("shop/acties.html", acties=_zichtbare_acties())
 
 
-def _render_actie_detail(actie, aantallen, moment_id, errors=None):
+def _render_actie_detail(actie, aantallen, moment_id, opmerking, errors=None):
     """aantallen = {variant_id: aantal}: wat er in het formulier ingevuld
-    staat (uit het winkelmandje, of wat de koper net verstuurde)."""
+    staat (uit het winkelmandje, of wat de koper net verstuurde). Zo ook
+    voor de opmerking."""
     bestelbare_momenten = actie.bestelbare_momenten
     if moment_id is None and len(bestelbare_momenten) == 1:
         moment_id = bestelbare_momenten[0].id
     return render_template(
         "shop/actie_detail.html", actie=actie, aantallen=aantallen, gekozen_moment_id=moment_id,
+        opmerking=opmerking, opmerking_max=ACTIE_OPMERKING_MAX,
         beschikbaar={v.id: v.aantal_beschikbaar() for a in actie.actieve_artikelen for v in a.actieve_varianten},
         in_mandje=bool(_actie_regels_in_cart(session.get("cart", {}), actie.id)),
         errors=errors,
@@ -449,6 +455,7 @@ def actie_detail(actie_id):
         actie,
         aantallen={variant.id: line["quantity"] for _, variant, line in in_mandje},
         moment_id=in_mandje[0][2]["moment_id"] if in_mandje else None,
+        opmerking=session.get("actie_opmerkingen", {}).get(str(actie.id), "") if in_mandje else "",
     )
 
 
@@ -471,30 +478,41 @@ def add_actie_to_cart():
             if aantal > 0:
                 gekozen[variant] = aantal
     ingevuld = {variant.id: aantal for variant, aantal in gekozen.items()}
+    opmerking = (request.form.get("opmerking") or "").strip()
 
     cart = session.get("cart", {})
     in_mandje = _actie_regels_in_cart(cart, actie.id)
+    opmerkingen = session.get("actie_opmerkingen", {})
 
     if not gekozen:
         if in_mandje:
             # Alles op 0 gezet voor een actie die al in het mandje zat: eruit halen
             for key, _, _ in in_mandje:
                 del cart[key]
+            opmerkingen.pop(str(actie.id), None)
             session["cart"] = cart
+            session["actie_opmerkingen"] = opmerkingen
             return redirect(url_for("shop.cart"))
-        return _render_actie_detail(actie, ingevuld, moment_id, ["Kies minstens één artikel."])
+        return _render_actie_detail(actie, ingevuld, moment_id, opmerking, ["Kies minstens één artikel."])
     if moment is None:
-        return _render_actie_detail(actie, ingevuld, moment_id, ["Kies een afhaalmoment."])
+        return _render_actie_detail(actie, ingevuld, moment_id, opmerking, ["Kies een afhaalmoment."])
 
     fouten = _actie_fouten(actie, moment, gekozen)
+    if len(opmerking) > ACTIE_OPMERKING_MAX:
+        fouten.append(f"{actie.opmerking_titel} mag maximaal {ACTIE_OPMERKING_MAX} tekens lang zijn.")
     if fouten:
-        return _render_actie_detail(actie, ingevuld, moment_id, fouten)
+        return _render_actie_detail(actie, ingevuld, moment_id, opmerking, fouten)
 
     for key, _, _ in in_mandje:
         del cart[key]
     for variant, aantal in gekozen.items():
         cart[uuid4().hex] = {"actie_variant_id": variant.id, "moment_id": moment.id, "quantity": aantal}
+    if opmerking:
+        opmerkingen[str(actie.id)] = opmerking
+    else:
+        opmerkingen.pop(str(actie.id), None)
     session["cart"] = cart
+    session["actie_opmerkingen"] = opmerkingen
     return redirect(url_for("shop.cart"))
 
 
@@ -546,6 +564,7 @@ def remove_from_cart():
 @shop_bp.route("/clear_cart", methods=["POST"])
 def clear_cart():
     session["cart"] = {}
+    session.pop("actie_opmerkingen", None)
     return redirect(url_for("shop.cart"))
 
 
@@ -649,6 +668,13 @@ def checkout():
             quantity=item["quantity"],
             price=item["price"],
         ))
+    # Enkel voor acties die nog in het mandje zitten: een opmerking van een
+    # actie die er intussen uit gehaald is, valt weg.
+    opmerkingen = session.get("actie_opmerkingen", {})
+    for actie in per_actie:
+        tekst = (opmerkingen.get(str(actie.id)) or "").strip()[:ACTIE_OPMERKING_MAX]
+        if tekst:
+            order.actie_opmerkingen.append(ActieOpmerking(actie_id=actie.id, tekst=tekst))
     db.session.add(order)
     db.session.commit()
 
@@ -656,6 +682,7 @@ def checkout():
     # dubbele submit (dubbelklik, terug-knop + opnieuw verzenden) geen tweede
     # order met een tweede voorraadafschrijving voor dezelfde winkelmand aan.
     session["cart"] = {}
+    session.pop("actie_opmerkingen", None)
 
     stripe.api_key = current_app.config["STRIPE_API_KEY"]
 

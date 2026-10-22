@@ -596,6 +596,13 @@ class Order(db.Model):
     actie_lines = db.relationship(
         "ActieLijn", backref="order", lazy=True, cascade="all, delete-orphan"
     )
+    actie_opmerkingen = db.relationship(
+        "ActieOpmerking", backref="order", lazy=True, cascade="all, delete-orphan"
+    )
+
+    def actie_opmerking(self, actie):
+        """Wat de koper invulde in het opmerkingenveld van deze actie, of None."""
+        return next((o.tekst for o in self.actie_opmerkingen if o.actie_id == actie.id), None)
 
     @property
     def total_paid(self):
@@ -805,6 +812,9 @@ class Actie(db.Model):
     # lokale tijd) waarop bestellen voor alle afhaalmomenten sluit. Een
     # afhaalmoment kan daarbovenop een eigen, vroegere deadline hebben.
     bestellen_tot = db.Column(db.DateTime, nullable=True)
+    # Titel van het vrije tekstveld onderaan het actieformulier, bv.
+    # "Opmerking/Aanmoediging". Leeg = "Opmerking" (zie opmerking_titel).
+    opmerking_label = db.Column(db.String(100), nullable=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -816,6 +826,10 @@ class Actie(db.Model):
         "AfhaalMoment", backref="actie", lazy=True, cascade="all, delete-orphan",
         order_by="AfhaalMoment.start",
     )
+
+    @property
+    def opmerking_titel(self):
+        return self.opmerking_label or "Opmerking"
 
     @property
     def actieve_artikelen(self):
@@ -1024,6 +1038,24 @@ class ActieLijn(db.Model):
     @property
     def subtotal(self):
         return self.quantity * float(self.price)
+
+
+# Maximumlengte van een opmerking bij een actie (formulier en controle)
+ACTIE_OPMERKING_MAX = 500
+
+
+class ActieOpmerking(db.Model):
+    """Wat de koper in het opmerkingenveld van een actie invulde (bv. een
+    allergie of een aanmoediging voor de ploeg). Eén per actie per
+    bestelling; enkel aangemaakt als er iets ingevuld is."""
+    __tablename__ = "order_actie_opmerkingen"
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey("orders.order_id"), nullable=False)
+    actie_id = db.Column(db.Integer, db.ForeignKey("acties.id"), nullable=False)
+    tekst = db.Column(db.Text, nullable=False)
+
+    actie = db.relationship("Actie")
 
 
 def actie_lijnen_per_moment(lijnen):

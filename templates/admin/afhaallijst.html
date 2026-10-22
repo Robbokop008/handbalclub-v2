@@ -34,6 +34,7 @@
                     <th>Telefoon</th>
                     <th>Komt afhalen</th>
                     <th>Totaal</th>
+                    <th>{{ moment.actie.opmerking_titel }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -49,6 +50,7 @@
                         {% endfor %}
                     </td>
                     <td><strong>{{ rij.totaal }}</strong></td>
+                    <td style="white-space:pre-line;">{{ rij.opmerkingen | join('\n') }}</td>
                 </tr>
                 {% endfor %}
             </tbody>

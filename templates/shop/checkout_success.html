@@ -57,6 +57,8 @@
             <div class="item-printing">
                 <span>Afhalen: {{ moment.label }}</span>
                 <span>📍 {{ moment.adres }}</span>
+                {% set opmerking = order.actie_opmerking(moment.actie) %}
+                {% if opmerking %}<span style="white-space:pre-line;">{{ moment.actie.opmerking_titel }}: {{ opmerking }}</span>{% endif %}
             </div>
         </div>
         {% endfor %}

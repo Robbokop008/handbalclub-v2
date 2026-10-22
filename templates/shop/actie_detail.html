@@ -94,6 +94,9 @@
             </div>
 
             {% if bestelbaar %}
+            <h2 class="actie-stap" id="opmerking-titel">3. {{ actie.opmerking_titel }} <small class="muted">(optioneel)</small></h2>
+            <textarea name="opmerking" rows="3" maxlength="{{ opmerking_max }}" aria-labelledby="opmerking-titel">{{ opmerking }}</textarea>
+
             <p class="actie-totaal">Totaal: <strong data-actie-totaal>€0.00</strong></p>
             <button type="submit" class="add-to-cart">{{ 'Winkelmandje bijwerken' if in_mandje else 'Toevoegen aan winkelmandje' }}</button>
             {% if in_mandje %}

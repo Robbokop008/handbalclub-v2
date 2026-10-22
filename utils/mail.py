@@ -154,6 +154,9 @@ Bestelnummer: {order.order_id}
         body += "Afhalen:\n"
         for moment, lijnen in actie_lijnen_per_moment(order.actie_lines):
             body += _afhaal_blok(moment, lijnen)
+            opmerking = order.actie_opmerking(moment.actie)
+            if opmerking:
+                body += f"  {moment.actie.opmerking_titel}: {opmerking}\n"
 
     body += f"\nSubtotaal: €{float(order.total_price):.2f}\n"
     if order.lines:

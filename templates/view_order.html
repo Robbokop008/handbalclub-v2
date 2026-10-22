@@ -145,6 +145,11 @@
             </tbody>
         </table>
     </div>
+    {% set opmerking = order.actie_opmerking(moment.actie) %}
+    {% if opmerking %}
+    <p style="margin-top:12px;"><strong>{{ moment.actie.opmerking_titel }}:</strong></p>
+    <p style="white-space:pre-line;">{{ opmerking }}</p>
+    {% endif %}
     {% set andere_momenten = moment.actie.momenten | rejectattr('id', 'equalto', moment.id) | list %}
     {% if andere_momenten %}
     <details class="admin-details" style="margin-top:12px;">

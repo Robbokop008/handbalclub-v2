@@ -51,6 +51,10 @@
         📍 {{ moment.adres }}
     </div>
     {{ m.regels(rijen) }}
+    {% set opmerking = order.actie_opmerking(moment.actie) %}
+    {% if opmerking %}
+    <div style="margin:10px 0 0;font-size:14px;"><strong>{{ moment.actie.opmerking_titel }}:</strong> <span style="white-space:pre-line;">{{ opmerking }}</span></div>
+    {% endif %}
 {% endcall %}
 {% endfor %}
 {% call m.kader('geel') %}

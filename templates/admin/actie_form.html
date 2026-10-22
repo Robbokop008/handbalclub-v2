@@ -45,6 +45,11 @@
             <textarea id="omschrijving" name="omschrijving" rows="4" placeholder="bv. Onze chefs koken voor de Europese droom van Heren 1. Alle gerechten worden gekoeld meegegeven.">{{ waarde('omschrijving', actie.omschrijving if actie else none) }}</textarea>
         </div>
         <div style="grid-column:1/-1;">
+            <label for="opmerking_label">Titel van het opmerkingenveld (optioneel)</label>
+            <input type="text" id="opmerking_label" name="opmerking_label" maxlength="100" placeholder="Opmerking" value="{{ waarde('opmerking_label', actie.opmerking_label if actie else none) }}">
+            <p class="muted" style="margin:6px 0 0;font-size:13px;">Onderaan het bestelformulier kan de koper vrij iets invullen. Leeg = "Opmerking". Je vindt de ingevulde tekst terug bij de bestelling, op de afhaallijst en onderaan de keukenlijst.</p>
+        </div>
+        <div style="grid-column:1/-1;">
             <label for="afbeelding">Afbeelding (optioneel)</label>
             {% if actie and actie.afbeelding %}
             <p class="muted">

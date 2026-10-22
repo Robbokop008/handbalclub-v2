@@ -822,13 +822,9 @@ def _belgische_dag_in_utc(dag):
     return begin.astimezone(timezone.utc).replace(tzinfo=None)
 
 
-@admin_bp.route("/orders")
-@admin_required
-def orders():
-    """Bestellingen met zoekveld en filters (allemaal in de URL), standaard
-    zonder de gearchiveerde. 'voor' is een wedstrijd ('w<id>') of actie
-    ('a<id>'); bij een actie kan je ook op afhaalmoment filteren."""
-    f = {k: (request.args.get(k) or "").strip() for k in ("q", "status", "betaling", "soort", "voor", "moment", "van", "tot", "archief")}
+def _gefilterde_orders(f):
+    """Query met de filters uit de URL, plus de gekozen actie (of None) -
+    gedeeld door de lijst en de CSV-export, zodat die altijd hetzelfde tonen."""
     query = Order.query.join(User, Order.user_id == User.user_id)
 
     term = zoekterm()
@@ -871,7 +867,60 @@ def orders():
     elif f["archief"] != "ook":
         query = query.filter(Order.gearchiveerd.is_(False))
 
-    pagination = pagineer(query.order_by(Order.created_at.desc(), Order.order_id.desc()))
+    return query.order_by(Order.created_at.desc(), Order.order_id.desc()), gekozen_actie
+
+
+def _bedrag(waarde):
+    """Bedrag met decimale komma, zodat een Belgische Excel het als getal leest."""
+    return f"{float(waarde):.2f}".replace(".", ",")
+
+
+def _orders_csv(orders_):
+    """Eén rij per bestelling, met alle regels samengevat in 'Inhoud'."""
+    rijen = [[
+        "Bestelnummer", "Datum", "Achternaam", "Voornaam", "E-mail", "Telefoon", "Inhoud",
+        "Subtotaal", "Verzending", "Totaal", "Betaling", "Status", "Gearchiveerd",
+    ]]
+    for order in orders_:
+        inhoud = []
+        for line in order.lines:
+            variant = f" ({line.variant.color} / {line.variant.size})" if line.variant else ""
+            bedrukking = ", ".join(
+                f"{kant}: {tekst}" for kant, tekst in (("voorkant", line.print_front), ("achterkant", line.print_back)) if tekst
+            )
+            inhoud.append(f"{line.quantity}x {line.product.product_name}{variant}" + (f" [{bedrukking}]" if bedrukking else ""))
+        for line in order.ticket_lines:
+            inhoud.append(
+                f"{line.quantity}x ticket {line.ticket_type.naam} - {line.wedstrijd.titel} "
+                f"({line.wedstrijd.datum_tijd.strftime('%d/%m/%Y %H:%M')})"
+            )
+        for line in order.actie_lines:
+            inhoud.append(f"{line.quantity}x {line.variant.volledige_naam} - afhalen {line.moment.start.strftime('%d/%m/%Y %H:%M')}")
+        besteld = order.created_at.replace(tzinfo=timezone.utc).astimezone(ZoneInfo("Europe/Brussels"))
+        rijen.append([
+            order.order_id, besteld.strftime("%d/%m/%Y %H:%M"), order.user.last_name, order.user.first_name,
+            order.user.email or "", order.telefoon or "", " | ".join(inhoud),
+            _bedrag(order.total_price), _bedrag(order.shipping_cost), _bedrag(order.total_paid),
+            BETAALSTATUS_LABELS.get(order.payment_status, order.payment_status), order.order_status,
+            "ja" if order.gearchiveerd else "nee",
+        ])
+    return rijen
+
+
+@admin_bp.route("/orders")
+@admin_required
+def orders():
+    """Bestellingen met zoekveld en filters (allemaal in de URL), standaard
+    zonder de gearchiveerde. 'voor' is een wedstrijd ('w<id>') of actie
+    ('a<id>'); bij een actie kan je ook op afhaalmoment filteren. Met
+    format=csv alle bestellingen van de filter (niet enkel deze pagina)."""
+    f = {k: (request.args.get(k) or "").strip() for k in ("q", "status", "betaling", "soort", "voor", "moment", "van", "tot", "archief")}
+    query, gekozen_actie = _gefilterde_orders(f)
+
+    if request.args.get("format") == "csv":
+        return _csv_response(_orders_csv(query.all()), f"bestellingen-{datetime.now(ZoneInfo('Europe/Brussels')).strftime('%Y-%m-%d')}.csv")
+
+    pagination = pagineer(query)
     return render_template(
         "admin_orders.html", user=g.user, pagination=pagination, orders=pagination.items, f=f,
         actief_filter=any(f.values()),
@@ -1243,6 +1292,7 @@ def _actie_form_data():
         "omschrijving": (request.form.get("omschrijving") or "").strip() or None,
         "standaard_adres": (request.form.get("standaard_adres") or "").strip() or None,
         "bestellen_tot": _parse_datetime_local(request.form.get("bestellen_tot")),
+        "opmerking_label": (request.form.get("opmerking_label") or "").strip()[:100] or None,
         "is_active": bool(request.form.get("is_active")),
     }
     error = None
@@ -1674,8 +1724,17 @@ def actie_keukenlijst(actie_id):
         return redirect(url_for("admin.acties"))
 
     aantallen = defaultdict(int)   # (variant_id, moment_id) -> aantal
+    momenten_per_order = {}
     for lijn in _betaalde_actie_lijnen(actie):
         aantallen[(lijn.variant_id, lijn.moment_id)] += lijn.quantity
+        momenten_per_order[lijn.order] = lijn.moment
+    # Alle ingevulde opmerkingen onder elkaar, bv. allergieën voor de keuken
+    # of aanmoedigingen om aan de ploeg te bezorgen
+    opmerkingen = sorted(
+        ((order, moment, order.actie_opmerking(actie)) for order, moment in momenten_per_order.items()
+         if order.actie_opmerking(actie)),
+        key=lambda r: (r[1].start, r[0].order_id),
+    )
     # Ook inactieve varianten/momenten tonen als er al voor besteld is
     varianten = [
         v for a in actie.artikelen for v in a.varianten
@@ -1695,6 +1754,7 @@ def actie_keukenlijst(actie_id):
     return render_template(
         "admin/actie_keukenlijst.html", user=g.user, actie=actie, varianten=varianten, momenten=momenten,
         aantallen=aantallen, totaal_per_variant=totaal_per_variant, totaal_per_moment=totaal_per_moment,
+        opmerkingen=opmerkingen,
     )
 
 
@@ -1719,6 +1779,7 @@ def afhaallijst(moment_id):
     for rij in per_klant.values():
         rij["orders"].sort(key=lambda o: o.order_id)
         rij["telefoons"] = sorted({o.telefoon for o in rij["orders"] if o.telefoon})
+        rij["opmerkingen"] = [t for t in (o.actie_opmerking(moment.actie) for o in rij["orders"]) if t]
         rij["totaal"] = sum(rij["aantallen"].values())
     rijen = sorted(
         per_klant.values(),
@@ -1727,13 +1788,16 @@ def afhaallijst(moment_id):
     varianten = [v for a in moment.actie.artikelen for v in a.varianten if any(v in r["aantallen"] for r in rijen)]
 
     if request.args.get("format") == "csv":
-        csv_rijen = [["Achternaam", "Voornaam", "Telefoon", "E-mail", "Bestelnummers"] + [v.volledige_naam for v in varianten] + ["Totaal"]]
+        csv_rijen = [
+            ["Achternaam", "Voornaam", "Telefoon", "E-mail", "Bestelnummers"] + [v.volledige_naam for v in varianten]
+            + ["Totaal", moment.actie.opmerking_titel]
+        ]
         for rij in rijen:
             klant = rij["klant"]
             csv_rijen.append(
                 [klant.last_name, klant.first_name, ", ".join(rij["telefoons"]), klant.email or "",
                  ", ".join(str(o.order_id) for o in rij["orders"])]
-                + [rij["aantallen"].get(v, 0) for v in varianten] + [rij["totaal"]]
+                + [rij["aantallen"].get(v, 0) for v in varianten] + [rij["totaal"], " / ".join(rij["opmerkingen"])]
             )
         return _csv_response(csv_rijen, f"afhaallijst-{moment.start.strftime('%Y-%m-%d-%H%M')}-{moment.id}.csv")
 

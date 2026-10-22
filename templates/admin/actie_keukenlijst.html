@@ -52,5 +52,31 @@
     {% else %}
         <p>Deze actie heeft nog geen artikelen of afhaalmomenten.</p>
     {% endif %}
+
+    {% if opmerkingen %}
+    <h2 class="section-title" style="margin-top:32px;">{{ actie.opmerking_titel }}</h2>
+    <div class="table-wrap">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Bestelnr.</th>
+                    <th>Naam</th>
+                    <th>Afhalen</th>
+                    <th>{{ actie.opmerking_titel }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order, moment, tekst in opmerkingen %}
+                <tr>
+                    <td><a href="{{ url_for('admin.view_order', order_id=order.order_id) }}">#{{ order.order_id }}</a></td>
+                    <td>{{ order.user.first_name }} {{ order.user.last_name }}</td>
+                    <td style="white-space:nowrap;">{{ moment.start.strftime('%d/%m %H:%M') }}</td>
+                    <td style="white-space:pre-line;">{{ tekst }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
