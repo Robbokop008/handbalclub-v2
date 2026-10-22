@@ -46,7 +46,14 @@
                         <h3>Order #{{ order.order_id }}</h3>
                         <span>{{ order.created_at.strftime('%d/%m/%Y') }} • Totaal: €{{ '%.2f'|format(order.total_paid) }}</span>
                         <div class="order-status-row">
+                            {# Een niet-betaalde bestelling blijft op "Ontvangen" staan: dan de betaling tonen #}
+                            {% if order.payment_status == 'failed' %}
+                            <span class="order-status-badge order-status-badge-mislukt">Niet betaald - niet doorgegaan</span>
+                            {% elif order.payment_status == 'paid' %}
                             <span class="order-status-badge">{{ order.order_status }}</span>
+                            {% else %}
+                            <span class="order-status-badge">Wacht op betaling</span>
+                            {% endif %}
                         </div>
                     </div>
                     {% endfor %}

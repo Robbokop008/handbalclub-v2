@@ -1759,6 +1759,12 @@ body.content-page, body.auth-page { background: var(--blue); }
   color: var(--success);
 }
 
+.order-status-badge-mislukt {
+  background: var(--danger-bg);
+  border-color: rgba(220, 38, 38, 0.25);
+  color: var(--danger);
+}
+
 .order-status-form {
   display: flex;
   align-items: center;

@@ -1,0 +1,41 @@
+{% extends "mail/_basis.html" %}
+{% import "mail/_onderdelen.html" as m %}
+
+{% block onderwerp %}{{ onderwerp }}{% endblock %}
+{% block voorbeeldtekst %}Bestelling #{{ order.order_id }} is niet doorgegaan - er werd niets aangerekend{% endblock %}
+
+{% block inhoud %}
+{{ m.titel('Je betaling is niet gelukt') }}
+{{ m.alinea('Beste ' ~ order.user.first_name ~ ' ' ~ order.user.last_name ~ ',') }}
+{{ m.alinea('De betaling van je bestelling #' ~ order.order_id ~ ' van ' ~ besteld_op.strftime('%d/%m/%Y om %H:%M') ~ ' is niet gelukt of werd niet afgerond. Deze bestelling is daarom niet doorgegaan: er werd niets aangerekend en niets voor je gereserveerd.') }}
+
+{% if nieuwere_betaald %}
+{% call m.kader('groen') %}
+    <strong>Je hebt intussen opnieuw besteld</strong><br>
+    Bestelling {% for o in nieuwere_betaald %}<strong>#{{ o.order_id }}</strong>{{ ', ' if not loop.last }}{% endfor %} is wel betaald en in orde. Daarvoor hoef je niets te doen.
+{% endcall %}
+{% else %}
+{% call m.kader('rood') %}
+    <strong>Deze bestelling is niet geplaatst</strong><br>
+    Je hoeft niets te betalen, maar je ontvangt hiervoor ook niets.
+{% endcall %}
+{% endif %}
+
+{{ m.tussentitel('Het ging om') }}
+{{ m.regels(rijen) }}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px;font-size:14px;">
+    <tr>
+        <td style="padding:10px 0 0;border-top:2px solid #05316b;font-weight:bold;">Totaal (niet aangerekend)</td>
+        <td align="right" style="padding:10px 0 0;border-top:2px solid #05316b;font-weight:bold;">€{{ '%.2f'|format(order.total_paid) }}</td>
+    </tr>
+</table>
+
+{% if not nieuwere_betaald %}
+{{ m.alinea('Wil je toch nog bestellen? Plaats dan een nieuwe bestelling in de webshop.') }}
+{% if shop_url %}{{ m.knop(shop_url, 'Naar de webshop') }}{% endif %}
+{% call m.kader('geel') %}
+    <strong>Al opnieuw besteld?</strong><br>
+    Heb je intussen een nieuwe bestelling geplaatst en een bevestigingsmail gekregen? Dan is die bestelling in orde en mag je deze mail negeren.
+{% endcall %}
+{% endif %}
+{% endblock %}

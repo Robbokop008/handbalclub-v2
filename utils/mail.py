@@ -3,7 +3,8 @@ utils/mail.py
 --------------
 Helperfuncties om e-mails te versturen via de mailserver van Hetzner: het
 contactformulier, de orderbevestiging na een geslaagde betaling, een
-wijziging van een afhaalmoment (acties), en de meldingen aan de club
+melding als de betaling mislukt, een wijziging van een afhaalmoment
+(acties), en de meldingen aan de club
 (inschrijvingen, GDPR-verzoeken, annuleringen).
 
 Elke mail bestaat uit een platte-tekstversie (hier opgebouwd) en een
@@ -15,11 +16,13 @@ helpt ook tegen spamfilters, die een mail met enkel HTML wantrouwen.
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from datetime import timezone
 from email.utils import formataddr, formatdate, make_msgid
+from zoneinfo import ZoneInfo
 from flask import current_app, has_request_context, render_template, request, url_for
 from werkzeug.routing import BuildError
 
-from models import actie_lijnen_per_moment
+from models import Order, actie_lijnen_per_moment
 
 
 def _veilige_header_waarde(waarde):
@@ -60,8 +63,8 @@ def _basis_url():
     return (url or "").rstrip("/")
 
 
-def _admin_url(endpoint, **kwargs):
-    """Volledige link naar een adminpagina (knop in de interne meldingen), of
+def _site_url(endpoint, **kwargs):
+    """Volledige link naar een pagina van de site (knop in een mail), of
     None als die niet op te bouwen is."""
     basis = _basis_url()
     try:
@@ -238,6 +241,74 @@ Er is iets gewijzigd aan het afhalen van je bestelling #{order.order_id} bij {mo
     ))
 
 
+def _bestelde_regels(order):
+    """Alles uit een bestelling als [(naam, detail of None, aantal, prijs per stuk)]."""
+    rijen = []
+    for line in order.lines:
+        detail = f"{line.variant.color} / {line.variant.size}" if line.variant else None
+        rijen.append((line.product.product_name, detail, line.quantity, float(line.price)))
+    for line in order.ticket_lines:
+        wedstrijd = line.wedstrijd
+        rijen.append((
+            f"Ticket {line.ticket_type.naam}",
+            f"{wedstrijd.titel} - {wedstrijd.datum_tijd.strftime('%d/%m/%Y %H:%M')}",
+            line.quantity, float(line.price),
+        ))
+    for line in order.actie_lines:
+        rijen.append((
+            line.variant.volledige_naam, f"{line.actie.titel} - afhalen {line.moment.label}",
+            line.quantity, float(line.price),
+        ))
+    return rijen
+
+
+def send_betaling_mislukt_mail(order):
+    """Meldt de koper dat de betaling mislukt of nooit afgerond is (de
+    Stripe-sessie verliep), zodat niemand denkt dat de bestelling in orde
+    is. Wie intussen opnieuw bestelde en betaalde, krijgt dat er meteen bij
+    te lezen - vaak de reden dat de eerste betaling nooit afgerond werd."""
+    nieuwere_betaald = (
+        Order.query
+        .filter(Order.user_id == order.user_id, Order.order_id > order.order_id, Order.payment_status == "paid")
+        .order_by(Order.order_id)
+        .all()
+    )
+    besteld_op = order.created_at.replace(tzinfo=timezone.utc).astimezone(ZoneInfo("Europe/Brussels"))
+    rijen = _bestelde_regels(order)
+    shop_url = _site_url("shop.products")
+
+    body = f"""Beste {order.user.first_name} {order.user.last_name},
+
+De betaling van je bestelling #{order.order_id} van {besteld_op.strftime('%d/%m/%Y om %H:%M')} is niet gelukt of werd niet afgerond. Deze bestelling is daarom niet doorgegaan: er werd niets aangerekend en niets voor je gereserveerd.
+
+Het ging om:
+"""
+    for naam, detail, aantal, prijs in rijen:
+        body += f"- {naam}{f' ({detail})' if detail else ''} x {aantal} (€{prijs:.2f})\n"
+    body += f"Totaal: €{order.total_paid:.2f}\n\n"
+
+    if nieuwere_betaald:
+        nummers = ", ".join(f"#{o.order_id}" for o in nieuwere_betaald)
+        body += (
+            f"Je hebt intussen opnieuw besteld: bestelling {nummers} is wel betaald en in orde. "
+            "Daarvoor hoef je niets te doen.\n\n"
+        )
+    else:
+        body += (
+            "Wil je toch nog bestellen? Plaats dan een nieuwe bestelling in de webshop"
+            f"{': ' + shop_url if shop_url else ''}.\n"
+            "Heb je intussen al opnieuw besteld en een bevestigingsmail gekregen? "
+            "Dan is die bestelling in orde en mag je deze mail negeren.\n\n"
+        )
+    body += "Vragen? Antwoord gerust op deze e-mail.\n"
+
+    _send(_bericht(
+        f"Betaling niet gelukt - bestelling #{order.order_id}", order.user.email, body,
+        "mail/betaling_mislukt.html",
+        order=order, besteld_op=besteld_op, rijen=rijen, nieuwere_betaald=nieuwere_betaald, shop_url=shop_url,
+    ))
+
+
 def send_admin_cancellation_mail(order):
     """Meldt de admin dat een bestelling geannuleerd is."""
     body = f"""Admin,
@@ -256,7 +327,7 @@ Dit is een automatische melding, gelieve hier niet op te antwoorden.
             ("E-mail", order.user.email),
             ("Totaal", f"€{order.total_paid:.2f}"),
         ],
-        knop_url=_admin_url("admin.view_order", order_id=order.order_id), knop_tekst="Bekijk de bestelling",
+        knop_url=_site_url("admin.view_order", order_id=order.order_id), knop_tekst="Bekijk de bestelling",
     ))
 
 
@@ -301,7 +372,7 @@ Ingediend op: {inschrijving.aangemaakt_op.strftime('%d/%m/%Y %H:%M')}
             ("Opmerkingen", inschrijving.opmerkingen),
             ("Ingediend op", inschrijving.aangemaakt_op.strftime('%d/%m/%Y %H:%M')),
         ],
-        knop_url=_admin_url("admin.view_inschrijving", inschrijving_id=inschrijving.id), knop_tekst="Open de inschrijving",
+        knop_url=_site_url("admin.view_inschrijving", inschrijving_id=inschrijving.id), knop_tekst="Open de inschrijving",
         reply_to=inschrijving.email,
     ))
 
@@ -330,6 +401,6 @@ Gelieve dit verzoek binnen de wettelijke termijn te verwerken.
             ("Ingediend op", verzoek.aangemaakt_op.strftime('%d/%m/%Y %H:%M')),
         ],
         bericht_titel="Opmerking" if verzoek.opmerking else None, bericht=verzoek.opmerking,
-        knop_url=_admin_url("admin.view_gdpr_verzoek", verzoek_id=verzoek.id), knop_tekst="Open het verzoek",
+        knop_url=_site_url("admin.view_gdpr_verzoek", verzoek_id=verzoek.id), knop_tekst="Open het verzoek",
         reply_to=verzoek.email,
     ))

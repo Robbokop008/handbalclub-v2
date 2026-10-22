@@ -48,7 +48,7 @@ from models import (
     Actie, ActieVariant, AfhaalMoment, ActieLijn, ActieOpmerking, ACTIE_OPMERKING_MAX,
 )
 from utils.auth import login_required
-from utils.mail import send_order_confirmation_mail, send_admin_cancellation_mail
+from utils.mail import send_order_confirmation_mail, send_admin_cancellation_mail, send_betaling_mislukt_mail
 
 shop_bp = Blueprint("shop", __name__)
 
@@ -773,7 +773,7 @@ def stripe_webhook():
     # gewoon opnieuw proberen. Die bestelling toen al op 'failed' zetten
     # boekte de voorraad terug, terwijl een tweede poging nog kon slagen.
     # Wordt er nooit betaald, dan komt checkout.session.expired vanzelf.
-    newly_paid = False
+    newly_paid = newly_failed = False
     try:
         if event_type.startswith("checkout.session.") and not order.telefoon:
             telefoon = _stripe_telefoon(data_object)
@@ -808,11 +808,12 @@ def stripe_webhook():
                     if line.variant:
                         line.variant.stock += line.quantity
                 db.session.commit()
+                newly_failed = True
     except Exception:
         current_app.logger.exception(f"Webhook: verwerken van event {event_type} voor order {order_id} is mislukt")
         return "Internal error while processing webhook", 500
 
-    # Bevestigingsmail apart van de betaalstatus-update: een SMTP-fout mag nooit
+    # Mails apart van de betaalstatus-update: een SMTP-fout mag nooit
     # voorkomen dat Stripe een 200 krijgt voor een betaling die wel degelijk
     # correct verwerkt is (anders eindeloze retries van hetzelfde event).
     if newly_paid:
@@ -820,6 +821,13 @@ def stripe_webhook():
             send_order_confirmation_mail(order)
         except Exception:
             current_app.logger.exception(f"Bevestigingsmail versturen voor order {order_id} is mislukt")
+    # Zonder deze mail weet de koper enkel dat er iets mis is door het
+    # uitblijven van de bevestiging - en denkt misschien dat alles in orde is.
+    if newly_failed:
+        try:
+            send_betaling_mislukt_mail(order)
+        except Exception:
+            current_app.logger.exception(f"Mail over mislukte betaling voor order {order_id} versturen is mislukt")
 
     return "", 200
 

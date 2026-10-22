@@ -257,6 +257,8 @@ Via **Webshop → Bestellingen** zie je de geplaatste bestellingen met bestelnum
 
 **Filteren:** zoek op bestelnummer (bv. 42 of #42), naam of e-mail, en filter op **status**, **betaling** (openstaand, betaald, mislukt), **soort** (producten, tickets of acties), een bepaalde **wedstrijd of actie** (bij een actie ook op **afhaalmoment**) en de **periode** waarin besteld werd.
 
+**Mislukte betalingen:** wordt een betaling geweigerd of nooit afgerond (de betaalpagina verloopt na 30 minuten bij tickets en acties met een beperkte voorraad, anders na 24 uur), dan komt de bestelling automatisch op **betaling: mislukt** en krijgt de koper een mail dat de bestelling niet doorgegaan is en er niets aangerekend werd. Heeft die koper intussen opnieuw besteld en betaald, dan staat dat er meteen bij. In het profiel van de koper staat zo'n bestelling als "Niet betaald - niet doorgegaan".
+
 **Exporteren:** met **"Download als Excel (CSV)"** download je alle bestellingen die aan de huidige filters voldoen (niet enkel de pagina die je ziet), één rij per bestelling met klant, telefoon, inhoud, bedragen, betaling en status.
 
 **Archiveren:** afgewerkte bestellingen haal je uit de standaardlijst door ze aan te vinken en op **"Archiveren"** te klikken, of met de knop **"Archiveren"** bovenaan een bestelling. Er wordt niets verwijderd. Met het filter **Archief → "Ook gearchiveerde"** of **"Enkel gearchiveerde"** zie je ze terug, en met **"Terugzetten uit archief"** komen ze weer in de gewone lijst. Gearchiveerde bestellingen tellen niet mee bij "Bestellingen die actie nodig hebben" op het dashboard. Op de keuken- en afhaallijsten van acties en de naamlijsten van tickets blijven ze wel staan.
